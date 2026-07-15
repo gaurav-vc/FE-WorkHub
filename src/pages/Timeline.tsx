@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useTaskContext } from "@/context/TaskContext";
+import { TaskWorkspacePanel } from "@/components/tasks/TaskWorkspacePanel";
 
 const totalDays = 30; // 30 day view
 const dayLabels = Array.from({ length: totalDays }, (_, i) => `Day ${i + 1}`);
@@ -27,7 +28,7 @@ const getDayIndex = (dateString: string | undefined, defaultIndex: number): numb
 };
 
 export default function Timeline() {
-  const { tasks, updateTask, deleteTask } = useTaskContext();
+  const { tasks, updateTask, deleteTask, setSelectedTask } = useTaskContext();
   const [dragTask, setDragTask] = useState<{ id: string; startX: number; originalStart: number; dayShift: number } | null>(null);
   const dragDayShiftRef = useRef(0);
 
@@ -95,6 +96,10 @@ export default function Timeline() {
           startDate: formatDate(newStartDate), 
           dueDate: formatDate(newDueDate) 
         });
+      } else {
+        // If it was just a click without dragging, open task details
+        const fullTask = tasks.find(t => t.id === task.id);
+        if (fullTask) setSelectedTask(fullTask);
       }
       setDragTask(null);
       window.removeEventListener("mousemove", handleMouseMove);
@@ -181,6 +186,8 @@ export default function Timeline() {
           </div>
         </CardContent>
       </Card>
+      
+      <TaskWorkspacePanel />
     </div>
   );
 }

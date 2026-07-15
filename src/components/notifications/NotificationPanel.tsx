@@ -3,7 +3,6 @@ import {
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { useTaskContext } from "@/context/TaskContext";
 import { Notification } from "@/types/tasks";
@@ -50,7 +49,7 @@ export function NotificationPanel() {
             </Button>
           )}
         </div>
-        <ScrollArea className="max-h-80">
+        <div className="max-h-80 overflow-y-auto custom-scrollbar">
           {notifications.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-8">No notifications</p>
           ) : (
@@ -76,7 +75,7 @@ export function NotificationPanel() {
               );
             })
           )}
-        </ScrollArea>
+        </div>
       </PopoverContent>
     </Popover>
   );

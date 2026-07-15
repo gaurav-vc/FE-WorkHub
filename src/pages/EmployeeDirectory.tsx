@@ -145,6 +145,28 @@ export default function EmployeeDirectory() {
     }
   };
 
+  const handleDownloadVCard = (e: Employee) => {
+    const vcard = `BEGIN:VCARD
+VERSION:3.0
+FN:${e.name}
+N:${e.name.split(" ").reverse().join(";")};;;
+EMAIL;TYPE=INTERNET;TYPE=WORK:${e.email}
+TEL;TYPE=CELL:${e.phone}
+TITLE:${e.role}
+ORG:${e.department}
+END:VCARD`;
+
+    const blob = new Blob([vcard], { type: "text/vcard" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${e.name.replace(/\\s+/g, '_')}.vcf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const filtered = employees.filter((e) => {
     const matchDept = department === "All" || e.department === department;
     const matchSearch = !search || e.name.toLowerCase().includes(search.toLowerCase()) || e.role.toLowerCase().includes(search.toLowerCase()) || e.department.toLowerCase().includes(search.toLowerCase());
@@ -173,8 +195,7 @@ export default function EmployeeDirectory() {
                 <p className="text-sm text-muted-foreground">{e.role} · {e.department}</p>
               </div>
               <div className="flex gap-2">
-                <Button size="sm" variant="outline" className="gap-1.5 text-xs"><MessageCircle className="h-3.5 w-3.5" /> Message</Button>
-                <Button size="sm" className="gradient-primary text-primary-foreground gap-1.5 text-xs"><Download className="h-3.5 w-3.5" /> vCard</Button>
+                <Button size="sm" onClick={() => handleDownloadVCard(e)} className="gradient-primary text-primary-foreground gap-1.5 text-xs"><Download className="h-3.5 w-3.5" /> vCard</Button>
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

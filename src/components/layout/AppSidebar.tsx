@@ -167,13 +167,13 @@ export function AppSidebar() {
                           to={item.url}
                           end={item.url === "/"}
                           className={cn(
-                            "rounded-md transition-colors",
+                            "flex items-center gap-3 w-full rounded-md transition-colors px-2 py-1.5",
                             isActive && "bg-sidebar-accent text-sidebar-primary font-medium"
                           )}
                           activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
                         >
-                          <item.icon className="h-4 w-4" />
-                          <span>{item.title}</span>
+                          <item.icon className="h-4 w-4 shrink-0" />
+                          <span className="truncate">{item.title}</span>
                         </NavLink>
                       </SidebarMenuButton>
                     </SidebarMenuItem>

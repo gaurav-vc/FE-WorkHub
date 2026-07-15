@@ -273,30 +273,30 @@ export default function CreateMOM() {
   });
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-8 pb-20">
-      <div className="flex justify-between items-center -ml-4">
+    <div className="p-2 md:p-6 w-full space-y-8 pb-20 animate-fade-in">
+      <div className="flex justify-between items-center -ml-4 md:ml-0">
         <Button variant="ghost" className="gap-2" onClick={() => navigate('/collaboration/moms')}>
           <ArrowLeft className="h-4 w-4" /> Back to List
         </Button>
         <div className="flex items-center gap-3">
-          <Button variant="outline" className="px-6" onClick={() => navigate('/collaboration/moms')} disabled={isSaving}>
+          <Button variant="outline" className="px-6 border-border" onClick={() => navigate('/collaboration/moms')} disabled={isSaving}>
             Cancel
           </Button>
-          <Button className="px-8 bg-blue-600 hover:bg-blue-700" onClick={handleSubmit} disabled={isSaving}>
+          <Button className="px-8 gradient-primary text-primary-foreground shadow-sm hover:shadow-md transition-shadow" onClick={handleSubmit} disabled={isSaving}>
             {isSaving ? "Creating MOM..." : "Create MOM"}
           </Button>
         </div>
       </div>
 
       {/* 01 Meeting Information */}
-      <div className="bg-white p-6 md:p-8 rounded-xl border border-slate-200 shadow-sm">
+      <div className="bg-card p-6 md:p-8 rounded-xl border border-border shadow-card hover:shadow-md transition-shadow">
         <div className="flex items-center gap-3 mb-8">
-          <div className="h-10 w-10 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center shrink-0">
+          <div className="h-10 w-10 bg-primary/10 text-primary rounded-lg flex items-center justify-center shrink-0">
             <FileText className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-slate-800">01 Meeting Information</h3>
-            <p className="text-sm text-slate-500 font-medium mt-0.5">Core meeting context and scheduling details</p>
+            <h3 className="text-lg font-display font-bold text-foreground">01 Meeting Information</h3>
+            <p className="text-sm text-muted-foreground font-medium mt-0.5">Core meeting context and scheduling details</p>
           </div>
         </div>
         
@@ -385,14 +385,14 @@ export default function CreateMOM() {
       </div>
 
       {/* 02 Attendees */}
-      <div className="bg-white p-6 md:p-8 rounded-xl border border-slate-200 shadow-sm">
+      <div className="bg-card p-6 md:p-8 rounded-xl border border-border shadow-card hover:shadow-md transition-shadow">
         <div className="flex items-center gap-3 mb-6">
-          <div className="h-10 w-10 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center shrink-0">
+          <div className="h-10 w-10 bg-primary/10 text-primary rounded-lg flex items-center justify-center shrink-0">
             <Users className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-slate-800">02 Attendees</h3>
-            <p className="text-sm text-slate-500 font-medium mt-0.5">{externalAttendees.length + internalAttendees.length} participants</p>
+            <h3 className="text-lg font-display font-bold text-foreground">02 Attendees</h3>
+            <p className="text-sm text-muted-foreground font-medium mt-0.5">{externalAttendees.length + internalAttendees.length} participants</p>
           </div>
         </div>
 
@@ -407,7 +407,7 @@ export default function CreateMOM() {
             className={`px-4 py-1.5 text-sm font-medium rounded-full transition-colors ${activeTab === 'org' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-500 hover:text-slate-700'}`}
             onClick={() => setActiveTab('org')}
           >
-            Logicon Attendees ({internalAttendees.length})
+            Organization Attendees ({internalAttendees.length})
           </button>
         </div>
 
@@ -452,7 +452,7 @@ export default function CreateMOM() {
 
             <Dialog open={isAddInternalOpen} onOpenChange={setIsAddInternalOpen}>
               <DialogTrigger asChild>
-                <Button className="gap-2 bg-blue-600 hover:bg-blue-700 h-10">
+                <Button className="gap-2 gradient-primary text-primary-foreground shadow-sm h-10">
                   <Plus className="h-4 w-4" /> Add Attendee
                 </Button>
               </DialogTrigger>
@@ -476,7 +476,7 @@ export default function CreateMOM() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">Add Attendee</Button>
+                  <Button type="submit" className="w-full gradient-primary text-primary-foreground shadow-sm">Add Attendee</Button>
                 </form>
               </DialogContent>
             </Dialog>
@@ -510,15 +510,15 @@ export default function CreateMOM() {
       </div>
 
       {/* 03 Meeting Agenda */}
-      <div className="bg-white p-6 md:p-8 rounded-xl border border-slate-200 shadow-sm">
+      <div className="bg-card p-6 md:p-8 rounded-xl border border-border shadow-card hover:shadow-md transition-shadow">
         <div className="flex justify-between items-start mb-6">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center shrink-0">
+            <div className="h-10 w-10 bg-primary/10 text-primary rounded-lg flex items-center justify-center shrink-0">
               <ListTodo className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-slate-800">03 Meeting Agenda</h3>
-              <p className="text-sm text-slate-500 font-medium mt-0.5">Discussion topics and remarks</p>
+              <h3 className="text-lg font-display font-bold text-foreground">03 Meeting Agenda</h3>
+              <p className="text-sm text-muted-foreground font-medium mt-0.5">Discussion topics and remarks</p>
             </div>
           </div>
           <Button variant="outline" size="sm" className="gap-2 border-slate-200" onClick={addAgenda}>
@@ -578,18 +578,18 @@ export default function CreateMOM() {
       </div>
 
       {/* 04 Action Plan / Next Steps */}
-      <div className="bg-white p-6 md:p-8 rounded-xl border border-slate-200 shadow-sm">
+      <div className="bg-card p-6 md:p-8 rounded-xl border border-border shadow-card hover:shadow-md transition-shadow">
         <div className="flex justify-between items-start mb-6">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center shrink-0">
+            <div className="h-10 w-10 bg-primary/10 text-primary rounded-lg flex items-center justify-center shrink-0">
               <ClipboardList className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-slate-800">04 Action Plan / Next Steps</h3>
-              <p className="text-sm text-slate-500 font-medium mt-0.5">Assigning a responsible person automatically creates a task on submission</p>
+              <h3 className="text-lg font-display font-bold text-foreground">04 Action Plan / Next Steps</h3>
+              <p className="text-sm text-muted-foreground font-medium mt-0.5">Assigning a responsible person automatically creates a task on submission</p>
             </div>
           </div>
-          <Button className="gap-2 bg-blue-600 hover:bg-blue-700" onClick={addPoint}>
+          <Button className="gap-2 gradient-primary text-primary-foreground shadow-sm" onClick={addPoint}>
             <Plus className="h-4 w-4" /> Add Action
           </Button>
         </div>

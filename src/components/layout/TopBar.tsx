@@ -28,7 +28,7 @@ import { CreateTaskModal } from "@/components/tasks/CreateTaskModal";
 import { useTaskContext } from "@/context/TaskContext";
 
 export function TopBar() {
-  const { username, role, logout } = useAuth();
+  const { username, role, logout, portalType } = useAuth();
   const navigate = useNavigate();
   const { tasks, addTask } = useTaskContext();
   
@@ -53,43 +53,47 @@ export function TopBar() {
     <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b bg-card/80 backdrop-blur-sm px-4 gap-4">
       <div className="flex items-center gap-2">
         <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
-        <div className="hidden sm:flex items-center relative max-w-sm">
-          <Search className="absolute left-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search anything…"
-            readOnly
-            onClick={() => setShowSearch(true)}
-            className="pl-9 h-9 w-64 bg-secondary/50 border-0 focus-visible:ring-1 cursor-pointer"
-          />
-          <kbd className="absolute right-2.5 hidden md:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] text-muted-foreground pointer-events-none">
-            ⌘K
-          </kbd>
-        </div>
+        {portalType !== 'super_user' && (
+          <div className="hidden sm:flex items-center relative max-w-sm">
+            <Search className="absolute left-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search anything…"
+              readOnly
+              onClick={() => setShowSearch(true)}
+              className="pl-9 h-9 w-64 bg-secondary/50 border-0 focus-visible:ring-1 cursor-pointer"
+            />
+            <kbd className="absolute right-2.5 hidden md:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] text-muted-foreground pointer-events-none">
+              ⌘K
+            </kbd>
+          </div>
+        )}
       </div>
 
       <div className="flex items-center gap-2">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button size="sm" className="gradient-primary text-primary-foreground gap-1.5 rounded-lg shadow-sm">
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">Quick Add</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem onClick={() => setShowCreateTask(true)} className="cursor-pointer">
-              <CheckSquare className="mr-2 h-4 w-4 text-primary" />
-              <span>New Task</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate("/tasks/calendar")} className="cursor-pointer">
-              <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
-              <span>New Meeting</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate("/tasks/projects")} className="cursor-pointer">
-              <Briefcase className="mr-2 h-4 w-4 text-primary" />
-              <span>New Project</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {portalType !== 'super_user' && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" className="gradient-primary text-primary-foreground gap-1.5 rounded-lg shadow-sm">
+                <Plus className="h-4 w-4" />
+                <span className="hidden sm:inline">Quick Add</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={() => setShowCreateTask(true)} className="cursor-pointer">
+                <CheckSquare className="mr-2 h-4 w-4 text-primary" />
+                <span>New Task</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate("/tasks/calendar")} className="cursor-pointer">
+                <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
+                <span>New Meeting</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate("/tasks/projects")} className="cursor-pointer">
+                <Briefcase className="mr-2 h-4 w-4 text-primary" />
+                <span>New Project</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
 
         <NotificationPanel />
 

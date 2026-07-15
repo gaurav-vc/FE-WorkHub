@@ -37,6 +37,9 @@ interface CalendarEvent {
   recurring?: boolean;
   color: string;
   start_time?: string;
+  description?: string;
+  platform?: string;
+  meeting_link?: string;
 }
 
 const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -98,7 +101,10 @@ export default function CalendarMeetings() {
                 location: ev.location,
                 recurring: ev.recurring,
                 color: ev.color || "bg-primary",
-                start_time: ev.start_time
+                start_time: ev.start_time,
+                description: ev.description,
+                platform: ev.platform,
+                meeting_link: ev.meeting_link
               });
             });
           }
@@ -469,14 +475,14 @@ export default function CalendarMeetings() {
         <DialogContent className="sm:max-w-[450px] p-0 overflow-hidden border-border bg-card shadow-2xl">
           {/* Header Segmented Control */}
           <div className="pt-6 pb-2 px-6 flex justify-between items-center bg-muted/50 border-b border-border">
-            <div className="w-full flex justify-center mt-2">
-              <div className="bg-muted p-1 rounded-full flex items-center shadow-inner w-[320px] border border-border">
+            <div className="w-full flex justify-center mt-2 px-6">
+              <div className="bg-muted p-1.5 rounded-full flex items-center shadow-inner w-full border border-border">
                 {(["Task", "Event", "Meeting"] as const).map((t) => (
                   <button
                     key={t}
                     onClick={() => setForm({ ...form, type: t.toLowerCase() as any })}
                     className={cn(
-                      "flex-1 py-1.5 text-sm font-semibold rounded-full transition-all text-center",
+                      "flex-1 py-2 text-sm md:text-base font-semibold rounded-full transition-all text-center",
                       form.type === t.toLowerCase()
                         ? "bg-primary text-primary-foreground shadow-sm"
                         : "text-muted-foreground hover:text-foreground"
@@ -490,61 +496,61 @@ export default function CalendarMeetings() {
           </div>
 
           {/* Form Body */}
-          <div className="px-6 py-4 space-y-4 text-foreground">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
+          <div className="px-6 py-4 space-y-5 text-foreground">
+            <div className="grid grid-cols-2 gap-5">
+              <div className="space-y-1.5">
                 <Label className="text-muted-foreground text-xs font-bold tracking-wide capitalize">{form.type} Topic</Label>
                 <Input
                   value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  className="bg-muted text-foreground border-0 h-9 rounded-md"
+                  className="bg-muted/50 text-foreground border-0 h-10 rounded-md"
                 />
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <Label className="text-muted-foreground text-xs font-bold tracking-wide">Date</Label>
                 <Input
                   type="date"
                   value={form.date}
                   onChange={(e) => setForm({ ...form, date: e.target.value })}
-                  className="bg-muted text-foreground border-0 h-9 rounded-md dark:[color-scheme:dark]"
+                  className="bg-muted/50 text-foreground border-0 h-10 rounded-md dark:[color-scheme:dark]"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
+            <div className="grid grid-cols-2 gap-5">
+              <div className="space-y-1.5">
                 <Label className="text-muted-foreground text-xs font-bold tracking-wide capitalize">{form.type} Description</Label>
                 <Input
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  className="bg-muted text-foreground border-0 h-9 rounded-md"
+                  className="bg-muted/50 text-foreground border-0 h-10 rounded-md"
                 />
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <Label className="text-muted-foreground text-xs font-bold tracking-wide">Time</Label>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-2">
                   <Input
                     type="time"
                     value={form.startTime}
                     onChange={(e) => setForm({ ...form, startTime: e.target.value, endTime: `${(parseInt(e.target.value.split(':')[0]) + 1).toString().padStart(2, '0')}:${e.target.value.split(':')[1]}` })}
-                    className="bg-muted text-foreground border-0 h-9 rounded-md px-2 dark:[color-scheme:dark] w-full"
+                    className="bg-muted/50 text-foreground border-0 h-10 rounded-md px-2 dark:[color-scheme:dark] w-full"
                   />
-                  <span className="text-muted-foreground">-</span>
+                  <span className="text-muted-foreground font-medium">-</span>
                   <Input
                     type="time"
                     value={form.endTime}
                     onChange={(e) => setForm({ ...form, endTime: e.target.value })}
-                    className="bg-muted text-foreground border-0 h-9 rounded-md px-2 dark:[color-scheme:dark] w-full"
+                    className="bg-muted/50 text-foreground border-0 h-10 rounded-md px-2 dark:[color-scheme:dark] w-full"
                   />
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1 relative">
+            <div className="grid grid-cols-2 gap-5">
+              <div className="space-y-1.5 relative">
                 <Label className="text-muted-foreground text-xs font-bold tracking-wide">Platform</Label>
                 <Select value={form.platform} onValueChange={(v) => setForm({ ...form, platform: v })}>
-                  <SelectTrigger className="bg-muted text-foreground border-0 h-9 rounded-md">
+                  <SelectTrigger className="bg-muted/50 text-foreground border-0 h-10 rounded-md">
                     <SelectValue placeholder="Select platform" />
                   </SelectTrigger>
                   <SelectContent>
@@ -557,18 +563,18 @@ export default function CalendarMeetings() {
                 </Select>
               </div>
 
-              <div className="space-y-1 relative">
+              <div className="space-y-1.5 relative">
                 <Label className="text-muted-foreground text-xs font-bold tracking-wide capitalize">{form.type} Link</Label>
                 <div className="flex items-center gap-2">
                   <Input
                     value={form.meetingLink}
                     onChange={(e) => setForm({ ...form, meetingLink: e.target.value })}
-                    className="bg-muted text-foreground border-0 h-9 rounded-md flex-1"
+                    className="bg-muted/50 text-foreground border-0 h-10 rounded-md flex-1"
                   />
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-8 px-2 text-primary hover:text-primary/80"
+                    className="h-10 px-3 text-primary font-semibold hover:text-primary/80 hover:bg-primary/10"
                     onClick={() => {
                       let base = "";
                       if (form.platform === "Zoom") base = "https://zoom.us/j/";
@@ -584,7 +590,7 @@ export default function CalendarMeetings() {
               </div>
             </div>
 
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <Label className="text-muted-foreground text-xs font-bold tracking-wide">Internal Employees</Label>
               <Select
                 onValueChange={(v) => {
@@ -594,7 +600,7 @@ export default function CalendarMeetings() {
                   }
                 }}
               >
-                <SelectTrigger className="bg-muted text-foreground border-0 h-9 rounded-md">
+                <SelectTrigger className="bg-muted/50 text-foreground border-0 h-10 rounded-md">
                   <SelectValue placeholder="Add internal employee..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -724,6 +730,19 @@ export default function CalendarMeetings() {
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
                 <RotateCcw className="h-4 w-4 text-primary" />
                 <span>Recurring Event</span>
+              </div>
+            )}
+            
+            {selectedEvent?.platform && (
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                <Video className="h-4 w-4 text-primary" />
+                <span>{selectedEvent.platform}</span>
+              </div>
+            )}
+            
+            {selectedEvent?.description && (
+              <div className="flex items-start gap-3 text-sm text-muted-foreground mt-4 border-t border-border pt-4">
+                <p className="whitespace-pre-wrap">{selectedEvent.description}</p>
               </div>
             )}
             

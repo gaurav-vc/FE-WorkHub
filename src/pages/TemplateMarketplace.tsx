@@ -157,7 +157,7 @@ export default function TemplateMarketplace() {
   };
 
   const downloadCsvTemplate = () => {
-    const csvContent = "data:text/csv;charset=utf-8," + "Task Title,Description,Status\nSample Task,This is a sample description,pending\n";
+    const csvContent = "data:text/csv;charset=utf-8," + "Template Title,Template Description,Template Category,Task Title,Task Description,Task Status\n";
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
@@ -181,26 +181,30 @@ export default function TemplateMarketplace() {
          return;
       }
       
-      const parseCSVLine = (text: string) => {
-         const re = /,"|",|"(?=[^"]*"$)/g;
-         let a = text.split(re);
-         if (a.length === 1) return text.split(',');
-         return text.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g)?.map(s => s.replace(/^"|"$/g, '').trim()) || text.split(',');
-      };
-
-      const parsedTasks = lines.slice(1).map(line => {
-         // Use a more robust split to handle quotes if possible, otherwise fallback
+      const parsedRows = lines.slice(1).map(line => {
          let parts = line.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || line.split(',');
-         parts = parts.map(p => p.replace(/^"|"$/g, '').trim());
-         return {
-            title: parts[0] || "Untitled Task",
-            description: parts[1] || "",
-            status: parts[2] || "pending"
-         };
+         return parts.map(p => p.replace(/^"|"$/g, '').trim());
       });
+
+      const firstRow = parsedRows[0];
+      const templateTitle = firstRow[0] || file.name.replace('.csv', '');
+      const templateDesc = firstRow[1] || "";
+      const templateCat = firstRow[2] || "All";
+
+      const parsedTasks = parsedRows.map(parts => ({
+         title: parts[3] || "Untitled Task",
+         description: parts[4] || "",
+         status: parts[5] || "pending"
+      })).filter(t => t.title && t.title !== "Untitled Task");
       
       setCreateTasks(parsedTasks);
-      setCreateForm(prev => ({ ...prev, numTasks: parsedTasks.length, title: file.name.replace('.csv', '') }));
+      setCreateForm(prev => ({ 
+        ...prev, 
+        numTasks: Math.max(1, parsedTasks.length), 
+        title: templateTitle,
+        description: templateDesc,
+        category: templateCat
+      }));
       setShowImport(false);
       setShowCreate(true);
       toast.success(`Successfully parsed ${parsedTasks.length} tasks from CSV. Review and save.`);
@@ -240,11 +244,14 @@ export default function TemplateMarketplace() {
           <p className="text-muted-foreground mt-1">{backendTemplates.length} project templates ready to use</p>
         </div>
         <div className="flex gap-2">
-          <Button className="gap-1.5 bg-primary text-primary-foreground" onClick={() => setShowCreate(true)}>
-            <Plus className="h-4 w-4" /> Create Template
+          <Button variant="outline" className="gap-1.5 border-primary/20 hover:bg-primary/5" onClick={downloadCsvTemplate} title="Download CSV Template Format">
+            <Download className="h-4 w-4" /> Download Format
           </Button>
           <Button variant="outline" className="gap-1.5" onClick={() => setShowImport(true)}>
             <FileSpreadsheet className="h-4 w-4" /> Import CSV
+          </Button>
+          <Button className="gap-1.5 bg-primary text-primary-foreground shadow-sm hover:shadow-md transition-shadow" onClick={() => setShowCreate(true)}>
+            <Plus className="h-4 w-4" /> Create Template
           </Button>
         </div>
       </div>
@@ -425,7 +432,7 @@ export default function TemplateMarketplace() {
             </div>
             <p className="text-sm text-muted-foreground">Upload a CSV file (.csv) with the following columns:</p>
             <div className="p-3 rounded-lg bg-muted/50 space-y-1">
-              {["Task Title", "Description", "Status"].map(col => (
+              {["Template Title", "Template Description", "Template Category", "Task Title", "Task Description", "Task Status"].map(col => (
                 <div key={col} className="flex items-center gap-2 text-xs">
                   <div className="h-1.5 w-1.5 rounded-full bg-primary" />
                   {col}

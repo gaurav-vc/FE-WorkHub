@@ -180,7 +180,7 @@ export default function SetupCourses() {
                     <button 
                       className="hover:text-slate-800 transition-colors tooltip-trigger"
                       title="Preview Course"
-                      onClick={() => navigate(`/collaboration/learning/preview/${course.id}`)}
+                      onClick={() => navigate(`/learning/course/${course.id}`)}
                     >
                       <Eye className="h-4 w-4" />
                     </button>

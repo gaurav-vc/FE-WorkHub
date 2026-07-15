@@ -54,6 +54,7 @@ export default function KnowledgeBase() {
   const [newTitle, setNewTitle] = useState("");
   const [newExcerpt, setNewExcerpt] = useState("");
   const [newCategory, setNewCategory] = useState("engineering");
+  const [newContent, setNewContent] = useState("");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -81,6 +82,7 @@ export default function KnowledgeBase() {
     formData.append("title", newTitle);
     formData.append("excerpt", newExcerpt);
     formData.append("category", newCategory);
+    formData.append("content", newContent);
     if (uploadFile) {
       formData.append("file", uploadFile);
     }
@@ -91,6 +93,7 @@ export default function KnowledgeBase() {
       setIsUploadOpen(false);
       setNewTitle("");
       setNewExcerpt("");
+      setNewContent("");
       setUploadFile(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
       fetchArticles();
@@ -216,6 +219,16 @@ export default function KnowledgeBase() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700">Content</label>
+                <textarea 
+                  className="w-full min-h-[100px] p-3 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                  value={newContent}
+                  onChange={e => setNewContent(e.target.value)}
+                  placeholder="Article content. You can use markdown like '# Heading' or '- List item'..."
+                  required
+                />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-700">Upload File (Optional)</label>

@@ -159,51 +159,50 @@ export default function MOMList() {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+    <div className="space-y-6 animate-fade-in p-2 md:p-6 w-full">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <FileText className="h-6 w-6 text-blue-600" />
-            Minutes of Meeting
+          <h1 className="text-2xl font-display font-bold text-foreground flex items-center gap-2">
+            <FileText className="h-6 w-6 text-primary" /> Minutes of Meeting
           </h1>
-          <p className="text-sm text-slate-500">Track and manage meeting outcomes and action items.</p>
+          <p className="text-muted-foreground mt-1">Track and manage meeting outcomes and action items.</p>
         </div>
         
-        <Button className="gap-2 bg-blue-600 hover:bg-blue-700" onClick={() => navigate('/collaboration/moms/create')}>
+        <Button className="gap-1.5 gradient-primary text-primary-foreground shadow-sm hover:shadow-md transition-shadow" onClick={() => navigate('/collaboration/moms/create')}>
           <Plus className="h-4 w-4" /> New MOM
         </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {moms.map(mom => (
-          <Card key={mom.id} className="hover:shadow-md transition-shadow cursor-pointer overflow-hidden border-slate-200" onClick={() => navigate(`/collaboration/moms/${mom.id}`)}>
-            <div className="h-2 w-full bg-blue-500"></div>
+          <Card key={mom.id} className="shadow-card hover:shadow-md transition-all cursor-pointer overflow-hidden border-border group" onClick={() => navigate(`/collaboration/moms/${mom.id}`)}>
+            <div className="h-1.5 w-full gradient-primary"></div>
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex justify-between items-start">
+              <CardTitle className="text-lg font-display flex justify-between items-start group-hover:text-primary transition-colors">
                 <span className="truncate pr-2">{mom.title}</span>
                 <div className="flex gap-1 -mt-1 -mr-2">
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-blue-600" onClick={(e) => handleClone(e, mom.id)} title="Clone MOM">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => handleClone(e, mom.id)} title="Clone MOM">
                     <Copy className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-red-600" onClick={(e) => handleDelete(e, mom.id)} title="Delete MOM">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => handleDelete(e, mom.id)} title="Delete MOM">
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               </CardTitle>
-              <div className="flex items-center text-xs text-slate-500 gap-1 mt-1">
+              <div className="flex items-center text-xs text-muted-foreground gap-1 mt-1">
                 <Calendar className="h-3.5 w-3.5" />
                 {format(new Date(mom.meeting_date + 'T12:00:00'), 'PP')}
               </div>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-slate-600 line-clamp-2 mb-4">
+              <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
                 {mom.description || "No description provided."}
               </p>
-              <div className="flex flex-wrap gap-1">
+              <div className="flex flex-wrap gap-1.5">
                 {mom.tags && mom.tags.length > 0 ? mom.tags.map((tag, idx) => (
-                  <Badge key={idx} variant="secondary" className="text-[10px] bg-slate-100 text-slate-600">{tag}</Badge>
+                  <Badge key={idx} variant="secondary" className="text-[10px]">{tag}</Badge>
                 )) : (
-                  <span className="text-xs text-slate-400 italic">No tags</span>
+                  <span className="text-xs text-muted-foreground/70 italic">No tags</span>
                 )}
               </div>
             </CardContent>
@@ -211,10 +210,12 @@ export default function MOMList() {
         ))}
         
         {moms.length === 0 && (
-          <div className="col-span-full py-12 text-center text-slate-500 border border-dashed rounded-lg bg-slate-50">
-            <FileText className="h-10 w-10 mx-auto text-slate-300 mb-3" />
-            <p>No Minutes of Meetings found.</p>
-            <p className="text-sm">Create one to get started.</p>
+          <div className="col-span-full py-16 text-center text-muted-foreground border border-dashed rounded-xl bg-muted/20">
+            <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FileText className="h-8 w-8 text-primary" />
+            </div>
+            <p className="text-lg font-medium text-foreground">No Minutes of Meetings found.</p>
+            <p className="text-sm mt-1">Create one to get started and track your actions.</p>
           </div>
         )}
       </div>
