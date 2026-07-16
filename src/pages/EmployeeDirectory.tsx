@@ -44,6 +44,7 @@ interface Employee {
   location: string;
   status: "active" | "away" | "busy" | "offline";
   joinedDate: string;
+  date_of_birth?: string;
   manager: string;
   skills: string[];
 }
@@ -67,7 +68,7 @@ export default function EmployeeDirectory() {
   
   const [showAddForm, setShowAddForm] = useState(false);
   const [form, setForm] = useState({
-    name: "", role: "", department: "Engineering", email: "", phone: "", location: "", joinedDate: "", manager: "", skills: ""
+    name: "", role: "", department: "Engineering", email: "", phone: "", location: "", joinedDate: "", date_of_birth: "", manager: "", skills: ""
   });
 
   const fetchEmployees = async () => {
@@ -117,6 +118,7 @@ export default function EmployeeDirectory() {
       phone: form.phone || "N/A",
       location: form.location || "Remote",
       joinedDate: form.joinedDate || new Date().toISOString().split('T')[0],
+      date_of_birth: form.date_of_birth || null,
       manager: form.manager,
       skills: form.skills.split(",").map(s => s.trim()).filter(s => s),
       status: "active"
@@ -134,7 +136,7 @@ export default function EmployeeDirectory() {
       if (res.ok) {
         toast.success("Employee added to directory");
         setShowAddForm(false);
-        setForm({ name: "", role: "", department: "Engineering", email: "", phone: "", location: "", joinedDate: "", manager: "", skills: "" });
+        setForm({ name: "", role: "", department: "Engineering", email: "", phone: "", location: "", joinedDate: "", date_of_birth: "", manager: "", skills: "" });
         fetchEmployees();
       } else {
         const errData = await res.json();
@@ -368,6 +370,10 @@ END:VCARD`;
             <div className="space-y-2">
               <Label>Location</Label>
               <Input value={form.location} onChange={(e) => setForm({...form, location: e.target.value})} placeholder="e.g. New York, NY" />
+            </div>
+            <div className="space-y-2">
+              <Label>Date of Birth</Label>
+              <Input type="date" value={form.date_of_birth} onChange={(e) => setForm({...form, date_of_birth: e.target.value})} />
             </div>
             <div className="space-y-2">
               <Label>Manager</Label>

@@ -229,7 +229,7 @@ export default function WorkflowAutomation() {
   const executeWorkflow = async (id: number) => {
     try {
       await executeWorkflowApi(id.toString());
-      toast.success("Workflow executed. Check logs for details.");
+      toast.success("Workflow executed successfully and emails dispatched! Check logs for details.");
       fetchWorkflows();
     } catch(err) {
       console.error(err);

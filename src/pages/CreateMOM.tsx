@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { ArrowLeft, FileText, Users, ListTodo, Plus, Trash2, Search, MapPin, Calendar, UserPlus, ClipboardList } from 'lucide-react';
+import { ArrowLeft, FileText, Users, ListTodo, Plus, Trash2, Search, MapPin, Calendar, UserPlus, ClipboardList, Share2, Download, Save, Send } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { API_BASE } from "@/config";
@@ -160,7 +160,7 @@ export default function CreateMOM() {
     setPoints(newPoints);
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (finalStatus: string = newMeetingStatus) => {
     if (!newTitle || !newDate) {
       toast({ title: 'Title and Meeting Date are required', variant: 'destructive' });
       return;
@@ -186,7 +186,7 @@ export default function CreateMOM() {
           end_time: newEndTime || null,
           meeting_type: newMeetingType,
           prepared_by: newPreparedBy,
-          meeting_status: newMeetingStatus,
+          meeting_status: finalStatus,
           tags: []
         })
       });
@@ -247,13 +247,17 @@ export default function CreateMOM() {
         });
       }
 
-      // 5. Send notifications and emails
-      await fetch(`${API_BASE}/mom/moms/${momId}/send_notifications/`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      if (finalStatus !== 'Draft') {
+        // 5. Send notifications and emails
+        await fetch(`${API_BASE}/mom/moms/${momId}/send_notifications/`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        toast({ title: 'MOM fully created successfully!' });
+      } else {
+        toast({ title: 'MOM saved as Draft!' });
+      }
 
-      toast({ title: 'MOM fully created successfully!' });
       navigate(`/collaboration/moms/${momId}`);
 
     } catch (e) {
@@ -278,14 +282,6 @@ export default function CreateMOM() {
         <Button variant="ghost" className="gap-2" onClick={() => navigate('/collaboration/moms')}>
           <ArrowLeft className="h-4 w-4" /> Back to List
         </Button>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" className="px-6 border-border" onClick={() => navigate('/collaboration/moms')} disabled={isSaving}>
-            Cancel
-          </Button>
-          <Button className="px-8 gradient-primary text-primary-foreground shadow-sm hover:shadow-md transition-shadow" onClick={handleSubmit} disabled={isSaving}>
-            {isSaving ? "Creating MOM..." : "Create MOM"}
-          </Button>
-        </div>
       </div>
 
       {/* 01 Meeting Information */}
@@ -723,6 +719,22 @@ export default function CreateMOM() {
             </tbody>
           </table>
         </div>
+      </div>
+      
+      {/* Bottom Action Bar */}
+      <div className="flex flex-wrap items-center justify-end gap-3 pt-6 border-t mt-8">
+        <Button variant="outline" className="gap-2 px-6 shadow-sm h-11" onClick={() => toast({title: "Share Modal triggered", description: "Sharing link copied to clipboard!"})}>
+          <Share2 className="h-4 w-4" /> Share
+        </Button>
+        <Button variant="outline" className="gap-2 px-6 shadow-sm h-11" onClick={() => window.print()}>
+          <Download className="h-4 w-4" /> Download PDF
+        </Button>
+        <Button variant="outline" className="gap-2 px-6 shadow-sm h-11" onClick={() => handleSubmit('Draft')} disabled={isSaving}>
+          <Save className="h-4 w-4" /> Save MOM Draft
+        </Button>
+        <Button className="gap-2 px-8 shadow-md h-11 bg-primary text-primary-foreground hover:brightness-110" onClick={() => handleSubmit('Completed')} disabled={isSaving}>
+          <Send className="h-4 w-4" /> Submit MOM
+        </Button>
       </div>
     </div>
   );

@@ -51,7 +51,7 @@ interface Birthday {
   name: string;
   initials: string;
   department: string;
-  date: string;
+  date_string: string;
   day: number;
 }
 
@@ -68,6 +68,8 @@ export default function RecognitionBirthdays() {
   const { token, username } = useAuth();
   const [kudos, setKudos] = useState<Kudos[]>([]);
   const [birthdays, setBirthdays] = useState<Birthday[]>([]);
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [recipientFilter, setRecipientFilter] = useState<string>("All");
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ to: "", message: "", category: "Team Player" });
 
@@ -92,6 +94,10 @@ export default function RecognitionBirthdays() {
       const bRes = await fetch(`${API_BASE}/recognition/birthdays/`, { headers: { Authorization: `Bearer ${token}` } });
       if (bRes.ok) {
         setBirthdays(await bRes.json());
+      }
+      const eRes = await fetch(`${API_BASE}/directory/employees/`, { headers: { Authorization: `Bearer ${token}` } });
+      if (eRes.ok) {
+        setEmployees(await eRes.json());
       }
     } catch (err) {
       console.error(err);
@@ -180,18 +186,30 @@ export default function RecognitionBirthdays() {
           </h1>
           <p className="text-muted-foreground mt-1">Celebrate achievements and team birthdays</p>
         </div>
-        <Button className="gradient-primary text-primary-foreground gap-1.5" onClick={() => setShowCreate(true)}>
-          <Send className="h-4 w-4" /> Send Kudos
+        <Button size="lg" className="gradient-primary text-primary-foreground gap-2 px-8 py-6 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all w-full sm:w-auto" onClick={() => setShowCreate(true)}>
+          <Send className="h-5 w-5" /> Send Kudos
         </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Kudos Wall */}
         <div className="lg:col-span-2 space-y-4">
-          <h2 className="text-lg font-display font-semibold text-foreground">Recognition Wall</h2>
-          {kudos.map((k) => (
-            <Card key={k.id} className="shadow-card group">
-              <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-display font-semibold text-foreground">Recognition Wall</h2>
+            <Select value={recipientFilter} onValueChange={setRecipientFilter}>
+              <SelectTrigger className="w-[200px] h-9"><SelectValue placeholder="Filter by Recipient" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All Recipients</SelectItem>
+                {employees.map(e => (
+                  <SelectItem key={e.id} value={e.name}>{e.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="max-h-[600px] overflow-y-auto pr-2 space-y-4">
+            {kudos.filter(k => recipientFilter === "All" || k.to === recipientFilter).map((k) => (
+              <Card key={k.id} className="shadow-card group">
+                <CardContent className="p-4">
                 <div className="flex items-start gap-3">
                   <Avatar className="h-10 w-10 shrink-0">
                     <AvatarFallback className="text-sm font-semibold gradient-primary text-primary-foreground">{k.fromInitials}</AvatarFallback>
@@ -215,9 +233,10 @@ export default function RecognitionBirthdays() {
                     </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
 
         {/* Birthday Sidebar */}
@@ -225,7 +244,7 @@ export default function RecognitionBirthdays() {
           <Card className="shadow-card">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <Cake className="h-4 w-4 text-accent" /> March Birthdays
+                <Cake className="h-4 w-4 text-accent" /> Upcoming Birthdays
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -238,7 +257,7 @@ export default function RecognitionBirthdays() {
                     <p className="text-sm font-medium text-foreground">{b.name}</p>
                     <p className="text-xs text-muted-foreground">{b.department}</p>
                   </div>
-                  <Badge variant="secondary" className="text-[10px] shrink-0">{b.date}</Badge>
+                  <Badge variant="secondary" className="text-[10px] shrink-0">{b.date_string}</Badge>
                 </div>
               ))}
             </CardContent>
@@ -250,11 +269,21 @@ export default function RecognitionBirthdays() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader><DialogTitle>Send Recognition</DialogTitle></DialogHeader>
           <div className="space-y-3 mt-2">
-            <div className="space-y-1.5"><Label className="text-xs">Recipient</Label><Input value={form.to} onChange={(e) => setForm({ ...form, to: e.target.value })} placeholder="Who do you want to recognize?" /></div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Recipient</Label>
+              <Select value={form.to} onValueChange={(v) => setForm({ ...form, to: v })}>
+                <SelectTrigger className="w-full h-11"><SelectValue placeholder="Who do you want to recognize?" /></SelectTrigger>
+                <SelectContent>
+                  {employees.map(e => (
+                    <SelectItem key={e.id} value={e.name}>{e.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Category</Label>
               <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-full h-11"><SelectValue placeholder="Select Category" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Team Player">Team Player</SelectItem>
                   <SelectItem value="Innovation">Innovation</SelectItem>
