@@ -25,7 +25,7 @@ import { getChatChannels, getAllUsersChannels, getChatMessages, sendChatMessage,
 import { toast } from "sonner";
 
 export default function TeamChat() {
-  const { token } = useAuth();
+  const { token, username } = useAuth();
   const [activeChannel, setActiveChannel] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [showChannels, setShowChannels] = useState(true);
@@ -202,7 +202,7 @@ export default function TeamChat() {
         <ScrollArea className="flex-1 p-4">
           <div className="space-y-4">
             {messages.map((msg) => {
-              const isCurrentUser = msg.user === currentUser?.name;
+              const isCurrentUser = msg.user === username;
               return (
               <div key={msg.id} className={cn("flex items-start gap-3 group", isCurrentUser ? "flex-row-reverse" : "")}>
                 <Avatar className="h-8 w-8 shrink-0">
