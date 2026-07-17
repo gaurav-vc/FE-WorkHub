@@ -20,6 +20,7 @@ export const sendChatMessage = (channelId: string, content: string, file: File |
   formData.append("content", content);
   if (file) {
     formData.append("file", file);
+    formData.append("file_name", file.name);
   }
 
   return apiClient("/chat/messages/", {
