@@ -723,17 +723,14 @@ export default function CreateMOM() {
       
       {/* Bottom Action Bar */}
       <div className="flex flex-wrap items-center justify-end gap-3 pt-6 border-t mt-8">
-        <Button variant="outline" className="gap-2 px-6 shadow-sm h-11" onClick={() => toast({title: "Share Modal triggered", description: "Sharing link copied to clipboard!"})}>
-          <Share2 className="h-4 w-4" /> Share
-        </Button>
-        <Button variant="outline" className="gap-2 px-6 shadow-sm h-11" onClick={() => window.print()}>
-          <Download className="h-4 w-4" /> Download PDF
+        <Button variant="outline" className="gap-2 px-6 shadow-sm h-11" onClick={() => navigate('/collaboration/moms')} disabled={isSaving}>
+          Cancel
         </Button>
         <Button variant="outline" className="gap-2 px-6 shadow-sm h-11" onClick={() => handleSubmit('Draft')} disabled={isSaving}>
-          <Save className="h-4 w-4" /> Save MOM Draft
+          <Save className="h-4 w-4" /> Save Draft
         </Button>
         <Button className="gap-2 px-8 shadow-md h-11 bg-primary text-primary-foreground hover:brightness-110" onClick={() => handleSubmit('Completed')} disabled={isSaving}>
-          <Send className="h-4 w-4" /> Submit MOM
+          <Send className="h-4 w-4" /> Create MOM
         </Button>
       </div>
     </div>

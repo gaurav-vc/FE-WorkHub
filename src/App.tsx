@@ -59,6 +59,7 @@ import SitesList from "@/pages/SitesList";
 import AddSite from "@/pages/AddSite";
 import OrganizationBillingDetails from "@/pages/OrganizationBillingDetails";
 import Billing from "@/pages/Billing";
+import UsersList from "@/pages/UsersList";
 
 export const APP_ROUTES = [
   // My Work
@@ -168,6 +169,7 @@ const App = () => (
               <Route path="/admin/sites/add" element={<AddSite />} />
               <Route path="/admin/billing" element={<Billing />} />
               <Route path="/admin/organizations/:id/billing" element={<OrganizationBillingDetails />} />
+              <Route path="/admin/users" element={<UsersList />} />
               
               <Route path="*" element={<NotFound />} />
             </Routes>

@@ -536,7 +536,7 @@ export function OrganizationManagement() {
                       Billing Configuration
                     </h3>
                     <button 
-                      onClick={() => navigate(`/superadmin/billing/${currentOrg.id}`)}
+                      onClick={() => navigate(`/admin/organizations/${currentOrg.id}/billing`)}
                       className="px-4 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 text-sm font-semibold rounded-xl border border-slate-200 transition-colors"
                     >
                       View Full Billing

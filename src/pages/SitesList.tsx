@@ -135,6 +135,7 @@ export default function SitesList() {
                     <th className="px-2 py-3 text-[10px] font-bold text-slate-800 tracking-wider text-center w-[12%]">Product Type</th>
                     <th className="px-3 py-3 text-[10px] font-bold text-slate-800 tracking-wider w-[12%] truncate">Contact</th>
                     <th className="px-2 py-3 text-[10px] font-bold text-slate-800 tracking-wider text-center w-[10%]">Status</th>
+                    <th className="px-2 py-3 text-[10px] font-bold text-slate-800 tracking-wider text-center w-[12%]">Created</th>
                     <th className="px-2 py-3 text-[10px] font-bold text-slate-800 tracking-wider text-center w-[10%]">Actions</th>
                   </tr>
                 </thead>
@@ -156,13 +157,18 @@ export default function SitesList() {
                         </td>
                         <td className="px-3 py-2.5 text-[11px] text-slate-600 truncate">{site.contact_name || '-'}</td>
                         <td className="px-2 py-2.5 text-center">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
-                            site.status === 'active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-slate-50 text-slate-700 border border-slate-200'
+                          <span className={`inline-flex px-2 py-1 text-[10px] font-bold rounded-full border ${
+                            site.status === 'active' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                            site.status === 'inactive' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                            'bg-slate-50 text-slate-600 border-slate-200'
                           }`}>
-                            {site.status}
+                            {site.status?.toUpperCase() || 'UNKNOWN'}
                           </span>
                         </td>
-                        <td className="px-2 py-2.5 text-center">
+                        <td className="px-2 py-2.5 text-[11px] text-slate-600 text-center">
+                          {site.created_at ? new Date(site.created_at).toLocaleString() : '-'}
+                        </td>
+                        <td className="px-2 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button onClick={(e) => { e.stopPropagation(); openDetailView(site); }} className="text-indigo-500 hover:text-indigo-700 transition-colors" title="Manage">
                               <Settings className="h-4 w-4" />

@@ -43,7 +43,7 @@ export default function SuperAdminDashboard() {
         </div>
 
         {/* Top Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* Card 1 */}
           <div onClick={() => navigate('/admin/billing')} className="cursor-pointer hover:shadow-md transition-all bg-white rounded-[20px] p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-slate-100/60 flex flex-col justify-between h-[110px] group">
             <div className="flex flex-col gap-1">
@@ -66,16 +66,6 @@ export default function SuperAdminDashboard() {
             <div className="text-[22px] font-bold text-slate-900 tracking-tight">{activeSites}</div>
           </div>
 
-          {/* Card 3 */}
-          <div onClick={() => navigate('/admin/users')} className="cursor-pointer hover:shadow-md transition-all bg-white rounded-[20px] p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-slate-100/60 flex flex-col justify-between h-[110px] group">
-            <div className="flex flex-col gap-1">
-              <div className="h-7 w-7 rounded-full bg-indigo-50 flex items-center justify-center mb-1 group-hover:scale-110 transition-transform">
-                <Users className="h-3.5 w-3.5 text-indigo-500" />
-              </div>
-              <p className="text-[11px] text-slate-500 font-medium group-hover:text-indigo-600 transition-colors">Total Users</p>
-            </div>
-            <div className="text-[22px] font-bold text-slate-900 tracking-tight">{totalUsers}</div>
-          </div>
 
           {/* Card 4 */}
           <div onClick={() => navigate('/admin/organizations')} className="cursor-pointer hover:shadow-md transition-all bg-white rounded-[20px] p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-slate-100/60 flex flex-col justify-between h-[110px] group">
