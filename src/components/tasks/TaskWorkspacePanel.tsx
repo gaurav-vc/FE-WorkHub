@@ -292,7 +292,6 @@ export function TaskWorkspacePanel() {
                 </div>
               ))}
               {(task.attachments || []).length === 0 && <p className="text-sm text-muted-foreground text-center py-8">No attachments.</p>}
-              <Button variant="outline" className="w-full gap-1.5"><Paperclip className="h-4 w-4" /> Upload File</Button>
             </TabsContent>
           </ScrollArea>
         </Tabs>

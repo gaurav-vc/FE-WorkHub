@@ -23,7 +23,8 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { getChatChannels, getAllUsersChannels, getChatMessages, sendChatMessage, createChannel, addMemberToChannel } from "@/api/collaboration";
 import { toast } from "sonner";
-
+import { API_BASE } from "@/config";
+import { Download } from "lucide-react";
 export default function TeamChat() {
   const { token, username } = useAuth();
   const [activeChannel, setActiveChannel] = useState<string | null>(null);
@@ -217,17 +218,31 @@ export default function TeamChat() {
                   </div>
                   <div className={`p-3 rounded-lg max-w-[85%] ${isCurrentUser ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"}`}>
                     <p className="text-sm">{msg.content || msg.message}</p>
-                    {msg.file && (
-                      <div className="mt-2 text-xs">
-                        {msg.file_name?.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                          <img src={msg.file.startsWith('http') ? msg.file : `http://127.0.0.1:8000${msg.file}`} alt={msg.file_name} className="max-w-[200px] rounded" />
-                        ) : (
-                          <a href={msg.file.startsWith('http') ? msg.file : `http://127.0.0.1:8000${msg.file}`} target="_blank" rel="noreferrer" className="underline text-blue-300">
-                            📎 {msg.file_name || "Attachment"}
-                          </a>
-                        )}
-                      </div>
-                    )}
+                    {msg.file && (() => {
+                      const fileUrlStr = msg.file.startsWith('/') ? msg.file : `/${msg.file}`;
+                      const url = msg.file.startsWith('http') ? msg.file : `${API_BASE.replace('/api', '')}${fileUrlStr}`;
+                      return (
+                        <div className="mt-2 text-xs flex flex-col items-start gap-1">
+                          {msg.file_name?.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                            <img src={url} alt={msg.file_name} className="max-w-[200px] rounded" />
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <a href={url} target="_blank" rel="noreferrer" className="underline text-blue-300">
+                                📎 {msg.file_name || "Attachment"}
+                              </a>
+                            </div>
+                          )}
+                          <Button 
+                            variant="secondary" 
+                            size="sm" 
+                            className="h-6 mt-1 text-[10px] gap-1 px-2 py-0"
+                            onClick={() => window.open(url, '_blank')}
+                          >
+                            <Download className="h-3 w-3" /> Download
+                          </Button>
+                        </div>
+                      );
+                    })()}
                   </div>
                   {/* Reactions */}
                   {msg.reactions && msg.reactions.length > 0 && (

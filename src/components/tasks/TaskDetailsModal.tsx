@@ -479,12 +479,6 @@ export function TaskDetailsModal({ taskId, open, onOpenChange, onTaskUpdate, pro
                   Attachments
                   <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full">{task.attachments?.length || 0}</span>
                 </h3>
-                <label className="cursor-pointer">
-                  <div className="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 px-3 py-1.5 rounded-md text-xs font-semibold transition-colors">
-                    <Info className="h-3.5 w-3.5" /> Upload File
-                  </div>
-                  <input type="file" className="hidden" onChange={handleFileUpload} />
-                </label>
               </div>
 
               {task.attachments && task.attachments.length > 0 ? (
@@ -520,7 +514,7 @@ export function TaskDetailsModal({ taskId, open, onOpenChange, onTaskUpdate, pro
                 </div>
               ) : (
                 <div className="text-center py-6 text-slate-400 text-xs border border-dashed border-slate-200 rounded-lg bg-slate-50/50">
-                  No attachments yet. Click "Upload File" to add one.
+                  No attachments yet.
                 </div>
               )}
             </div>

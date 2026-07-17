@@ -18,6 +18,7 @@ export default function LearningCenter() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [selectedPrices, setSelectedPrices] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const categories = [
     { label: "All", count: courses.length },
