@@ -5,10 +5,26 @@ export const getTasks = () => {
   return apiClient("/tasks/");
 };
 
-export const createTask = (task: Task) => {
+export const createTask = (task: any) => {
+  let data: any = task;
+  
+  if (task.file) {
+    const formData = new FormData();
+    Object.keys(task).forEach(key => {
+      if (task[key] !== null && task[key] !== undefined) {
+        if (key === 'file') {
+          formData.append(key, task[key]);
+        } else {
+          formData.append(key, String(task[key]));
+        }
+      }
+    });
+    data = formData;
+  }
+  
   return apiClient("/tasks/", {
     method: "POST",
-    data: task,
+    data,
   });
 };
 

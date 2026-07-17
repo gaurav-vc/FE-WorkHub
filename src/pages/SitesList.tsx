@@ -16,6 +16,7 @@ export default function SitesList() {
   const [sites, setSites] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedProductType, setSelectedProductType] = useState('');
 
   const [view, setView] = useState<ViewState>('list');
   const [selectedSite, setSelectedSite] = useState<any | null>(null);
@@ -71,10 +72,14 @@ export default function SitesList() {
     setView('detail');
   };
 
-  const filteredSites = sites.filter(s =>
-    s.site_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    s.site_code?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const uniqueProductTypes = Array.from(new Set(sites.map(s => s.product_type).filter(Boolean)));
+
+  const filteredSites = sites.filter(s => {
+    const searchMatch = s.site_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        s.site_code?.toLowerCase().includes(searchQuery.toLowerCase());
+    const productTypeMatch = selectedProductType === '' || s.product_type === selectedProductType;
+    return searchMatch && productTypeMatch;
+  });
 
   if (portalType !== 'super_user') {
     return <div className="p-10 text-center">Access Denied</div>;
@@ -103,10 +108,17 @@ export default function SitesList() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
-                <select className="h-10 px-3 rounded-[8px] border border-slate-200 text-[13px] text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-white shadow-sm min-w-[200px]">
-                  <option value="">Product Type</option>
+                <select 
+                  className="h-10 px-3 rounded-[8px] border border-slate-200 text-[13px] text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-white shadow-sm min-w-[200px]"
+                  value={selectedProductType}
+                  onChange={(e) => setSelectedProductType(e.target.value)}
+                >
+                  <option value="">All Product Types</option>
+                  {uniqueProductTypes.map(pt => (
+                    <option key={pt} value={pt}>{pt}</option>
+                  ))}
                 </select>
-                <button onClick={() => setSearchQuery('')} className="h-10 px-6 rounded-[8px] border border-slate-200 text-[13px] font-semibold text-slate-600 hover:bg-slate-50 transition-colors shadow-sm bg-white whitespace-nowrap">
+                <button onClick={() => { setSearchQuery(''); setSelectedProductType(''); }} className="h-10 px-6 rounded-[8px] border border-slate-200 text-[13px] font-semibold text-slate-600 hover:bg-slate-50 transition-colors shadow-sm bg-white whitespace-nowrap">
                   Clear Filters
                 </button>
               </div>

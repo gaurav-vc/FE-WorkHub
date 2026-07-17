@@ -29,10 +29,22 @@ export function TaskProvider({ children }: { children: ReactNode }) {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
   const mapTaskFromApi = (t: any): Task => {
+    const formatDate = (dateStr: string) => {
+      if (!dateStr) return "";
+      try {
+        const d = new Date(dateStr);
+        return isNaN(d.getTime()) ? dateStr : d.toISOString().split('T')[0];
+      } catch {
+        return dateStr;
+      }
+    };
+
     return {
       ...t,
-      dueDate: t.due_date || t.dueDate || "",
-      startDate: t.start_date || t.created_at || t.startDate || "",
+      dueDate: formatDate(t.due_date || t.dueDate),
+      startDate: formatDate(t.start_date || t.created_at || t.startDate),
+      createdDate: formatDate(t.created_at || t.createdDate),
+      dueTime: t.dueTime || t.due_time || "EOD",
       assignees: t.assignees || (t.assignee_detail ? [{
         id: t.assignee_detail.id,
         name: t.assignee_detail.name,
@@ -50,7 +62,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       attachments: Array.isArray(t.attachments) ? t.attachments : [],
       estimatedEffort: t.estimatedEffort || t.duration || 3,
       effortUnit: t.effortUnit || "hours",
-      actualEffort: t.actualEffort || 0,
+      actualEffort: t.actual_effort || t.actualEffort || 0,
     };
   };
 

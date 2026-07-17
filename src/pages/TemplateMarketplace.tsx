@@ -42,6 +42,7 @@ import { API_BASE } from "@/config";
 
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const categoryIcons: Record<string, any> = {
   "Team Management": Users, "Productivity": Zap, "Business": Briefcase,
@@ -58,6 +59,7 @@ const categories = [
 
 export default function TemplateMarketplace() {
   const { token } = useAuth();
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
   const [tab, setTab] = useState("marketplace");
@@ -67,12 +69,30 @@ export default function TemplateMarketplace() {
   const [showImport, setShowImport] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   
+  const [projects, setProjects] = useState<any[]>([]);
+  const [showUseModal, setShowUseModal] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
+  const [isImporting, setIsImporting] = useState(false);
+
   const [createForm, setCreateForm] = useState({ title: "", description: "", category: "", numTasks: 1 });
   const [createTasks, setCreateTasks] = useState([{ title: "", status: "pending" }]);
   const [isCreating, setIsCreating] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  useEffect(() => { fetchTemplates(); }, [token]);
+  useEffect(() => { 
+    fetchTemplates();
+    fetchProjects();
+  }, [token]);
+
+  const fetchProjects = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/projects/`, { headers: { 'Authorization': `Bearer ${token}` } });
+      if (res.ok) {
+        const data = await res.json();
+        setProjects(data.results || data);
+      }
+    } catch (e) { console.error(e); }
+  };
 
   const fetchTemplates = async () => {
     try {
@@ -224,12 +244,33 @@ export default function TemplateMarketplace() {
     });
   }, [search, activeCategory, normalizedTemplates]);
 
-  const useTemplate = (tmpl: any) => {
-    setMyTemplates(prev => {
-      if (prev.find(t => t.id === tmpl.id)) return prev;
-      return [...prev, { ...tmpl, id: `my-${tmpl.id}` }];
-    });
-    setPreviewTemplate(null);
+  const handleUseTemplate = async (template: any) => {
+    setPreviewTemplate(template);
+    setShowUseModal(true);
+  };
+
+  const confirmUseTemplate = async () => {
+    if (!selectedProjectId) return toast.error("Please select a project");
+    setIsImporting(true);
+    try {
+      const res = await fetch(`${API_BASE}/templates/${previewTemplate.id}/import_template/`, {
+        method: "POST",
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ project_id: selectedProjectId })
+      });
+      if (res.ok) {
+        toast.success("Template tasks added to the project successfully!");
+        setShowUseModal(false);
+        setPreviewTemplate(null);
+        navigate(`/admin/projects`); // Or wherever projects are displayed
+      } else {
+        toast.error("Failed to add template tasks");
+      }
+    } catch (err) {
+      toast.error("An error occurred");
+    } finally {
+      setIsImporting(false);
+    }
   };
 
   const deleteMyTemplate = (id: string) => setMyTemplates(prev => prev.filter(t => t.id !== id));
@@ -408,8 +449,38 @@ export default function TemplateMarketplace() {
           )}
           <DialogFooter>
             <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
-            <Button variant="outline" onClick={() => previewTemplate && useTemplate(previewTemplate)}>Save to My Templates</Button>
-            <Button className="gradient-primary text-primary-foreground" onClick={() => previewTemplate && useTemplate(previewTemplate)}>Use Template</Button>
+            <Button className="gradient-primary text-primary-foreground" onClick={() => previewTemplate && handleUseTemplate(previewTemplate)}>Use Template</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Use Template Modal */}
+      <Dialog open={showUseModal} onOpenChange={setShowUseModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Use Template: {previewTemplate?.name || previewTemplate?.title}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">Select a project to import these template tasks into.</p>
+            <div className="space-y-2">
+              <Label>Select Project</Label>
+              <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a project" />
+                </SelectTrigger>
+                <SelectContent>
+                  {projects.map(p => (
+                    <SelectItem key={p.id} value={p.id.toString()}>{p.name || p.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
+            <Button className="gradient-primary text-primary-foreground" onClick={confirmUseTemplate} disabled={!selectedProjectId || isImporting}>
+              {isImporting ? "Importing..." : "Confirm & Import"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

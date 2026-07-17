@@ -109,7 +109,6 @@ export default function FinalAssessment({ courseId, employeeName, onClose, onPas
       startSession();
     };
     checkExistingSession();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const startSession = async () => {

@@ -49,7 +49,7 @@ interface Employee {
   skills: string[];
 }
 
-const departments = ["All", "Engineering", "Product", "Design", "Sales", "Human Resources", "Marketing", "Finance"];
+// Departments will be fetched dynamically from backend
 
 const statusColors: Record<string, string> = {
   active: "bg-success",
@@ -65,6 +65,8 @@ export default function EmployeeDirectory() {
   const [department, setDepartment] = useState("All");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [departments, setDepartments] = useState<string[]>(["All"]);
+
   
   const [showAddForm, setShowAddForm] = useState(false);
   const [form, setForm] = useState({
@@ -100,8 +102,24 @@ export default function EmployeeDirectory() {
   };
 
   useEffect(() => {
-    if (token) fetchEmployees();
+    fetchEmployees();
+    fetchDepartments();
   }, [token]);
+
+  const fetchDepartments = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/auth/roles/`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const deptNames = data.map((d: any) => d.name);
+        setDepartments(["All", ...deptNames]);
+      }
+    } catch (err) {
+      console.error("Failed to fetch departments", err);
+    }
+  };
 
   const handleAddEmployee = async () => {
     if (!form.name || !form.email) {

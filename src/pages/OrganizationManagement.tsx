@@ -232,7 +232,7 @@ export function OrganizationManagement() {
                         <td className="px-3 py-2.5 text-[11px] font-semibold text-slate-900 truncate">{org.name || '-'}</td>
                         <td className="px-3 py-2.5 text-[11px] text-slate-600 truncate">{org.company_name || '-'}</td>
                         <td className="px-3 py-2.5 text-[11px] text-slate-600 truncate">{org.entity || '-'}</td>
-                        <td className="px-2 py-2.5 text-[11px] text-slate-600 text-center">-</td>
+                        <td className="px-2 py-2.5 text-[11px] text-slate-600 text-center">{org.sites ? org.sites.length : 0}</td>
                         <td className="px-2 py-2.5 text-center">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
                             org.status === 'active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-slate-50 text-slate-700 border border-slate-200'

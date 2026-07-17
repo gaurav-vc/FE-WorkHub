@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useNavigate } from "react-router-dom";
 import { Users, Building2, Server, BadgeIndianRupee } from "lucide-react";
 import { Area, AreaChart, ResponsiveContainer, XAxis, Tooltip, BarChart, Bar, YAxis, CartesianGrid, Cell, PieChart, Pie, Legend, LineChart, Line } from "recharts";
 import { API_BASE } from "@/config";
 
 export default function SuperAdminDashboard() {
   const { token } = useAuth();
+  const navigate = useNavigate();
   const [data, setData] = useState<any>(null);
 
   
@@ -43,45 +45,45 @@ export default function SuperAdminDashboard() {
         {/* Top Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Card 1 */}
-          <div className="bg-white rounded-[20px] p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-slate-100/60 flex flex-col justify-between h-[110px]">
+          <div onClick={() => navigate('/admin/billing')} className="cursor-pointer hover:shadow-md transition-all bg-white rounded-[20px] p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-slate-100/60 flex flex-col justify-between h-[110px] group">
             <div className="flex flex-col gap-1">
-              <div className="h-7 w-7 rounded-full bg-indigo-50 flex items-center justify-center mb-1">
+              <div className="h-7 w-7 rounded-full bg-indigo-50 flex items-center justify-center mb-1 group-hover:scale-110 transition-transform">
                 <BadgeIndianRupee className="h-3.5 w-3.5 text-indigo-500" />
               </div>
-              <p className="text-[11px] text-slate-500 font-medium">Total Revenue</p>
+              <p className="text-[11px] text-slate-500 font-medium group-hover:text-indigo-600 transition-colors">Total Revenue</p>
             </div>
-            <div className="text-[22px] font-bold text-slate-900 tracking-tight">Rs. {revenue.toLocaleString()}/-</div>
+            <div className="text-[22px] font-bold text-slate-900 tracking-tight">Rs. {revenue.toLocaleString()}</div>
           </div>
 
           {/* Card 2 */}
-          <div className="bg-white rounded-[20px] p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-slate-100/60 flex flex-col justify-between h-[110px]">
+          <div onClick={() => navigate('/admin/sites')} className="cursor-pointer hover:shadow-md transition-all bg-white rounded-[20px] p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-slate-100/60 flex flex-col justify-between h-[110px] group">
             <div className="flex flex-col gap-1">
-              <div className="h-7 w-7 rounded-full bg-blue-50 flex items-center justify-center mb-1">
+              <div className="h-7 w-7 rounded-full bg-blue-50 flex items-center justify-center mb-1 group-hover:scale-110 transition-transform">
                 <Building2 className="h-3.5 w-3.5 text-blue-500" />
               </div>
-              <p className="text-[11px] text-slate-500 font-medium">Active Sites</p>
+              <p className="text-[11px] text-slate-500 font-medium group-hover:text-blue-600 transition-colors">Active Sites</p>
             </div>
             <div className="text-[22px] font-bold text-slate-900 tracking-tight">{activeSites}</div>
           </div>
 
           {/* Card 3 */}
-          <div className="bg-white rounded-[20px] p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-slate-100/60 flex flex-col justify-between h-[110px]">
+          <div onClick={() => navigate('/admin/users')} className="cursor-pointer hover:shadow-md transition-all bg-white rounded-[20px] p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-slate-100/60 flex flex-col justify-between h-[110px] group">
             <div className="flex flex-col gap-1">
-              <div className="h-7 w-7 rounded-full bg-indigo-50 flex items-center justify-center mb-1">
+              <div className="h-7 w-7 rounded-full bg-indigo-50 flex items-center justify-center mb-1 group-hover:scale-110 transition-transform">
                 <Users className="h-3.5 w-3.5 text-indigo-500" />
               </div>
-              <p className="text-[11px] text-slate-500 font-medium">Total Users</p>
+              <p className="text-[11px] text-slate-500 font-medium group-hover:text-indigo-600 transition-colors">Total Users</p>
             </div>
             <div className="text-[22px] font-bold text-slate-900 tracking-tight">{totalUsers}</div>
           </div>
 
           {/* Card 4 */}
-          <div className="bg-white rounded-[20px] p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-slate-100/60 flex flex-col justify-between h-[110px]">
+          <div onClick={() => navigate('/admin/organizations')} className="cursor-pointer hover:shadow-md transition-all bg-white rounded-[20px] p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-slate-100/60 flex flex-col justify-between h-[110px] group">
             <div className="flex flex-col gap-1">
-              <div className="h-7 w-7 rounded-full bg-blue-50 flex items-center justify-center mb-1">
+              <div className="h-7 w-7 rounded-full bg-blue-50 flex items-center justify-center mb-1 group-hover:scale-110 transition-transform">
                 <Server className="h-3.5 w-3.5 text-blue-500" />
               </div>
-              <p className="text-[11px] text-slate-500 font-medium">Total Company</p>
+              <p className="text-[11px] text-slate-500 font-medium group-hover:text-blue-600 transition-colors">Total Company</p>
             </div>
             <div className="text-[22px] font-bold text-slate-900 tracking-tight">{totalOrgs}</div>
           </div>

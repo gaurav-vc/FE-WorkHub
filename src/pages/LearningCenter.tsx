@@ -57,7 +57,9 @@ export default function LearningCenter() {
       (selectedPrices.includes("Free") && isFree) ||
       (selectedPrices.includes("Paid") && !isFree);
     
-    return catMatch && statusMatch && priceMatch;
+    const searchMatch = !searchQuery || course.title.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    return catMatch && statusMatch && priceMatch && searchMatch;
   });
 
   useEffect(() => {

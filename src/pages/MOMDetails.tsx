@@ -9,8 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-// @ts-ignore
-// import html2pdf from 'html2pdf.js';
+import html2pdf from 'html2pdf.js';
 import { API_BASE } from "@/config";
 
 export default function MOMDetails() {
@@ -194,8 +193,23 @@ export default function MOMDetails() {
   };
 
   const handleDownloadPDF = () => {
-    // Relying on native browser print with Tailwind print:* classes for a perfect layout without external dependencies
-    window.print();
+    const element = document.getElementById('mom-pdf-content');
+    if (element) {
+      // Temporarily remove hidden class to render
+      element.classList.remove('hidden');
+      const opt: any = {
+        margin:       10,
+        filename:     `MOM_${mom.meeting_date || 'date'}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2 },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+      
+      html2pdf().set(opt).from(element).save().then(() => {
+        // Hide again after printing
+        element.classList.add('hidden');
+      });
+    }
   };
 
   const handleSubmitMOM = async () => {
@@ -860,7 +874,7 @@ export default function MOMDetails() {
                 const name = isClient ? a.name : (a.user_details?.first_name ? `${a.user_details.first_name} ${a.user_details.last_name || ''}` : a.user_details?.username || 'Employee');
                 const designation = isClient ? 'Client' : (a.user_details?.department || 'Staff');
                 const email = isClient ? a.email : a.user_details?.email;
-                const type = isClient ? 'Client' : 'Logicon';
+                const type = isClient ? 'Client' : 'Internal';
                 return (
                   <tr key={i}>
                     <td className="border border-slate-300 p-2">{i + 1}</td>

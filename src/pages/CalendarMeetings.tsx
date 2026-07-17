@@ -459,7 +459,9 @@ export default function CalendarMeetings() {
                     <div className={`h-8 w-1 rounded-full ${m.color} shrink-0 mt-0.5`} />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-foreground">{m.title}</p>
-                      <p className="text-xs text-muted-foreground">{m.time} · {m.duration}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {m.duration?.includes('-') ? m.duration : `${m.time} · ${m.duration}`}
+                      </p>
                     </div>
                     {m.type === "meeting" && <Button size="sm" variant="outline" className="text-xs h-7 shrink-0">Join</Button>}
                   </div>
@@ -712,7 +714,7 @@ export default function CalendarMeetings() {
           <div className="space-y-4 py-4">
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
               <Clock className="h-4 w-4 text-primary" />
-              <span>{selectedEvent?.time} · {selectedEvent?.duration}</span>
+              <span>{selectedEvent?.duration?.includes('-') ? selectedEvent?.duration : `${selectedEvent?.time} · ${selectedEvent?.duration}`}</span>
             </div>
             {selectedEvent?.location && (
               <div className="flex items-center gap-3 text-sm text-muted-foreground">

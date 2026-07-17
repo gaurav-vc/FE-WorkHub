@@ -35,10 +35,10 @@ export const createChannel = (name: string, type: string) => {
   });
 };
 
-export const addMemberToChannel = (channelId: string, userId: string) => {
+export const addMemberToChannel = (channelId: string, userIds: string[]) => {
   return apiClient(`/chat/channels/${channelId}/add_member/`, {
     method: "POST",
-    data: { user_id: userId },
+    data: { user_ids: userIds },
   });
 };
 
@@ -50,5 +50,17 @@ export const createKbArticle = (data: any) => {
   return apiClient("/kb/articles/", {
     method: "POST",
     data,
+  });
+};
+
+export const toggleKbHelpful = (articleId: string | number) => {
+  return apiClient(`/kb/articles/${articleId}/toggle_helpful/`, {
+    method: "POST",
+  });
+};
+
+export const toggleKbSave = (articleId: string | number) => {
+  return apiClient(`/kb/articles/${articleId}/toggle_save/`, {
+    method: "POST",
   });
 };

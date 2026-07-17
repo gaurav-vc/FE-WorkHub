@@ -11,7 +11,7 @@ export const getAccessRequests = () => {
 export const updateAccessRequest = (id: string, action: string) => {
   return apiClient(`/learning_center/access_requests/${id}/`, {
     method: "PATCH",
-    data: { action },
+    data: { status: action },
   });
 };
 

@@ -8,6 +8,7 @@ import {
   Search,
   Plus,
   Users,
+  Image as ImageIcon,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +17,8 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { getChatChannels, getAllUsersChannels, getChatMessages, sendChatMessage, createChannel, addMemberToChannel } from "@/api/collaboration";
@@ -38,7 +40,10 @@ export default function TeamChat() {
 
   const [showAddMember, setShowAddMember] = useState(false);
   const [globalUsers, setGlobalUsers] = useState<any[]>([]);
-  const [selectedUserToAdd, setSelectedUserToAdd] = useState<string>("");
+  const [selectedUsersToAdd, setSelectedUsersToAdd] = useState<string[]>([]);
+  const [fileAttachment, setFileAttachment] = useState<File | null>(null);
+
+  const EMOJIS = ["😀","😂","😍","🙌","👍","🔥","🎉","💡"];
 
   const fetchChannels = async () => {
     if (token) {
@@ -83,10 +88,11 @@ export default function TeamChat() {
   }, [token, activeChannel]);
 
   const handleSendMessage = async () => {
-    if (!message.trim() || !activeChannel) return;
+    if ((!message.trim() && !fileAttachment) || !activeChannel) return;
     try {
-      await sendChatMessage(activeChannel.toString(), message.trim());
+      await sendChatMessage(activeChannel.toString(), message.trim(), fileAttachment);
       setMessage("");
+      setFileAttachment(null);
       // Optimistically fetch messages immediately
       const msgs = await getChatMessages(activeChannel.toString());
       setChatMessages(prev => ({ ...prev, [activeChannel]: msgs.results || msgs }));
@@ -109,12 +115,12 @@ export default function TeamChat() {
   };
 
   const handleAddMember = async () => {
-    if (!selectedUserToAdd || !activeChannel) return;
+    if (selectedUsersToAdd.length === 0 || !activeChannel) return;
     try {
-      await addMemberToChannel(activeChannel.toString(), selectedUserToAdd);
+      await addMemberToChannel(activeChannel.toString(), selectedUsersToAdd);
       setShowAddMember(false);
-      setSelectedUserToAdd("");
-      toast.success("Member added!");
+      setSelectedUsersToAdd([]);
+      toast.success("Members added!");
     } catch (e) {
       console.error(e);
       toast.error("Failed to add member");
@@ -195,19 +201,34 @@ export default function TeamChat() {
         {/* Messages */}
         <ScrollArea className="flex-1 p-4">
           <div className="space-y-4">
-            {messages.map((msg) => (
-              <div key={msg.id} className="flex items-start gap-3 group">
+            {messages.map((msg) => {
+              const isCurrentUser = msg.user === currentUser?.name;
+              return (
+              <div key={msg.id} className={cn("flex items-start gap-3 group", isCurrentUser ? "flex-row-reverse" : "")}>
                 <Avatar className="h-8 w-8 shrink-0">
                   <AvatarFallback className="text-xs bg-primary/10 text-primary font-semibold">
                     {msg.initials}
                   </AvatarFallback>
                 </Avatar>
-                <div className="flex-1 min-w-0">
+                <div className={cn("flex flex-col", isCurrentUser ? "items-end" : "items-start")}>
                   <div className="flex items-baseline gap-2">
                     <span className="text-sm font-semibold text-foreground">{msg.user}</span>
                     <span className="text-[11px] text-muted-foreground">{msg.time}</span>
                   </div>
-                  <p className="text-sm text-foreground/90 mt-0.5 leading-relaxed">{msg.content || msg.message}</p>
+                  <div className={`p-3 rounded-lg max-w-[85%] ${isCurrentUser ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"}`}>
+                    <p className="text-sm">{msg.content || msg.message}</p>
+                    {msg.file && (
+                      <div className="mt-2 text-xs">
+                        {msg.file_name?.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                          <img src={msg.file.startsWith('http') ? msg.file : `http://127.0.0.1:8000${msg.file}`} alt={msg.file_name} className="max-w-[200px] rounded" />
+                        ) : (
+                          <a href={msg.file.startsWith('http') ? msg.file : `http://127.0.0.1:8000${msg.file}`} target="_blank" rel="noreferrer" className="underline text-blue-300">
+                            📎 {msg.file_name || "Attachment"}
+                          </a>
+                        )}
+                      </div>
+                    )}
+                  </div>
                   {/* Reactions */}
                   {msg.reactions && msg.reactions.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mt-2">
@@ -223,7 +244,7 @@ export default function TeamChat() {
                     </div>
                   )}
                   {/* Thread indicator */}
-                  {msg.replies && msg.replies > 0 && (
+                  {msg.replies > 0 && (
                     <button className="flex items-center gap-1.5 mt-2 text-xs text-primary hover:underline">
                       <MessageCircle className="h-3 w-3" />
                       {msg.replies} replies
@@ -231,26 +252,42 @@ export default function TeamChat() {
                   )}
                 </div>
               </div>
-            ))}
+            )})}
           </div>
         </ScrollArea>
 
         {/* Message Input */}
         <div className="p-3 border-t border-border">
           <div className="flex items-center gap-2">
-            <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0">
-              <Paperclip className="h-4 w-4" />
-            </Button>
-            <Input
-              placeholder={`Message #${channel.name}...`}
+            <label className="cursor-pointer">
+              <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" asChild>
+                <span><Paperclip className="h-4 w-4" /></span>
+              </Button>
+              <input type="file" className="hidden" onChange={(e) => setFileAttachment(e.target.files?.[0] || null)} />
+            </label>
+            <Input 
+              placeholder={fileAttachment ? `File: ${fileAttachment.name}` : `Message #${channel.name}...`}
+              className="h-9 text-sm" 
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-              className="flex-1"
             />
-            <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0">
-              <Smile className="h-4 w-4" />
-            </Button>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0">
+                  <Smile className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 p-2 bg-white" side="top">
+                <div className="grid grid-cols-4 gap-2">
+                  {EMOJIS.map(emoji => (
+                    <button key={emoji} className="text-2xl hover:bg-slate-100 rounded p-1" onClick={() => setMessage(prev => prev + emoji)}>
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
             <Button onClick={handleSendMessage} size="icon" className="h-8 w-8 shrink-0 gradient-primary text-primary-foreground">
               <Send className="h-4 w-4" />
             </Button>
@@ -289,22 +326,32 @@ export default function TeamChat() {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <label className="text-sm font-medium">Select User</label>
-              <Select value={selectedUserToAdd} onValueChange={setSelectedUserToAdd}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a team member..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {globalUsers.map(u => (
-                    <SelectItem key={u.id} value={u.id.toString()}>{u.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <label className="text-sm font-medium">Select Users</label>
+              <ScrollArea className="h-[200px] border border-border rounded-md p-2">
+                {globalUsers.map(u => (
+                  <div key={u.id} className="flex items-center space-x-2 py-2 border-b border-border last:border-0">
+                    <Checkbox 
+                      id={`user-${u.id}`}
+                      checked={selectedUsersToAdd.includes(u.id.toString())}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setSelectedUsersToAdd(prev => [...prev, u.id.toString()]);
+                        } else {
+                          setSelectedUsersToAdd(prev => prev.filter(id => id !== u.id.toString()));
+                        }
+                      }}
+                    />
+                    <label htmlFor={`user-${u.id}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                      {u.name}
+                    </label>
+                  </div>
+                ))}
+              </ScrollArea>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddMember(false)}>Cancel</Button>
-            <Button onClick={handleAddMember} disabled={!selectedUserToAdd}>Add Member</Button>
+            <Button onClick={handleAddMember} disabled={selectedUsersToAdd.length === 0}>Add Members</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

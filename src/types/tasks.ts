@@ -69,6 +69,8 @@ export interface Task {
   isUrgent: boolean;
   repeat: RepeatConfig;
   dependencies: string[];
+  dependent_tasks_legacy?: string[];
+  file?: File | null;
   checklist: ChecklistItem[];
   subtasks: SubTask[];
   comments: TaskComment[];

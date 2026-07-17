@@ -5,7 +5,7 @@ import { ChevronRight, Download, CreditCard, Receipt, Building2, MapPin } from "
 import { API_BASE } from "@/config";
 
 export default function OrganizationBillingDetails() {
-  const { orgId } = useParams();
+  const { id: orgId } = useParams();
   const { token } = useAuth();
   const navigate = useNavigate();
   const [org, setOrg] = useState<any>(null);
@@ -91,18 +91,18 @@ export default function OrganizationBillingDetails() {
     const csvContent = [
       header.join(","),
       ...invoices.map(inv => [inv.invoice_number, inv.billing_date, inv.due_date, inv.amount, inv.status].join(","))
-    ].join("\\n");
+    ].join("\n");
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${org.name.replace(/\\s+/g, '_')}_Invoices.csv`;
+    a.download = `${org.name.replace(/\s+/g, '_')}_Invoices.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
   };
 
   const handleDownloadInvoice = (inv: any) => {
-    const content = `INVOICE\\n\\nOrganization: ${org.name}\\nInvoice Number: ${inv.invoice_number}\\nDate: ${inv.billing_date}\\nDue Date: ${inv.due_date}\\n\\nTotal Amount: Rs. ${inv.amount}\\nStatus: ${inv.status.toUpperCase()}\\n`;
+    const content = `INVOICE\n\nOrganization: ${org.name}\nInvoice Number: ${inv.invoice_number}\nDate: ${inv.billing_date}\nDue Date: ${inv.due_date}\n\nTotal Amount: Rs. ${inv.amount}\nStatus: ${inv.status.toUpperCase()}\n`;
     const blob = new Blob([content], { type: 'text/plain' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');

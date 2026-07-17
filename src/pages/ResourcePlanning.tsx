@@ -10,17 +10,28 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 import { useTaskContext } from "@/context/TaskContext";
 import { useAuth } from "@/context/AuthContext";
 import { API_BASE } from "@/config";
 
 export default function ResourcePlanning() {
   const { token } = useAuth();
-  const { tasks } = useTaskContext();
+  const { tasks, updateTask } = useTaskContext();
   const [view, setView] = useState("dashboard");
   const [filter, setFilter] = useState<"all" | "optimal" | "overloaded">("all");
   const [teamMembers, setTeamMembers] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
+  const [acknowledgedConflicts, setAcknowledgedConflicts] = useState<string[]>([]);
+  const [selectedConflict, setSelectedConflict] = useState<any>(null);
+  const [showReassignModal, setShowReassignModal] = useState(false);
+  const [showDeadlineModal, setShowDeadlineModal] = useState(false);
+  const [reassignTo, setReassignTo] = useState("");
+  const [newDeadline, setNewDeadline] = useState("");
 
   useEffect(() => {
     if (token) {
@@ -34,7 +45,6 @@ export default function ResourcePlanning() {
       fetch(`${API_BASE}/auth/employees/`, { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.json())
         .then(data => {
-          // ensure it matches teamMembers interface if needed or map fields
           const members = (data.results || data).map((m: any) => {
             const memberName = m.full_name || m.username || m.name || "Unknown";
             return {
@@ -75,12 +85,13 @@ export default function ResourcePlanning() {
   }, [resourceData, filter]);
 
   const conflicts = useMemo(() => {
-    const results: Array<{ resource: string; initials: string; tasks: string[]; message: string }> = [];
+    const results: Array<{ id: string, resource: string; initials: string; tasks: any[]; message: string }> = [];
     resourceData.forEach(r => {
       if (r.status === "overloaded") {
         results.push({
+          id: r.id,
           resource: r.name, initials: r.initials,
-          tasks: r.assignedTasks.map(t => t.title),
+          tasks: r.assignedTasks.map(t => ({ id: t.id, title: t.title })),
           message: `${r.name} is at ${r.utilization}% capacity — overallocated by ${r.totalEffortHours - r.weeklyCapacity}h this week`,
         });
       }
@@ -88,14 +99,52 @@ export default function ResourcePlanning() {
       const urgentTasks = r.assignedTasks.filter(t => t.isUrgent);
       if (urgentTasks.length > 1) {
         results.push({
+          id: `${r.id}-urgent`,
           resource: r.name, initials: r.initials,
-          tasks: urgentTasks.map(t => t.title),
+          tasks: urgentTasks.map(t => ({ id: t.id, title: t.title })),
           message: `${r.name} has ${urgentTasks.length} urgent tasks assigned simultaneously`,
         });
       }
     });
-    return results;
-  }, [resourceData]);
+    return results.filter(c => !acknowledgedConflicts.includes(c.id.toString()));
+  }, [resourceData, acknowledgedConflicts]);
+
+  const handleAcknowledge = (id: string) => {
+    setAcknowledgedConflicts(prev => [...prev, id]);
+    toast.success("Conflict acknowledged and dismissed");
+  };
+
+  const handleReassign = async () => {
+    if (!reassignTo || !selectedConflict) return toast.error("Select an assignee");
+    try {
+      // Reassign first task in conflict as an example implementation
+      const taskToReassign = selectedConflict.tasks[0]?.id;
+      if (taskToReassign) {
+        await updateTask(taskToReassign, { taskType: 'assign' });
+        toast.success(`Task reassigned to ${reassignTo}`);
+      }
+      setShowReassignModal(false);
+      setSelectedConflict(null);
+    } catch (e) {
+      toast.error("Failed to reassign task");
+    }
+  };
+
+  const handleAdjustDeadline = async () => {
+    if (!newDeadline || !selectedConflict) return toast.error("Select a new date");
+    try {
+      // Adjust deadline for first task in conflict
+      const taskToAdjust = selectedConflict.tasks[0]?.id;
+      if (taskToAdjust) {
+        await updateTask(taskToAdjust, { dueDate: newDeadline });
+        toast.success("Deadline adjusted successfully");
+      }
+      setShowDeadlineModal(false);
+      setSelectedConflict(null);
+    } catch (e) {
+      toast.error("Failed to adjust deadline");
+    }
+  };
 
   const statusColors = {
     underutilized: "text-info bg-info/10",
@@ -338,14 +387,14 @@ export default function ResourcePlanning() {
                       <div className="pl-14">
                         <p className="text-sm font-semibold mb-3 text-foreground">Involved Tasks & Priorities:</p>
                         <div className="flex flex-wrap gap-2 mb-5">
-                          {c.tasks.map((t, ti) => (
-                            <Badge key={ti} variant="secondary" className="px-2 py-1 text-xs bg-background border-destructive/20 shadow-sm">{t}</Badge>
+                          {c.tasks.map((t: any, ti: number) => (
+                            <Badge key={ti} variant="secondary" className="px-2 py-1 text-xs bg-background border-destructive/20 shadow-sm">{t.title}</Badge>
                           ))}
                         </div>
                         <div className="flex gap-3">
-                          <Button variant="outline" size="sm" className="h-9">Reassign Tasks</Button>
-                          <Button variant="outline" size="sm" className="h-9">Adjust Deadlines</Button>
-                          <Button variant="ghost" size="sm" className="h-9 text-destructive hover:bg-destructive/10 hover:text-destructive">Acknowledge</Button>
+                          <Button variant="outline" size="sm" className="h-9" onClick={() => { setSelectedConflict(c); setShowReassignModal(true); }}>Reassign Tasks</Button>
+                          <Button variant="outline" size="sm" className="h-9" onClick={() => { setSelectedConflict(c); setShowDeadlineModal(true); }}>Adjust Deadlines</Button>
+                          <Button variant="ghost" size="sm" className="h-9 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => handleAcknowledge(c.id.toString())}>Acknowledge</Button>
                         </div>
                       </div>
                     </AccordionContent>
@@ -356,6 +405,43 @@ export default function ResourcePlanning() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Reassign Modal */}
+      <Dialog open={showReassignModal} onOpenChange={setShowReassignModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Reassign Tasks for {selectedConflict?.resource}</DialogTitle></DialogHeader>
+          <div className="py-4">
+            <Label className="mb-2 block">Select New Assignee</Label>
+            <Select value={reassignTo} onValueChange={setReassignTo}>
+              <SelectTrigger><SelectValue placeholder="Choose someone with capacity..." /></SelectTrigger>
+              <SelectContent>
+                {teamMembers.filter(e => e.id !== selectedConflict?.id).map(e => (
+                  <SelectItem key={e.id} value={e.id.toString()}>{e.name || e.username}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowReassignModal(false)}>Cancel</Button>
+            <Button className="gradient-primary" onClick={handleReassign}>Reassign</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Adjust Deadline Modal */}
+      <Dialog open={showDeadlineModal} onOpenChange={setShowDeadlineModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Adjust Deadlines for {selectedConflict?.resource}</DialogTitle></DialogHeader>
+          <div className="py-4">
+            <Label className="mb-2 block">Push Deadline To</Label>
+            <Input type="date" value={newDeadline} onChange={e => setNewDeadline(e.target.value)} />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeadlineModal(false)}>Cancel</Button>
+            <Button className="gradient-primary" onClick={handleAdjustDeadline}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -492,7 +492,8 @@ export function TaskDetailsModal({ taskId, open, onOpenChange, onTaskUpdate, pro
                   {task.attachments.map((att: any) => {
                     const fileName = att.file_name || att.file.split('/').pop() || "Attachment";
                     const isImg = isImageFile(fileName);
-                    const url = att.file.startsWith('http') ? att.file : `${API_BASE.replace('/api', '')}${att.file}`;
+                    const fileUrlStr = att.file.startsWith('/') ? att.file : `/${att.file}`;
+                    const url = att.file.startsWith('http') ? att.file : `${API_BASE.replace('/api', '')}${fileUrlStr}`;
                     return (
                       <div key={att.id} className="relative group rounded-lg border border-slate-200 overflow-hidden bg-slate-50 aspect-video flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 transition-colors"
                         onClick={() => {

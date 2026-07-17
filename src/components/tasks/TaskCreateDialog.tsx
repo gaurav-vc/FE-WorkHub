@@ -75,6 +75,7 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
   const [newCheckItem, setNewCheckItem] = useState("");
   const [newSubtask, setNewSubtask] = useState({ title: "", assignee: "", dueDate: "" });
   const [newTag, setNewTag] = useState("");
+  const [attachment, setAttachment] = useState<File | null>(null);
 
   const handleSave = () => {
     if (!form.title.trim()) return;
@@ -94,10 +95,13 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
       dueDate: form.dueDate, dueTime: form.dueTime, startDate: form.startDate,
       estimatedEffort: form.estimatedEffort, effortUnit: form.effortUnit,
       actualEffort: editTask?.actualEffort || 0,
-      isUrgent: form.isUrgent, repeat, dependencies: form.dependencies,
+      isUrgent: form.isUrgent, repeat, 
+      dependencies: form.dependencies,
+      dependent_tasks_legacy: form.dependencies, // Provide both for backend compatibility
       checklist, subtasks,
       comments: editTask?.comments || [], chat: editTask?.chat || [],
       attachments: editTask?.attachments || [], tags: form.tags,
+      file: attachment, // For passing the file to the task creation API
     };
 
     if (editTask) {
@@ -446,6 +450,17 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
                     ))}
                   </div>
                 </ScrollArea>
+              </div>
+
+              {/* Attachments */}
+              <div className="space-y-2 p-3 rounded-lg border">
+                <div className="flex items-center gap-2">
+                  <Paperclip className="h-4 w-4 text-primary" />
+                  <Label className="text-xs font-medium">Attachments</Label>
+                </div>
+                <p className="text-xs text-muted-foreground">Upload files related to this task.</p>
+                <Input type="file" className="text-xs" onChange={(e) => setAttachment(e.target.files?.[0] || null)} />
+                {attachment && <p className="text-[10px] text-muted-foreground mt-1">Selected: {attachment.name}</p>}
               </div>
             </TabsContent>
           </Tabs>

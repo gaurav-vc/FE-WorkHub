@@ -463,11 +463,13 @@ export default function CustomBoards() {
                                 </div>
                                 
                                 {/* Created By & Time Ago */}
-                                <div className="text-xs mb-3 space-y-1 text-muted-foreground">
+                                <div className="text-xs mb-3 flex justify-between text-muted-foreground">
                                   <p>Created By: <span className="font-medium text-foreground">{card.created_by_name || "Unknown"}</span></p>
-                                  {daysAgo > 0 || hoursAgo > 0 ? (
-                                    <p className="text-[10px] italic">{daysAgo}d {hoursAgo}h ago</p>
-                                  ) : null}
+                                  {card.created_at && (
+                                    <p className="text-[10px] font-medium pt-0.5">
+                                      {new Date(card.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                    </p>
+                                  )}
                                 </div>
                                 
                                 {/* Progress */}
@@ -566,6 +568,7 @@ export default function CustomBoards() {
                       <th className="px-6 py-3 font-semibold">Card Title</th>
                       <th className="px-6 py-3 font-semibold">Column</th>
                       <th className="px-6 py-3 font-semibold">Assignee</th>
+                      <th className="px-6 py-3 font-semibold">Created At</th>
                       <th className="px-6 py-3 font-semibold">Due Date</th>
                     </tr>
                   </thead>
@@ -582,6 +585,9 @@ export default function CustomBoards() {
                           ) : (
                             <span className="text-xs text-muted-foreground italic">Unassigned</span>
                           )}
+                        </td>
+                        <td className="px-6 py-4 text-muted-foreground text-xs">
+                          {card.created_at ? new Date(card.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ""}
                         </td>
                         <td className="px-6 py-4 text-muted-foreground text-xs">
                           {card.due_date ? <span className="flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5" /> {card.due_date}</span> : ""}

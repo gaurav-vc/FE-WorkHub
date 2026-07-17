@@ -272,22 +272,30 @@ export default function MyDay() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              {meetings.length > 0 ? meetings.map(m => (
+              {meetings.length > 0 ? meetings.map(m => {
+                const timeString = m.time.includes('T') ? new Date(m.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : m.time;
+                return (
                 <div key={m.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
                   <div className="h-8 w-1 rounded-full gradient-primary shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground">{m.title}</p>
                     <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
-                      <Clock className="h-3 w-3" />{m.time} · {m.duration}
+                      <Clock className="h-3 w-3" />{timeString} · {m.duration}
                     </div>
                     <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
                       <Users className="h-3 w-3" />{m.attendees?.length || m.attendees || 0} attendees
                       {m.type === "recurring" && <span className="flex items-center gap-0.5 ml-1"><RotateCcw className="h-3 w-3" /> Recurring</span>}
                     </div>
                   </div>
-                  <Button size="sm" variant="outline" className="text-xs h-7 shrink-0">Join</Button>
+                  <Button size="sm" variant="outline" className="text-xs h-7 shrink-0" onClick={() => {
+                    if (m.meeting_link) {
+                      window.open(m.meeting_link, '_blank');
+                    } else {
+                      window.location.href = `/tasks/calendar`;
+                    }
+                  }}>Join</Button>
                 </div>
-              )) : (
+              )}) : (
                 <p className="text-xs text-muted-foreground">No meetings for today.</p>
               )}
             </CardContent>

@@ -50,6 +50,7 @@ interface Policy {
   version: string;
   content: string;
   attachment?: string;
+  created_at_formatted?: string;
 }
 
 const policyCategories = ["All", "General", "HR", "IT", "Finance", "Legal"];
@@ -141,7 +142,7 @@ export default function CompanyPolicies() {
               <Badge variant="outline" className="text-[10px]">v{selectedPolicy.version}</Badge>
             </div>
             <h1 className="text-2xl font-display font-bold text-foreground">{selectedPolicy.title}</h1>
-            <p className="text-sm text-muted-foreground mt-1">Last updated: {selectedPolicy.lastUpdated}</p>
+            <p className="text-sm text-muted-foreground mt-1">Created: {selectedPolicy.created_at_formatted} · Last updated: {selectedPolicy.lastUpdated}</p>
           </div>
           {selectedPolicy.attachment ? (
             <Button size="sm" variant="outline" className="gap-1.5" onClick={() => window.open(selectedPolicy.attachment, '_blank')}>
@@ -204,7 +205,7 @@ export default function CompanyPolicies() {
                 <h3 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">{policy.title}</h3>
                 <div className="flex items-center gap-2 mt-0.5">
                   <Badge variant="secondary" className="text-[10px]">{policy.category}</Badge>
-                  <span className="text-[11px] text-muted-foreground">v{policy.version} · Updated {policy.lastUpdated}</span>
+                  <span className="text-[11px] text-muted-foreground">v{policy.version} · Created {policy.created_at_formatted} · Updated {policy.lastUpdated}</span>
                 </div>
               </div>
               <DropdownMenu>

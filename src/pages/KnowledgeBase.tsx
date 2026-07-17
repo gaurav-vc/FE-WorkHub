@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { getKbArticles, createKbArticle } from "@/api/collaboration";
+import { getKbArticles, createKbArticle, toggleKbHelpful, toggleKbSave } from "@/api/collaboration";
 import { cn } from "@/lib/utils";
 
 interface Article {
@@ -28,6 +28,9 @@ interface Article {
   content: string;
   file?: string | null;
   file_url?: string | null;
+  is_helpful?: boolean;
+  is_saved?: boolean;
+  helpful_count?: number;
 }
 
 const categories = [
@@ -102,6 +105,37 @@ export default function KnowledgeBase() {
     }
   };
 
+  const handleHelpful = async (articleId: string | number) => {
+    try {
+      const res = await toggleKbHelpful(articleId);
+      if (selectedArticle && selectedArticle.id === articleId) {
+        setSelectedArticle({ ...selectedArticle, is_helpful: res.helpful, helpful_count: res.count });
+      }
+      setArticles(articles.map(a => a.id === articleId ? { ...a, is_helpful: res.helpful, helpful_count: res.count } : a));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleSave = async (articleId: string | number) => {
+    try {
+      const res = await toggleKbSave(articleId);
+      if (selectedArticle && selectedArticle.id === articleId) {
+        setSelectedArticle({ ...selectedArticle, is_saved: res.saved });
+      }
+      setArticles(articles.map(a => a.id === articleId ? { ...a, is_saved: res.saved } : a));
+      toast({ title: res.saved ? "Article saved" : "Article removed from saved" });
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleShare = (articleId: string | number) => {
+    const url = `${window.location.origin}/collaboration/knowledge-base?article=${articleId}`;
+    navigator.clipboard.writeText(url);
+    toast({ title: "Link copied to clipboard!" });
+  };
+
   const filtered = articles.filter((a) => {
     const matchCategory = activeCategory === "all" || (a.category && a.category.toLowerCase() === activeCategory.toLowerCase());
     const searchLower = search.toLowerCase();
@@ -143,9 +177,30 @@ export default function KnowledgeBase() {
         
         <div className="flex gap-2 justify-between items-center border-y border-slate-100 py-3">
           <div className="flex gap-2">
-            <Button size="sm" variant="outline" className="gap-1.5 text-xs text-slate-600"><ThumbsUp className="h-3.5 w-3.5" /> Helpful</Button>
-            <Button size="sm" variant="outline" className="gap-1.5 text-xs text-slate-600"><Bookmark className="h-3.5 w-3.5" /> Save</Button>
-            <Button size="sm" variant="outline" className="gap-1.5 text-xs text-slate-600"><Share2 className="h-3.5 w-3.5" /> Share</Button>
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className={cn("gap-1.5 text-xs text-slate-600 transition-colors", selectedArticle.is_helpful ? "bg-indigo-50 text-indigo-700 border-indigo-200" : "")}
+              onClick={() => handleHelpful(selectedArticle.id)}
+            >
+              <ThumbsUp className="h-3.5 w-3.5" /> {selectedArticle.helpful_count || 0} Helpful
+            </Button>
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className={cn("gap-1.5 text-xs text-slate-600 transition-colors", selectedArticle.is_saved ? "bg-indigo-50 text-indigo-700 border-indigo-200" : "")}
+              onClick={() => handleSave(selectedArticle.id)}
+            >
+              <Bookmark className={cn("h-3.5 w-3.5", selectedArticle.is_saved ? "fill-current" : "")} /> Save
+            </Button>
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="gap-1.5 text-xs text-slate-600"
+              onClick={() => handleShare(selectedArticle.id)}
+            >
+              <Share2 className="h-3.5 w-3.5" /> Share
+            </Button>
           </div>
           {selectedArticle.file_url && (
             <a href={selectedArticle.file_url} target="_blank" rel="noreferrer">
