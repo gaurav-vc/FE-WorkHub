@@ -58,9 +58,9 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
         dueDate,
         description,
         taskType,
-        assignedTo: taskType === "assign" && assignedTo !== "unassigned" ? parseInt(assignedTo) : null,
+        assignedTo: taskType === "assign" && assignedTo !== "unassigned" ? parseInt(assignedTo.split('-')[0]) : null,
         file,
-        dependentTask: dependentTask !== "none" ? parseInt(dependentTask) : null,
+        dependentTask: dependentTask !== "none" ? parseInt(dependentTask.split('-')[0]) : null,
         isUrgent,
         isRepeat
       });
@@ -116,7 +116,7 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
                       <SelectContent>
                       <SelectItem value="unassigned">Unassigned</SelectItem>
                       {(Array.isArray(teamMembers) && teamMembers.length ? teamMembers : (Array.isArray(globalUsers) ? globalUsers : [])).map((m: any, idx) => {
-                        const uniqueVal = m?.id ? m.id.toString() : (m?.email || m?.username || m?.name || `user-${idx}`);
+                        const uniqueVal = m?.id ? `${m.id}-${idx}` : (m?.email ? `${m.email}-${idx}` : `user-${idx}`);
                         const displayName = m?.name || m?.username || m?.email || "Unknown User";
                         return (
                           <SelectItem key={uniqueVal} value={uniqueVal}>
@@ -196,7 +196,7 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
                   <SelectContent>
                     <SelectItem value="none">None</SelectItem>
                     {Array.isArray(tasks) && tasks.map((t: any, idx) => {
-                      const uniqueVal = t?.id ? t.id.toString() : `task-${idx}`;
+                      const uniqueVal = t?.id ? `${t.id}-${idx}` : `task-${idx}`;
                       const displayTitle = t?.title || "Untitled Task";
                       return (
                         <SelectItem key={uniqueVal} value={uniqueVal}>
