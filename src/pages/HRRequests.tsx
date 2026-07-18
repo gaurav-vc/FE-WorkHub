@@ -138,7 +138,11 @@ export default function HRRequests() {
       
       await updateHRRequest(selectedRequest.id, payload);
       toast.success(`Request ${action}ed`);
-      setHrRequests(prev => prev.map(r => r.id === selectedRequest.id ? { ...r, status: action === "reassign" ? "reassigned" : action } : r));
+      
+      const data = await getHRRequests();
+      setHrRequests(data);
+      const updatedReq = data.find((r: any) => r.id === selectedRequest.id);
+      setSelectedRequest(updatedReq || null);
     } catch (error) {
       toast.error("Action failed");
       console.error(error);

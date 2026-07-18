@@ -72,6 +72,7 @@ export interface Task {
   dependent_tasks_legacy?: string[];
   file?: File | null;
   checklist: ChecklistItem[];
+  checklists?: ChecklistItem[];
   subtasks: SubTask[];
   comments: TaskComment[];
   chat: TaskChatMessage[];

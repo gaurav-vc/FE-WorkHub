@@ -98,7 +98,7 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
       isUrgent: form.isUrgent, repeat, 
       dependencies: form.dependencies,
       dependent_tasks_legacy: form.dependencies, // Provide both for backend compatibility
-      checklist, subtasks,
+      checklist, checklists: checklist, subtasks,
       comments: editTask?.comments || [], chat: editTask?.chat || [],
       attachments: editTask?.attachments || [], tags: form.tags,
       file: attachment, // For passing the file to the task creation API

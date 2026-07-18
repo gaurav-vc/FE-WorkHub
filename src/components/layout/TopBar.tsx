@@ -167,6 +167,7 @@ export function TopBar() {
           await addTask(t); 
           setShowCreateTask(false); 
         }}
+        tasks={tasks}
       />
     </header>
   );

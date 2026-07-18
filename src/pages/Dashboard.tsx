@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { CheckSquare, CalendarDays, MessageSquare, Clock, ArrowRight, Users, TrendingUp, Sparkles, Loader2 } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -200,7 +201,9 @@ export default function Dashboard() {
                     <span className="text-muted-foreground">{activity.action}</span>{" "}
                     <span className="font-medium">{activity.target}</span>
                   </p>
-                  <p className="text-xs text-muted-foreground">{new Date(activity.created_at || activity.time).toLocaleTimeString()}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {(activity.created_at || activity.time) ? formatDistanceToNow(new Date(activity.created_at || activity.time), { addSuffix: true }) : "just now"}
+                  </p>
                 </div>
               </div>
             )) : (

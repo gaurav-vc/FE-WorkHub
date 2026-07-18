@@ -91,7 +91,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
           type: n.type || 'task-updated',
           title: n.title,
           message: n.message,
-          time: new Date(n.time).toLocaleString(),
+          time: n.time,
           read: n.is_read || n.read || false,
           link: n.link
         })));
@@ -159,7 +159,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
   };
 
   const markNotificationRead = async (id: string) => {
-    setNotifications((prev) => prev.map((n) => (n.id.toString() === id.toString() ? { ...n, read: true } : n)));
+    setNotifications((prev) => prev.filter((n) => n.id.toString() !== id.toString()));
     try {
       await fetch(`${API_BASE}/workspace/notifications/${id}/`, {
         method: 'PATCH',
@@ -175,9 +175,9 @@ export function TaskProvider({ children }: { children: ReactNode }) {
   };
 
   const markAllNotificationsRead = async () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
+    setNotifications([]);
     try {
-      const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
       for (const id of unreadIds) {
         await fetch(`${API_BASE}/workspace/notifications/${id}/`, {
           method: 'PATCH',

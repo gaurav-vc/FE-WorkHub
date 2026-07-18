@@ -5,6 +5,7 @@ import {
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { format, formatDistanceToNow } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/context/AuthContext";
 import { ImageViewerModal } from "@/components/shared/ImageViewerModal";
@@ -362,8 +363,8 @@ export function BoardCardDetailsModal({ cardId, open, onOpenChange, onCardUpdate
               <div className="flex"><span className="w-32 text-slate-500 font-medium">Start Date :</span> <span></span></div>
               <div className="flex"><span className="w-32 text-slate-500 font-medium">End Date :</span> <span></span></div>
               <div className="flex"><span className="w-32 text-slate-500 font-medium">Created By :</span> <span>{card.created_by_name || "Unknown"}</span></div>
-              <div className="flex"><span className="w-32 text-slate-500 font-medium">Created Date :</span> <span>{new Date(card.created_at).toLocaleString()}</span></div>
-              <div className="flex"><span className="w-32 text-slate-500 font-medium">Due Date :</span> <span>{card.due_date ? new Date(card.due_date).toLocaleDateString() : "Not set"}</span></div>
+              <div className="flex"><span className="w-32 text-slate-500 font-medium">Created Date :</span> <span>{card.created_at ? `${format(new Date(card.created_at), "MMM d, yyyy h:mm a")} (${formatDistanceToNow(new Date(card.created_at), { addSuffix: true })})` : ""}</span></div>
+              <div className="flex"><span className="w-32 text-slate-500 font-medium">Due Date :</span> <span>{card.due_date ? format(new Date(card.due_date), "MMM d, yyyy") : "Not set"}</span></div>
               <div className="flex"><span className="w-32 text-slate-500 font-medium">Assign To :</span> <span>{card.assignee_detail?.name || "Unassigned"}</span></div>
             </div>
 
@@ -576,7 +577,10 @@ export function BoardCardDetailsModal({ cardId, open, onOpenChange, onCardUpdate
               {card?.chats && card.chats.length > 0 ? (
                 card.chats.map((c: any) => (
                   <div key={c.id} className={`mb-3 flex flex-col ${c.user_name === (globalUsers.find((u:any) => u.username === username)?.name || 'You') ? 'items-end' : 'items-start'}`}>
-                    <span className="text-[9px] text-slate-500 font-bold block mb-0.5">{c.user_name}</span>
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-[9px] text-slate-500 font-bold">{c.user_name}</span>
+                      {c.created_at && <span className="text-[8px] text-slate-400">{formatDistanceToNow(new Date(c.created_at), { addSuffix: true })}</span>}
+                    </div>
                     <p className={`text-xs p-2 rounded-lg max-w-[90%] shadow-sm ${c.user_name === (globalUsers.find((u:any) => u.username === username)?.name || 'You') ? 'bg-blue-500 text-white rounded-br-none' : 'bg-white border border-slate-200 text-slate-700 rounded-bl-none'}`}>
                       {c.text}
                     </p>

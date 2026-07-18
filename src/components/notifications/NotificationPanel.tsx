@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useTaskContext } from "@/context/TaskContext";
 import { Notification } from "@/types/tasks";
+import { formatDistanceToNow } from "date-fns";
 
 const iconMap: Record<string, any> = {
   "task-assigned": CheckCircle2,
@@ -59,18 +60,29 @@ export function NotificationPanel() {
               return (
                 <div
                   key={n.id}
-                  className={`flex gap-3 p-3 border-b last:border-0 hover:bg-muted/50 cursor-pointer transition-colors ${!n.read ? "bg-primary/5" : ""}`}
-                  onClick={() => markNotificationRead(n.id)}
+                  className={`flex gap-3 p-3 border-b last:border-0 hover:bg-muted/50 transition-colors ${!n.read ? "bg-primary/5" : ""}`}
                 >
                   <div className={`h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0 ${color}`}>
                     <Icon className="h-4 w-4" />
                   </div>
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 cursor-pointer" onClick={() => { if(n.link) window.location.href = n.link; }}>
                     <p className={`text-xs font-medium ${!n.read ? "text-foreground" : "text-muted-foreground"}`}>{n.title}</p>
                     <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{n.message}</p>
-                    <p className="text-[10px] text-muted-foreground mt-1">{n.time}</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      {n.time ? formatDistanceToNow(new Date(n.time), { addSuffix: true }) : "just now"}
+                    </p>
                   </div>
-                  {!n.read && <div className="h-2 w-2 rounded-full bg-primary shrink-0 mt-1" />}
+                  {!n.read && (
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-6 w-6 shrink-0 text-slate-400 hover:text-primary hover:bg-primary/10"
+                      onClick={(e) => { e.stopPropagation(); markNotificationRead(n.id); }}
+                      title="Mark as read"
+                    >
+                      <Check className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               );
             })

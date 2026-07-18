@@ -4,6 +4,8 @@ import {
 } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { format, formatDistanceToNow } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/context/AuthContext";
@@ -304,8 +306,8 @@ export function TaskDetailsModal({ taskId, open, onOpenChange, onTaskUpdate, pro
             {/* Details List */}
             <div className="space-y-2 text-sm mb-10 text-slate-700">
               <div className="flex"><span className="w-32 text-slate-500 font-medium">Created By :</span> <span>{task.created_by_name || "System"}</span></div>
-              <div className="flex"><span className="w-32 text-slate-500 font-medium">Created Date :</span> <span>{new Date(task.created_at).toLocaleString()}</span></div>
-              <div className="flex"><span className="w-32 text-slate-500 font-medium">Due Date :</span> <span>{task.due_date ? new Date(task.due_date).toLocaleDateString() : ""}</span></div>
+              <div className="flex"><span className="w-32 text-slate-500 font-medium">Created Date :</span> <span>{task.created_at ? `${format(new Date(task.created_at), "MMM d, yyyy h:mm a")} (${formatDistanceToNow(new Date(task.created_at), { addSuffix: true })})` : ""}</span></div>
+              <div className="flex"><span className="w-32 text-slate-500 font-medium">Due Date :</span> <span>{task.due_date ? format(new Date(task.due_date), "MMM d, yyyy") : ""}</span></div>
               <div className="flex"><span className="w-32 text-slate-500 font-medium">Assign To :</span> <span>{task.assignee_detail?.name || "Unassigned"}</span></div>
             </div>
 
@@ -538,7 +540,10 @@ export function TaskDetailsModal({ taskId, open, onOpenChange, onTaskUpdate, pro
               {task?.chats && task.chats.length > 0 ? (
                 task.chats.map((c: any) => (
                   <div key={c.id} className={`mb-3 flex flex-col ${c.user_name === (globalUsers.find((u:any) => u.username === username)?.name || 'You') ? 'items-end' : 'items-start'}`}>
-                    <span className="text-[9px] text-slate-500 font-bold block mb-0.5">{c.user_name}</span>
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-[9px] text-slate-500 font-bold">{c.user_name}</span>
+                      {c.created_at && <span className="text-[8px] text-slate-400">{formatDistanceToNow(new Date(c.created_at), { addSuffix: true })}</span>}
+                    </div>
                     <p className={`text-xs p-2 rounded-lg max-w-[90%] shadow-sm ${c.user_name === (globalUsers.find((u:any) => u.username === username)?.name || 'You') ? 'bg-blue-500 text-white rounded-br-none' : 'bg-white border border-slate-200 text-slate-700 rounded-bl-none'}`}>
                       {c.text}
                     </p>

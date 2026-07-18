@@ -252,8 +252,25 @@ export default function ProjectBoard({ projectId, onBack }: ProjectBoardProps) {
       });
       if (!res.ok) {
         fetchProject();
-        toast.error("Failed to create detailed task");
+        toast.error("Failed to create task");
       } else {
+        const data = await res.json();
+        
+        if (taskData.file && data.task_id) {
+          const formData = new FormData();
+          formData.append("file", taskData.file);
+          try {
+            await fetch(`${API_BASE}/projects/tasks/${data.task_id}/upload/`, {
+              method: "POST",
+              headers: { "Authorization": `Bearer ${token}` },
+              body: formData
+            });
+          } catch (uploadErr) {
+            console.error("File upload failed", uploadErr);
+            toast.error("Task created, but file upload failed.");
+          }
+        }
+        
         toast.success("Task created successfully");
         fetchProject();
       }

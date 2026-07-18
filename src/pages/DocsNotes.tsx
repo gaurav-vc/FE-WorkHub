@@ -130,10 +130,8 @@ export default function DocsNotes() {
     formData.append('file', uploadFile);
     if (currentFolderId) formData.append('folder', currentFolderId.toString());
     
-    // For Company folder upload
-    // Wait, documents don't have is_common, their folder dictates it or we might need to rely on the backend.
-    // If we're in company tab but no folder is selected, where does it go? Let's just create it. The API Document model doesn't have is_common.
-    // It relies on folder__is_common. So for company docs, they MUST be inside a company folder.
+    // For Company folder upload at the root
+    if (activeTab === 'company') formData.append('is_common', 'true');
 
     try {
       const res = await fetch(`${API_BASE}/docs/documents/`, {
@@ -222,14 +220,20 @@ export default function DocsNotes() {
     if (activeTab === 'shared') return true; 
     
     // In My Folders or Company, filter docs by active Tab rules
-    if (activeTab === 'my') return !d.is_shared && (!d.folder || folders.find(f => f.id === d.folder && !f.is_common));
-    if (activeTab === 'company') return d.folder && folders.find(f => f.id === d.folder && f.is_common);
+    if (activeTab === 'my') return !d.is_shared && !d.is_common && (!d.folder || folders.find(f => f.id === d.folder && !f.is_common));
+    if (activeTab === 'company') return d.is_common || (d.folder && folders.find(f => f.id === d.folder && f.is_common));
     return true;
   });
 
   // Hierarchy Logic
-  displayFolders = displayFolders.filter(f => (f.parent || null) === (currentFolderId || null));
-  displayDocs = displayDocs.filter(d => (d.folder || null) === (currentFolderId || null));
+  if (activeTab === 'shared' && !currentFolderId) {
+    // In Shared tab root view, show all directly shared items, regardless of their original folder structure
+    displayFolders = displayFolders.filter(f => f.is_shared);
+    displayDocs = displayDocs.filter(d => d.is_shared);
+  } else {
+    displayFolders = displayFolders.filter(f => (f.parent || null) === (currentFolderId || null));
+    displayDocs = displayDocs.filter(d => (d.folder || null) === (currentFolderId || null));
+  }
 
   // Search filter
   if (search) {

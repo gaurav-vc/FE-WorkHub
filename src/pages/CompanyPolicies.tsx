@@ -145,8 +145,10 @@ export default function CompanyPolicies() {
             <p className="text-sm text-muted-foreground mt-1">Created: {selectedPolicy.created_at_formatted} · Last updated: {selectedPolicy.lastUpdated}</p>
           </div>
           {selectedPolicy.attachment ? (
-            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => window.open(selectedPolicy.attachment, '_blank')}>
-              <Download className="h-3.5 w-3.5" /> Download File
+            <Button size="sm" variant="outline" className="gap-1.5" asChild>
+              <a href={selectedPolicy.attachment} target="_blank" rel="noreferrer" download>
+                <Download className="h-3.5 w-3.5" /> Download File
+              </a>
             </Button>
           ) : (
             <Button size="sm" variant="outline" className="gap-1.5" disabled><Download className="h-3.5 w-3.5" /> No File Attached</Button>

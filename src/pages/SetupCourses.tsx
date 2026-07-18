@@ -22,6 +22,8 @@ export default function SetupCourses() {
   const [editCourseData, setEditCourseData] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("all-requests");
   const [viewMode, setViewMode] = useState<'requests' | 'courses'>('requests');
+  const [requestsSearch, setRequestsSearch] = useState("");
+  const [coursesSearch, setCoursesSearch] = useState("");
 
   const fetchCourses = async () => {
     try {
@@ -76,9 +78,16 @@ export default function SetupCourses() {
   };
 
   const renderRequestsTable = (status: string | 'all') => {
-    const filtered = status === 'all' 
+    const statusFiltered = status === 'all' 
       ? accessRequests 
       : accessRequests.filter(req => req.status === status);
+      
+    const filtered = requestsSearch.trim()
+      ? statusFiltered.filter(req => 
+          (req.employee_name || '').toLowerCase().includes(requestsSearch.toLowerCase()) || 
+          (req.course_title || '').toLowerCase().includes(requestsSearch.toLowerCase())
+        )
+      : statusFiltered;
     
     if (filtered.length === 0) {
       return (
@@ -151,6 +160,13 @@ export default function SetupCourses() {
   };
 
   const renderCoursesTable = () => {
+    const filteredCourses = coursesSearch.trim()
+      ? courses.filter(course => 
+          (course.title || '').toLowerCase().includes(coursesSearch.toLowerCase()) ||
+          (course.employee_name || '').toLowerCase().includes(coursesSearch.toLowerCase())
+        )
+      : courses;
+      
     return (
       <div className="w-full overflow-x-auto">
         <table className="w-full text-left border-collapse">
@@ -163,7 +179,7 @@ export default function SetupCourses() {
             </tr>
           </thead>
           <tbody>
-            {courses.map((course) => (
+            {filteredCourses.map((course) => (
               <tr key={course.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
                 <td className="py-4 px-6">
                   <div className="flex items-center gap-3 text-slate-500">
@@ -205,7 +221,7 @@ export default function SetupCourses() {
                 </td>
               </tr>
             ))}
-            {courses.length === 0 && (
+            {filteredCourses.length === 0 && (
               <tr>
                 <td colSpan={4} className="py-8 text-center text-slate-500">No courses available.</td>
               </tr>
@@ -229,7 +245,12 @@ export default function SetupCourses() {
             <div className="flex items-center gap-2 flex-wrap">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <input placeholder="Search..." className="pl-9 h-9 pr-3 text-sm border border-border rounded-md bg-background focus:outline-none focus:ring-1 focus:ring-primary w-[200px]" />
+                <input 
+                  placeholder="Search..." 
+                  value={requestsSearch}
+                  onChange={(e) => setRequestsSearch(e.target.value)}
+                  className="pl-9 h-9 pr-3 text-sm border border-border rounded-md bg-background focus:outline-none focus:ring-1 focus:ring-primary w-[200px]" 
+                />
               </div>
               <Button size="sm" className="h-9 text-sm" onClick={() => { setEditCourseData(null); setIsAddModalOpen(true); }}>
                 <Plus className="h-4 w-4 mr-1.5" /> Add Course
@@ -289,7 +310,12 @@ export default function SetupCourses() {
           <div className="flex gap-3 mt-4 md:mt-0 mb-6 border-b border-slate-200 pb-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <Input placeholder="Search courses..." className="pl-9 w-[250px] bg-white border-slate-200" />
+              <Input 
+                placeholder="Search courses..." 
+                value={coursesSearch}
+                onChange={(e) => setCoursesSearch(e.target.value)}
+                className="pl-9 w-[250px] bg-white border-slate-200" 
+              />
             </div>
             <Button 
               className="bg-indigo-600 hover:bg-indigo-700 text-white"

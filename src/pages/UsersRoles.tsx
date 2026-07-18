@@ -565,13 +565,7 @@ export default function UsersRoles() {
         </TabsContent>
 
         <TabsContent value="departments" className="mt-0">
-          <Card className="border border-border shadow-sm rounded-lg p-6">
-            <h3 className="text-lg font-medium mb-4">Department Management</h3>
-            <p className="text-sm text-muted-foreground mb-6">Manage organizational departments and their details. Go to Setup &gt; Departments for full configuration.</p>
-            <div className="text-sm font-medium text-primary hover:underline cursor-pointer">
-              View full Department Settings &rarr;
-            </div>
-          </Card>
+          <SetupDepartments />
         </TabsContent>
       </Tabs>
     </div>

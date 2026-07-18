@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import {
   Users, Activity, Calendar, FileText, CheckCircle2, Clock
 } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -164,7 +165,7 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
                             <div className="font-bold text-slate-900 text-sm">{act.user_name}</div>
                             <time className="font-caveat font-medium text-blue-500 text-xs flex items-center gap-1">
                               <Clock className="h-3 w-3" />
-                              {new Date(act.created_at).toLocaleString()}
+                              {act.created_at ? formatDistanceToNow(new Date(act.created_at), { addSuffix: true }) : "just now"}
                             </time>
                           </div>
                           <div className="text-slate-600 text-xs font-medium mb-1">

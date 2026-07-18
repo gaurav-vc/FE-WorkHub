@@ -14,6 +14,8 @@ export const createTask = (task: any) => {
       if (task[key] !== null && task[key] !== undefined) {
         if (key === 'file') {
           formData.append(key, task[key]);
+        } else if (typeof task[key] === 'object' && task[key] !== null) {
+          formData.append(key, JSON.stringify(task[key]));
         } else {
           formData.append(key, String(task[key]));
         }
