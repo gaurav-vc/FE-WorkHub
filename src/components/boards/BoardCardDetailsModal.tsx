@@ -5,7 +5,7 @@ import {
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { format, formatDistanceToNow } from "date-fns";
+import { safeFormat as format, safeFormatDistanceToNow as formatDistanceToNow } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/context/AuthContext";
 import { ImageViewerModal } from "@/components/shared/ImageViewerModal";

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import {
   Users, Activity, Calendar, FileText, CheckCircle2, Clock
 } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { safeFormatDistanceToNow as formatDistanceToNow } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";

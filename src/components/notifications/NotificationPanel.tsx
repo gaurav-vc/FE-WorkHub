@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useTaskContext } from "@/context/TaskContext";
 import { Notification } from "@/types/tasks";
-import { formatDistanceToNow } from "date-fns";
+import { safeFormatDistanceToNow as formatDistanceToNow } from "@/lib/utils";
 
 const iconMap: Record<string, any> = {
   "task-assigned": CheckCircle2,

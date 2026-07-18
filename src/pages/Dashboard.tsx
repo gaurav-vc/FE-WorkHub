@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { CheckSquare, CalendarDays, MessageSquare, Clock, ArrowRight, Users, TrendingUp, Sparkles, Loader2 } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { safeFormatDistanceToNow as formatDistanceToNow } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";

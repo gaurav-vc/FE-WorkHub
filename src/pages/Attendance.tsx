@@ -39,7 +39,8 @@ import {
 } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { format, isBefore, isAfter, startOfDay } from "date-fns";
+import { safeFormat as format } from "@/lib/utils";
+import { isBefore, isAfter, startOfDay } from "date-fns";
 
 interface AttendanceRecord {
   date: string;
