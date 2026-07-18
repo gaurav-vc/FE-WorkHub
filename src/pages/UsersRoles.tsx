@@ -565,7 +565,7 @@ export default function UsersRoles() {
         </TabsContent>
 
         <TabsContent value="departments" className="mt-0">
-          <SetupDepartments />
+          <SetupDepartments externalSearchQuery={searchQuery} />
         </TabsContent>
       </Tabs>
     </div>

@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { useTaskContext } from "@/context/TaskContext";
 import { Task } from "@/types/tasks";
+import { addTaskComment, addTaskChat } from "@/api/tasks";
 
 const priorityConfig: Record<string, { color: string; label: string }> = {
   P1: { color: "bg-destructive text-destructive-foreground", label: "Critical" },
@@ -53,20 +54,30 @@ export function TaskWorkspacePanel() {
   const depTasks = tasks.filter(t => dependencies.includes(t.id));
   const blockedByIncomplete = depTasks.some(t => t.status !== "done");
 
-  const sendChat = () => {
+  const sendChat = async () => {
     if (!chatInput.trim()) return;
-    updateTask(task.id, {
-      chat: [...task.chat, { id: `ch-${Date.now()}`, user: "Sarah Johnson", initials: "SJ", text: chatInput, time: "Just now" }],
-    });
-    setChatInput("");
+    try {
+      const res = await addTaskChat(task.id, chatInput);
+      updateTask(task.id, {
+        chat: [...(task.chat || []), { id: `ch-${Date.now()}`, user: "Sarah Johnson", initials: "SJ", text: chatInput, time: "Just now" }],
+      });
+      setChatInput("");
+    } catch (error) {
+      console.error("Failed to add chat", error);
+    }
   };
 
-  const addComment = () => {
+  const addComment = async () => {
     if (!commentInput.trim()) return;
-    updateTask(task.id, {
-      comments: [...(task.comments || []), { id: `c-${Date.now()}`, user: "Sarah Johnson", initials: "SJ", text: commentInput, time: "Just now" }],
-    });
-    setCommentInput("");
+    try {
+      const res = await addTaskComment(task.id, commentInput);
+      updateTask(task.id, {
+        comments: [...(task.comments || []), { id: `c-${Date.now()}`, user: "Sarah Johnson", initials: "SJ", text: commentInput, time: "Just now" }],
+      });
+      setCommentInput("");
+    } catch (error) {
+      console.error("Failed to add comment", error);
+    }
   };
 
   const toggleChecklist = (idx: number) => {

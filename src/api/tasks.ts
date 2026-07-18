@@ -53,3 +53,17 @@ export const submitApprovalAction = (id: string, action: string) => {
     data: { action },
   });
 };
+
+export const addTaskComment = (taskId: string, text: string) => {
+  return apiClient(`/projects/tasks/${taskId}/add_comment/`, {
+    method: "POST",
+    data: { text },
+  });
+};
+
+export const addTaskChat = (taskId: string, text: string) => {
+  return apiClient(`/projects/tasks/${taskId}/add_chat/`, {
+    method: "POST",
+    data: { text },
+  });
+};

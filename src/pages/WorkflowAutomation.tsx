@@ -75,6 +75,7 @@ const actionOptions = [
   { id: "send_notification", label: "Send Notification", icon: "bell" },
   { id: "assign_user", label: "Assign User", icon: "users" },
   { id: "assign_manager", label: "Assign Manager", icon: "users" },
+  { id: "create_task", label: "Create Task", icon: "check-square" },
   { id: "update_status", label: "Update Status", icon: "settings" },
 ];
 
@@ -231,9 +232,9 @@ export default function WorkflowAutomation() {
       await executeWorkflowApi(id.toString());
       toast.success("Workflow executed successfully and emails dispatched! Check logs for details.");
       fetchWorkflows();
-    } catch(err) {
+    } catch(err: any) {
       console.error(err);
-      toast.error("Error executing workflow");
+      toast.error(err.response?.data?.message || "Error executing workflow");
     }
   };
 
@@ -392,14 +393,33 @@ export default function WorkflowAutomation() {
                 )}
 
                 {selectedNode.data.label === "Send Email" && (
-                  <div className="space-y-2">
-                    <Label className="text-xs">Recipient Email</Label>
-                    <Input 
-                      placeholder="e.g. manager@company.com" 
-                      value={selectedNode.data.config?.email || ""}
-                      onChange={e => updateNodeConfig("email", e.target.value)} 
-                    />
-                  </div>
+                  <>
+                    <div className="space-y-2">
+                      <Label className="text-xs">Recipient Email</Label>
+                      <Input 
+                        placeholder="e.g. manager@company.com" 
+                        value={selectedNode.data.config?.email || ""}
+                        onChange={e => updateNodeConfig("email", e.target.value)} 
+                      />
+                    </div>
+                    <div className="space-y-2 mt-2">
+                      <Label className="text-xs">Subject</Label>
+                      <Input 
+                        placeholder="e.g. Action Required" 
+                        value={selectedNode.data.config?.subject || ""}
+                        onChange={e => updateNodeConfig("subject", e.target.value)} 
+                      />
+                    </div>
+                    <div className="space-y-2 mt-2">
+                      <Label className="text-xs">Message Body</Label>
+                      <Textarea 
+                        placeholder="e.g. Hello, please review..." 
+                        value={selectedNode.data.config?.body || ""}
+                        onChange={e => updateNodeConfig("body", e.target.value)}
+                        className="text-xs min-h-[60px]"
+                      />
+                    </div>
+                  </>
                 )}
 
                 {selectedNode.data.label === "Assign Manager" && (
@@ -422,6 +442,20 @@ export default function WorkflowAutomation() {
                 {selectedNode.data.label === "Send Notification" && (
                   <>
                     <div className="space-y-2">
+                      <Label className="text-xs">Select Recipient</Label>
+                      <Select 
+                        value={selectedNode.data.config?.userId || ""} 
+                        onValueChange={v => updateNodeConfig("userId", v)}
+                      >
+                        <SelectTrigger><SelectValue placeholder="Select user" /></SelectTrigger>
+                        <SelectContent>
+                          {employees.map(e => (
+                            <SelectItem key={e.id} value={e.id.toString()}>{e.full_name || e.username}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2 mt-2">
                       <Label className="text-xs">Notification Title</Label>
                       <Input 
                         placeholder="e.g. Action Required" 
@@ -437,6 +471,42 @@ export default function WorkflowAutomation() {
                         onChange={e => updateNodeConfig("message", e.target.value)}
                         className="text-xs min-h-[60px]"
                       />
+                    </div>
+                  </>
+                )}
+
+                {selectedNode.data.label === "Create Task" && (
+                  <>
+                    <div className="space-y-2">
+                      <Label className="text-xs">Task Title</Label>
+                      <Input 
+                        placeholder="e.g. Review Document" 
+                        value={selectedNode.data.config?.taskTitle || ""}
+                        onChange={e => updateNodeConfig("taskTitle", e.target.value)} 
+                      />
+                    </div>
+                    <div className="space-y-2 mt-2">
+                      <Label className="text-xs">Description</Label>
+                      <Textarea 
+                        placeholder="e.g. Please review this immediately." 
+                        value={selectedNode.data.config?.taskDesc || ""}
+                        onChange={e => updateNodeConfig("taskDesc", e.target.value)}
+                        className="text-xs min-h-[60px]"
+                      />
+                    </div>
+                    <div className="space-y-2 mt-2">
+                      <Label className="text-xs">Assign To</Label>
+                      <Select 
+                        value={selectedNode.data.config?.assignee || ""} 
+                        onValueChange={v => updateNodeConfig("assignee", v)}
+                      >
+                        <SelectTrigger><SelectValue placeholder="Select user" /></SelectTrigger>
+                        <SelectContent>
+                          {employees.map(e => (
+                            <SelectItem key={e.id} value={e.id.toString()}>{e.full_name || e.username}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </>
                 )}

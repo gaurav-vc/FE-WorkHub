@@ -16,11 +16,10 @@ interface Department {
   description: string;
 }
 
-export default function SetupDepartments() {
+export default function SetupDepartments({ externalSearchQuery = "" }: { externalSearchQuery?: string }) {
   const { token } = useAuth();
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
@@ -111,20 +110,11 @@ export default function SetupDepartments() {
     }
   };
 
-  const filteredDepts = departments.filter(d => d.name.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredDepts = departments.filter(d => d.name.toLowerCase().includes(externalSearchQuery.toLowerCase()));
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="relative w-full sm:w-72">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input 
-            placeholder="Search departments..." 
-            className="pl-9 bg-background" 
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-          />
-        </div>
+      <div className="flex justify-end mb-4">
         <Button onClick={() => handleOpenModal()} className="w-full sm:w-auto shadow-sm">
           <Plus className="h-4 w-4 mr-2" /> Add Department
         </Button>
