@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { API_BASE } from "@/config";
+import { apiClient } from "@/api/client";
 import { cn } from "@/lib/utils";
 
 export default function DocsNotes() {
@@ -51,6 +52,7 @@ export default function DocsNotes() {
   }, [activeTab, token]);
 
   const fetchUsers = async () => {
+    if (!token) return;
     try {
       const res = await fetch(`${API_BASE}/auth/employees/`, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -62,29 +64,23 @@ export default function DocsNotes() {
   };
 
   const fetchData = async () => {
+    if (!token) return;
     setLoading(true);
     try {
-      let folderEndpoint = `${API_BASE}/docs/folders/`;
-      let docEndpoint = `${API_BASE}/docs/documents/`;
+      let folderEndpoint = `/docs/folders/`;
+      let docEndpoint = `/docs/documents/`;
 
       if (activeTab === 'shared') {
-        folderEndpoint = `${API_BASE}/docs/folders/shared_with_me/`;
-        docEndpoint = `${API_BASE}/docs/documents/shared_with_me/`;
+        folderEndpoint = `/docs/folders/shared_with_me/`;
+        docEndpoint = `/docs/documents/shared_with_me/`;
       }
 
-      const [fRes, dRes] = await Promise.all([
-        fetch(folderEndpoint, { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch(docEndpoint, { headers: { 'Authorization': `Bearer ${token}` } })
+      const [fData, dData] = await Promise.all([
+        apiClient(folderEndpoint),
+        apiClient(docEndpoint)
       ]);
-
-      if (fRes.ok) {
-        const fData = await fRes.json();
-        setFolders(fData);
-      }
-      if (dRes.ok) {
-        const dData = await dRes.json();
-        setDocuments(dData);
-      }
+      setFolders(fData);
+      setDocuments(dData);
     } catch (e) {
       console.error(e);
       toast({ title: "Failed to load files", variant: "destructive" });

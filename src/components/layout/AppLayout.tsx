@@ -2,8 +2,9 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { TopBar } from "./TopBar";
 import { Button } from "@/components/ui/button";
-import { Bot, Sparkles } from "lucide-react";
+import { Bot, Sparkles, Loader2 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -12,11 +13,24 @@ interface AppLayoutProps {
 export function AppLayout({ children }: AppLayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isLoading } = useAuth();
+  
   const isAIAssistantPage = location.pathname === "/ai/assistant";
   const isAuthPage = ["/login", "/register", "/forgot-password"].includes(location.pathname);
 
   if (isAuthPage) {
     return <div className="min-h-screen w-full">{children}</div>;
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 text-primary animate-spin" />
+          <p className="text-sm text-slate-500 font-medium animate-pulse">Verifying session...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
