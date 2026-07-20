@@ -29,6 +29,8 @@ interface Task {
   assigned_to_name?: string;
   assignee_detail?: any;
   subtasks?: any[];
+  healthStatus?: 'green' | 'yellow' | 'red';
+  isQueued?: boolean;
 }
 
 interface Project {
@@ -466,7 +468,10 @@ export default function ProjectBoard({ projectId, onBack }: ProjectBoardProps) {
                               e.dataTransfer.setData('text/plain', '');
                               setDragCard({ taskId: task.id, fromCol: col.id });
                             }}
-                            className="bg-card text-card-foreground border-border cursor-grab active:cursor-grabbing hover:border-primary/40 hover:shadow-md transition-all group overflow-hidden rounded-lg shadow-sm"
+                            className={`bg-card text-card-foreground border-l-4 cursor-grab active:cursor-grabbing hover:shadow-md transition-all group overflow-hidden rounded-lg shadow-sm
+                              ${(task.healthStatus || (task as any).health_status) === 'red' ? 'border-l-destructive' : 
+                                (task.healthStatus || (task as any).health_status) === 'yellow' ? 'border-l-amber-500' : 
+                                (task.healthStatus || (task as any).health_status) === 'green' ? 'border-l-emerald-500' : 'border-l-border'} border-y border-r border-y-border border-r-border hover:border-primary/40`}
                           >
                             <CardContent className="p-3 relative" onClick={() => setSelectedTaskId(task.id)} role="button">
                               {/* Title */}
@@ -476,11 +481,16 @@ export default function ProjectBoard({ projectId, onBack }: ProjectBoardProps) {
                                 </h4>
                               </div>
 
-                              {/* Status Badge */}
-                              <div className="mb-3">
+                              {/* Status Badges */}
+                              <div className="mb-3 flex items-center gap-1.5 flex-wrap">
                                 <span className={`inline-block px-2.5 py-0.5 text-[10px] font-semibold rounded-full capitalize text-white shadow-sm ${col.color}`}>
                                   {getMappedStatus(task.status, columns)}
                                 </span>
+                                {(task.isQueued || (task as any).is_queued) && (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                                    Queued
+                                  </span>
+                                )}
                               </div>
                               
                               {/* Created By & Time Ago */}

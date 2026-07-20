@@ -66,6 +66,12 @@ export interface Task {
   estimatedEffort: number;
   effortUnit: "hours" | "days";
   actualEffort: number;
+  
+  // Dynamic queue & health properties
+  timeIntervalMinutes?: number;
+  startedAt?: string;
+  isQueued?: boolean;
+  healthStatus?: "green" | "yellow" | "red";
   isUrgent: boolean;
   repeat: RepeatConfig;
   dependencies: string[];

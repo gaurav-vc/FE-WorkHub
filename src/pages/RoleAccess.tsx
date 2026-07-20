@@ -220,6 +220,7 @@ const RoleBaseAccessPage: React.FC = () => {
                   <TableHead className="text-center font-bold text-slate-700">View Access</TableHead>
                   <TableHead className="text-center font-bold text-slate-700">Create Access</TableHead>
                   <TableHead className="text-center font-bold text-slate-700">Edit Access</TableHead>
+                  <TableHead className="text-center font-bold text-slate-700">Delete Access</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -323,6 +324,28 @@ const RoleBaseAccessPage: React.FC = () => {
                                   )}
                                 </div>
                               </TableCell>
+                              <TableCell className="text-center">
+                                <div className="flex items-center justify-center gap-2">
+                                  <Switch 
+                                    checked={mapping.permissions?.delete !== 'none' && mapping.permissions?.delete !== false && mapping.permissions?.delete !== undefined} 
+                                    onCheckedChange={(checked) => setScopeAccess(mapping, 'delete', checked ? 'all' : 'none')} 
+                                    disabled={selectedRole === 'admin'} 
+                                    className="data-[state=checked]:bg-red-500" 
+                                  />
+                                  {(mapping.permissions?.delete !== 'none' && mapping.permissions?.delete !== false && mapping.permissions?.delete !== undefined) && (
+                                    <Select disabled={selectedRole === 'admin'} value={typeof mapping.permissions?.delete === 'string' ? mapping.permissions.delete : 'all'} onValueChange={(val) => setScopeAccess(mapping, 'delete', val)}>
+                                      <SelectTrigger className="w-[75px] h-6 text-[10px] px-2 py-0">
+                                        <SelectValue placeholder="Scope" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="own" className="text-[10px]">Own</SelectItem>
+                                        <SelectItem value="team" className="text-[10px]">Team</SelectItem>
+                                        <SelectItem value="all" className="text-[10px]">All</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  )}
+                                </div>
+                              </TableCell>
                             </>
                           ) : (
                             <>
@@ -341,6 +364,11 @@ const RoleBaseAccessPage: React.FC = () => {
                                   <Switch checked={mapping.permissions?.edit === true} onCheckedChange={() => toggleAccess(mapping, 'edit')} disabled={selectedRole === 'admin'} className="data-[state=checked]:bg-amber-500" />
                                 </div>
                               </TableCell>
+                              <TableCell className="text-center">
+                                <div className="flex justify-center">
+                                  <Switch checked={mapping.permissions?.delete === true} onCheckedChange={() => toggleAccess(mapping, 'delete')} disabled={selectedRole === 'admin'} className="data-[state=checked]:bg-red-500" />
+                                </div>
+                              </TableCell>
                             </>
                           )}
                         </TableRow>
@@ -350,7 +378,7 @@ const RoleBaseAccessPage: React.FC = () => {
                 ))}
                 {accessMappings.length === 0 && !isLoading && (
                   <TableRow>
-                    <TableCell colSpan={5} className="h-32 text-center">
+                    <TableCell colSpan={6} className="h-32 text-center">
                       <div className="flex flex-col items-center justify-center text-slate-400">
                         <Settings2 className="h-8 w-8 mb-2 opacity-30" />
                         <p className="font-medium">No mapping routes found</p>

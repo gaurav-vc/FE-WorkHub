@@ -27,6 +27,8 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
   const [description, setDescription] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [dependentTask, setDependentTask] = useState<string>("none");
+  const [estimatedEffort, setEstimatedEffort] = useState(1);
+  const [effortUnit, setEffortUnit] = useState<"hours" | "days">("hours");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [assignedTo, setAssignedTo] = useState("unassigned");
   const [globalUsers, setGlobalUsers] = useState<any[]>([]);
@@ -53,6 +55,10 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
 
     setIsSubmitting(true);
     try {
+      const timeIntervalMinutes = estimatedEffort > 0 
+        ? estimatedEffort * (effortUnit === "hours" ? 60 : 480) 
+        : 60;
+
       await onSubmit({
         title,
         dueDate,
@@ -61,6 +67,7 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
         assignedTo: taskType === "assign" && assignedTo !== "unassigned" ? parseInt(assignedTo.split('-')[0]) : null,
         file,
         dependentTask: dependentTask !== "none" ? parseInt(dependentTask.split('-')[0]) : null,
+        timeIntervalMinutes,
         isUrgent,
         isRepeat
       });
@@ -72,6 +79,8 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
       setTaskType("self");
       setAssignedTo("unassigned");
       setDependentTask("none");
+      setEstimatedEffort(1);
+      setEffortUnit("hours");
       setIsUrgent(false);
       setIsRepeat(false);
       onOpenChange(false);
@@ -160,6 +169,30 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
                     className="bg-background"
                   />
                 </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold">Estimated Effort</Label>
+                  <Input 
+                    type="number"
+                    min={1}
+                    value={estimatedEffort}
+                    onChange={(e) => setEstimatedEffort(parseInt(e.target.value) || 1)}
+                    className="bg-background"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold">Unit</Label>
+                  <Select value={effortUnit} onValueChange={v => setEffortUnit(v as "hours" | "days")}>
+                    <SelectTrigger className="bg-background"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="hours">Hours</SelectItem>
+                      <SelectItem value="days">Days</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <span className="text-xs text-muted-foreground col-span-2">This dictates the allowed time before this task is marked overdue.</span>
               </div>
 
               <div className="space-y-2">

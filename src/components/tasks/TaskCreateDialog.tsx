@@ -53,6 +53,7 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
     title: "", description: "", taskType: "self" as "self" | "assign",
     priority: "P3" as Task["priority"], project: "", dueDate: "", dueTime: "",
     startDate: "", estimatedEffort: 0, effortUnit: "hours" as "hours" | "days",
+    timeIntervalMinutes: 60,
     isUrgent: false, assigneeIds: [] as string[],
     dependencies: [] as string[],
     tags: [] as string[],
@@ -63,6 +64,7 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
     priority: editTask.priority, project: editTask.project, dueDate: editTask.dueDate,
     dueTime: editTask.dueTime, startDate: editTask.startDate,
     estimatedEffort: editTask.estimatedEffort, effortUnit: editTask.effortUnit,
+    timeIntervalMinutes: editTask.timeIntervalMinutes || 60,
     isUrgent: editTask.isUrgent, assigneeIds: editTask.assignees.map(a => {
       // In real scenario we match by id, for fallback match initials
       const found = teamMembers.find(m => m.initials === a.initials);
@@ -87,6 +89,10 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
         return m ? { name: m.name, initials: m.initials } : { name: "Unknown", initials: "??" };
       });
 
+    const timeIntervalMinutes = form.estimatedEffort > 0 
+      ? form.estimatedEffort * (form.effortUnit === "hours" ? 60 : 480) 
+      : 60; // Default 60 if not provided
+
     const taskData: Task = {
       id: editTask?.id || `task-${Date.now()}`,
       title: form.title, description: form.description, taskType: form.taskType,
@@ -96,6 +102,7 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
       dueDate: form.dueDate, dueTime: form.dueTime, startDate: form.startDate,
       estimatedEffort: form.estimatedEffort, effortUnit: form.effortUnit,
       actualEffort: editTask?.actualEffort || 0,
+      timeIntervalMinutes,
       isUrgent: form.isUrgent, repeat,
       dependencies: form.dependencies,
       dependent_tasks_legacy: form.dependencies, // Provide both for backend compatibility
@@ -288,6 +295,7 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
                     </SelectContent>
                   </Select>
                 </div>
+                <span className="text-xs text-muted-foreground col-span-2">This dictates the allowed time before this task is marked overdue.</span>
               </div>
 
               {/* Urgent Flag */}

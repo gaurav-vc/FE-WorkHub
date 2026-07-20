@@ -9,9 +9,11 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Check, X, ShieldAlert, UserPlus, Calendar,
-  CheckCircle2, Users, Shield, GraduationCap, FileBadge, Clock,
+  CheckCircle2, Users, Shield, GraduationCap, FileBadge, Clock, Settings2
 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { API_BASE } from "@/config";
@@ -184,6 +186,7 @@ const tabs = [
   { value: "requests",     label: "Pending Registrations",   icon: Clock },
   { value: "courses",      label: "Courses",                 icon: GraduationCap },
   { value: "certificates", label: "Certificates",            icon: FileBadge },
+  { value: "settings",     label: "System Settings",         icon: Settings2 },
 ];
 
 export default function SetupPage() {
@@ -238,8 +241,192 @@ export default function SetupPage() {
           <TabsContent value="certificates" className="m-0 p-6">
             <SetupCertificates />
           </TabsContent>
+          <TabsContent value="settings" className="m-0 p-6">
+            <SystemSettingsTab />
+          </TabsContent>
         </div>
       </Tabs>
+    </div>
+  );
+}
+
+function SystemSettingsTab() {
+  const { token } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [orgId, setOrgId] = useState<number | null>(null);
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [settings, setSettings] = useState({
+    max_active_tasks: 4
+  });
+  const [departmentLimits, setDepartmentLimits] = useState<{ [key: string]: number }>({});
+  const [employeeLimits, setEmployeeLimits] = useState<{ [key: string]: number }>({});
+  
+  // For new entries
+  const [newDeptName, setNewDeptName] = useState("");
+  const [newDeptLimit, setNewDeptLimit] = useState(4);
+  const [newEmpId, setNewEmpId] = useState("");
+  const [newEmpLimit, setNewEmpLimit] = useState(4);
+
+  useEffect(() => {
+    // Fetch employees for department/user lists
+    fetch(`${API_BASE}/calendar/employees/`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(data => setEmployees(data))
+      .catch(console.error);
+
+    fetch(`${API_BASE}/auth/organizations/`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(data => {
+        if (data.length > 0) {
+          setOrgId(data[0].id);
+          const adv = data[0].advanced_settings || {};
+          setSettings({
+            max_active_tasks: adv.max_active_tasks || 4
+          });
+          setDepartmentLimits(adv.department_task_limits || {});
+          setEmployeeLimits(adv.employee_task_limits || {});
+        }
+      })
+      .catch(console.error);
+  }, [token]);
+
+  const uniqueDepartments = Array.from(new Set(employees.map(e => e.department).filter(Boolean)));
+
+  const handleSave = async () => {
+    if (!orgId) return;
+    setLoading(true);
+    try {
+      const r = await fetch(`${API_BASE}/auth/organizations/${orgId}/`, { headers: { Authorization: `Bearer ${token}` } });
+      const org = await r.json();
+      
+      const newSettings = { 
+        ...org.advanced_settings, 
+        max_active_tasks: Number(settings.max_active_tasks),
+        department_task_limits: departmentLimits,
+        employee_task_limits: employeeLimits
+      };
+      
+      const res = await fetch(`${API_BASE}/auth/organizations/${orgId}/`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ advanced_settings: newSettings })
+      });
+      if (res.ok) {
+        toast.success("Settings saved successfully!");
+      } else {
+        toast.error("Failed to save settings");
+      }
+    } catch (e) {
+      toast.error("An error occurred");
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="space-y-6 max-w-3xl">
+      <div>
+        <h2 className="text-base font-semibold text-foreground">System Settings</h2>
+        <p className="text-sm text-muted-foreground mt-0.5">Configure global application behaviors and limits.</p>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Task Queue Configuration</CardTitle>
+          <CardDescription>Manage how many active tasks a user can have before they are queued.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-8">
+          <div className="grid gap-2">
+            <Label htmlFor="maxTasks">Global Max Active Tasks Limit</Label>
+            <Input 
+              id="maxTasks" 
+              type="number" 
+              min={1} 
+              max={50}
+              value={settings.max_active_tasks} 
+              onChange={e => setSettings({...settings, max_active_tasks: parseInt(e.target.value) || 1})}
+              className="max-w-md"
+            />
+            <p className="text-xs text-muted-foreground">Default limit for all users. If assigned more, tasks are queued.</p>
+          </div>
+
+          <div className="space-y-3">
+            <Label>Department Overrides</Label>
+            <div className="flex gap-2 max-w-md items-center">
+              <Select value={newDeptName} onValueChange={setNewDeptName}>
+                <SelectTrigger className="w-48"><SelectValue placeholder="Select Dept" /></SelectTrigger>
+                <SelectContent>
+                  {uniqueDepartments.map(d => (
+                    <SelectItem key={d as string} value={d as string}>{d as string}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Input type="number" min={1} value={newDeptLimit} onChange={e => setNewDeptLimit(parseInt(e.target.value) || 1)} className="w-20" />
+              <Button size="sm" variant="outline" onClick={() => {
+                if (newDeptName) {
+                  setDepartmentLimits(p => ({ ...p, [newDeptName]: newDeptLimit }));
+                  setNewDeptName("");
+                }
+              }}>Add</Button>
+            </div>
+            {Object.entries(departmentLimits).length > 0 && (
+              <div className="flex flex-wrap gap-2 max-w-md mt-2">
+                {Object.entries(departmentLimits).map(([dept, limit]) => (
+                  <Badge key={dept} variant="secondary" className="px-2 py-1 flex items-center gap-2">
+                    {dept}: {limit}
+                    <X className="h-3 w-3 cursor-pointer hover:text-destructive" onClick={() => {
+                      const newLimits = { ...departmentLimits };
+                      delete newLimits[dept];
+                      setDepartmentLimits(newLimits);
+                    }} />
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-3">
+            <Label>Employee Overrides</Label>
+            <div className="flex gap-2 max-w-md items-center">
+              <Select value={newEmpId} onValueChange={setNewEmpId}>
+                <SelectTrigger className="w-48"><SelectValue placeholder="Select Employee" /></SelectTrigger>
+                <SelectContent>
+                  {employees.map(emp => (
+                    <SelectItem key={emp.id} value={emp.id.toString()}>{emp.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Input type="number" min={1} value={newEmpLimit} onChange={e => setNewEmpLimit(parseInt(e.target.value) || 1)} className="w-20" />
+              <Button size="sm" variant="outline" onClick={() => {
+                if (newEmpId) {
+                  setEmployeeLimits(p => ({ ...p, [newEmpId]: newEmpLimit }));
+                  setNewEmpId("");
+                }
+              }}>Add</Button>
+            </div>
+            {Object.entries(employeeLimits).length > 0 && (
+              <div className="flex flex-wrap gap-2 max-w-md mt-2">
+                {Object.entries(employeeLimits).map(([empId, limit]) => {
+                  const emp = employees.find(e => e.id.toString() === empId);
+                  return (
+                    <Badge key={empId} variant="secondary" className="px-2 py-1 flex items-center gap-2">
+                      {emp ? emp.name : `User #${empId}`}: {limit}
+                      <X className="h-3 w-3 cursor-pointer hover:text-destructive" onClick={() => {
+                        const newLimits = { ...employeeLimits };
+                        delete newLimits[empId];
+                        setEmployeeLimits(newLimits);
+                      }} />
+                    </Badge>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          
+          <Button onClick={handleSave} disabled={loading || !orgId}>
+            {loading ? "Saving..." : "Save Settings"}
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 }

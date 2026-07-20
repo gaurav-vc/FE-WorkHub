@@ -161,9 +161,16 @@ export default function MyDay() {
                       className={`flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors group cursor-pointer ${done ? "opacity-50" : ""} ${task.isUrgent && !done ? "bg-destructive/5 border-l-2 border-l-destructive" : ""}`}
                       onClick={() => setSelectedTask(task)}
                     >
-                      <div className="w-1.5 h-1.5 rounded-full bg-primary/40 shrink-0 mt-1" />
+                      <div className={`w-2 h-2 rounded-full shrink-0 mt-1 ${
+                        task.healthStatus === 'red' ? 'bg-destructive' :
+                        task.healthStatus === 'yellow' ? 'bg-amber-500' :
+                        task.healthStatus === 'green' ? 'bg-emerald-500' : 'bg-primary/40'
+                      }`} />
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {task.isQueued && (
+                            <Badge variant="outline" className="text-[9px] bg-slate-100 text-slate-600 px-1 py-0 border-slate-200 uppercase tracking-wider">Queued</Badge>
+                          )}
                           {task.isUrgent && <AlertTriangle className="h-3 w-3 text-destructive shrink-0" />}
                           <p className={`text-sm font-medium ${done ? "line-through text-muted-foreground" : "text-foreground"}`}>
                             {task.title}
