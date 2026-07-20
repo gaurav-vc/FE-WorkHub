@@ -577,13 +577,23 @@ export default function CalendarMeetings() {
                     variant="ghost"
                     size="sm"
                     className="h-10 px-3 text-primary font-semibold hover:text-primary/80 hover:bg-primary/10"
-                    onClick={() => {
-                      let base = "";
-                      if (form.platform === "Zoom") base = "https://zoom.us/j/";
-                      else if (form.platform === "Google Meet") base = "https://meet.google.com/";
-                      else if (form.platform === "Microsoft Teams") base = "https://teams.microsoft.com/l/meetup-join/";
-                      else base = "https://example.com/meet/";
-                      setForm({ ...form, meetingLink: base + Math.floor(Math.random() * 1000000000) })
+                    onClick={async () => {
+                      try {
+                        const res = await fetch(`${API_BASE}/calendar/generate-link/`, {
+                          method: "POST",
+                          headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                          },
+                          body: JSON.stringify({ platform: form.platform })
+                        });
+                        const data = await res.json();
+                        if (data.link) {
+                          setForm({ ...form, meetingLink: data.link });
+                        }
+                      } catch (err) {
+                        toast.error("Failed to generate link");
+                      }
                     }}
                   >
                     Generate

@@ -124,9 +124,36 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
-  const { portalType } = useAuth();
+  const { portalType, accessRoutes, role } = useAuth();
 
-  const navGroups = getNavGroups(portalType);
+  const rawNavGroups = getNavGroups(portalType);
+
+  const navGroups = rawNavGroups.map(group => {
+    const filteredItems = group.items.filter(item => {
+      // Superadmin / Site admin / Admin roles bypass the restriction
+      if (portalType === 'super_user' || portalType === 'site_admin' || role === 'admin' || role?.toLowerCase().includes('admin')) {
+        return true;
+      }
+      
+      if (!accessRoutes || accessRoutes.length === 0) return true; // Fallback
+
+      // Check accessRoutes for this item.url
+      let accessObj = accessRoutes.find((r: any) => r.site_name === item.url);
+      if (!accessObj) {
+        accessObj = accessRoutes.find((r: any) => r.site_name !== '/' && item.url.startsWith(r.site_name));
+      }
+      
+      if (accessObj) {
+        return accessObj.permissions?.view === true;
+      }
+      
+      // Default deny if mapping not found
+      return false;
+    });
+    
+    return { ...group, items: filteredItems };
+  }).filter(group => group.items.length > 0);
+
 
   return (
     <Sidebar collapsible="icon" className="border-r-0">

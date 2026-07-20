@@ -55,6 +55,13 @@ interface Policy {
 
 const policyCategories = ["All", "General", "HR", "IT", "Finance", "Legal"];
 
+const formatDate = (dateString: string | undefined) => {
+  if (!dateString) return "";
+  const d = new Date(dateString);
+  if (isNaN(d.getTime())) return dateString;
+  return d.toLocaleString([], { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+};
+
 export default function CompanyPolicies() {
   const { token } = useAuth();
   const [policies, setPolicies] = useState<Policy[]>([]);
@@ -142,7 +149,7 @@ export default function CompanyPolicies() {
               <Badge variant="outline" className="text-[10px]">v{selectedPolicy.version}</Badge>
             </div>
             <h1 className="text-2xl font-display font-bold text-foreground">{selectedPolicy.title}</h1>
-            <p className="text-sm text-muted-foreground mt-1">Created: {selectedPolicy.created_at_formatted} · Last updated: {selectedPolicy.lastUpdated}</p>
+            <p className="text-sm text-muted-foreground mt-1">Created: {formatDate(selectedPolicy.created_at_formatted)} · Last updated: {formatDate(selectedPolicy.lastUpdated)}</p>
           </div>
           {selectedPolicy.attachment ? (
             <Button size="sm" variant="outline" className="gap-1.5" asChild>
@@ -207,7 +214,7 @@ export default function CompanyPolicies() {
                 <h3 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">{policy.title}</h3>
                 <div className="flex items-center gap-2 mt-0.5">
                   <Badge variant="secondary" className="text-[10px]">{policy.category}</Badge>
-                  <span className="text-[11px] text-muted-foreground">v{policy.version} · Created {policy.created_at_formatted} · Updated {policy.lastUpdated}</span>
+                  <span className="text-[11px] text-muted-foreground">v{policy.version} · Created {formatDate(policy.created_at_formatted)} · Updated {formatDate(policy.lastUpdated)}</span>
                 </div>
               </div>
               <DropdownMenu>
