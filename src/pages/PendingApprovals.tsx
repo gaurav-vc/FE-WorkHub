@@ -34,7 +34,7 @@ export default function PendingApprovals() {
       if (res.ok) setDepartments(await res.json());
 
       // Fetch Roles
-      res = await fetch(`${API_BASE}/auth/roles/`, {
+      res = await fetch(`${API_BASE}/rbac/roles/`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) setRoles(await res.json());

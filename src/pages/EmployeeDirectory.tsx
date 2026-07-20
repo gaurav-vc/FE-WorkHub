@@ -108,7 +108,7 @@ export default function EmployeeDirectory() {
 
   const fetchDepartments = async () => {
     try {
-      const res = await fetch(`${API_BASE}/auth/roles/`, {
+      const res = await fetch(`${API_BASE}/rbac/roles/`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {

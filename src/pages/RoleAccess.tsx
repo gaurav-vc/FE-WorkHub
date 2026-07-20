@@ -108,11 +108,8 @@ const RoleBaseAccessPage: React.FC = () => {
     }
     setIsLoading(true);
     try {
-      const roleRes = await fetch(`${API_BASE}/auth/roles/`, { method: 'POST', headers, body: JSON.stringify({ name: newRoleName, description: newRoleDesc }) });
+      const roleRes = await fetch(`${API_BASE}/rbac/roles/`, { method: 'POST', headers, body: JSON.stringify({ name: newRoleName, code: newRoleName.toUpperCase().replace(/\s+/g, '_') }) });
       if (!roleRes.ok) { toast.error("Failed to create role"); return; }
-      
-      // Also create in RBAC table
-      await fetch(`${API_BASE}/rbac/roles/`, { method: 'POST', headers, body: JSON.stringify({ name: newRoleName, code: newRoleName.toUpperCase().replace(/\s+/g, '_') }) });
       
       const newRole: RoleObj = await roleRes.json();
       toast.success(`Role "${newRoleName}" created!`);
@@ -138,7 +135,7 @@ const RoleBaseAccessPage: React.FC = () => {
 
   const handleDeleteRole = async (role: RoleObj) => {
     if (!confirm(`Delete role "${role.name}"? Users assigned to it will be unassigned.`)) return;
-    const res = await fetch(`${API_BASE}/auth/roles/${role.id}/`, { method: 'DELETE', headers });
+    const res = await fetch(`${API_BASE}/rbac/roles/${role.id}/`, { method: 'DELETE', headers });
     if (res.ok) { toast.success(`Role "${role.name}" deleted`); fetchRoles(); fetchEmployees(); }
     else toast.error('Failed to delete role');
   };

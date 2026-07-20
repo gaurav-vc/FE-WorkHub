@@ -140,6 +140,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     // Pass snake_case payload
     try {
       await updateTaskApi(id, apiPayload);
+      fetchTasks();
     } catch (err) {
       fetchTasks();
     }

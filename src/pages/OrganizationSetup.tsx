@@ -84,7 +84,7 @@ export default function OrganizationSetup() {
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 
   const fetchDepartments = async () => {
-    const res = await fetch(`${API_BASE}/auth/roles/`, { headers });
+    const res = await fetch(`${API_BASE}/rbac/roles/`, { headers });
     if (res.ok) setDepartments(await res.json());
   };
 
@@ -109,7 +109,7 @@ export default function OrganizationSetup() {
     if (!newDeptName.trim()) return;
     setIsCreating(true);
     try {
-      const res = await fetch(`${API_BASE}/auth/roles/`, {
+      const res = await fetch(`${API_BASE}/rbac/roles/`, {
         method: "POST", headers,
         body: JSON.stringify({ name: newDeptName, description: newDeptDesc }),
       });
@@ -186,7 +186,7 @@ export default function OrganizationSetup() {
   // ─── Delete Department ──────────────────────────────────────────
   const handleDeleteDept = async (dept: Department) => {
     if (!confirm(`Delete department "${dept.name}"?`)) return;
-    const res = await fetch(`${API_BASE}/auth/roles/${dept.id}/`, { method: "DELETE", headers });
+    const res = await fetch(`${API_BASE}/rbac/roles/${dept.id}/`, { method: "DELETE", headers });
     if (res.ok) {
       toast.success("Department deleted");
       if (selectedDept?.id === dept.id) setSelectedDept(null);

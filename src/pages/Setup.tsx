@@ -36,7 +36,7 @@ function AccessRequestsTab() {
 
   const fetchRoles = async () => {
     try {
-      const res = await fetch(`${API_BASE}/auth/roles/`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(`${API_BASE}/rbac/roles/`, { headers: { Authorization: `Bearer ${token}` } });
       if (res.ok) {
         const data: RoleObj[] = await res.json();
         setRolesObjList(data.filter(r => r.name.toLowerCase() !== 'admin'));

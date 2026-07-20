@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import {
   Plus, X, AlertTriangle, RotateCcw, Link2, CheckSquare, ListTree, Paperclip, Flag,
@@ -29,7 +30,7 @@ interface TaskCreateDialogProps {
 export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDialogProps) {
   const { addTask, updateTask, tasks } = useTaskContext();
   const { token, username } = useAuth();
-  
+
   const [teamMembers, setTeamMembers] = useState<any[]>([]);
 
   useEffect(() => {
@@ -82,9 +83,9 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
     const assignees = form.taskType === "self"
       ? [{ name: username || "User", initials: username ? username.substring(0, 2).toUpperCase() : "U" }]
       : form.assigneeIds.map(id => {
-          const m = teamMembers.find(t => t.id === id);
-          return m ? { name: m.name, initials: m.initials } : { name: "Unknown", initials: "??" };
-        });
+        const m = teamMembers.find(t => t.id === id);
+        return m ? { name: m.name, initials: m.initials } : { name: "Unknown", initials: "??" };
+      });
 
     const taskData: Task = {
       id: editTask?.id || `task-${Date.now()}`,
@@ -95,14 +96,15 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
       dueDate: form.dueDate, dueTime: form.dueTime, startDate: form.startDate,
       estimatedEffort: form.estimatedEffort, effortUnit: form.effortUnit,
       actualEffort: editTask?.actualEffort || 0,
-      isUrgent: form.isUrgent, repeat, 
+      isUrgent: form.isUrgent, repeat,
       dependencies: form.dependencies,
       dependent_tasks_legacy: form.dependencies, // Provide both for backend compatibility
       checklist, checklists: checklist, subtasks,
       comments: editTask?.comments || [], chat: editTask?.chat || [],
       attachments: editTask?.attachments || [], tags: form.tags,
       file: attachment, // For passing the file to the task creation API
-    };
+      assigneeIds: form.assigneeIds, // Pass assigneeIds for the backend
+    } as any;
 
     if (editTask) {
       updateTask(editTask.id, taskData);
