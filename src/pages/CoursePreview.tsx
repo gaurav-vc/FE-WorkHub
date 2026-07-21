@@ -22,6 +22,7 @@ export default function CoursePreview() {
   const [playingVideo, setPlayingVideo] = useState<{url: string, id: number} | null>(null);
   const [progressMap, setProgressMap] = useState<Record<number, boolean>>({});
   const [showFinalAssessment, setShowFinalAssessment] = useState(false);
+  const [videoSettings, setVideoSettings] = useState<any>(null);
   
   // Simulated logged-in employee name
   const employeeName = username || "Current User";
@@ -73,8 +74,27 @@ export default function CoursePreview() {
       }
     };
 
+    const fetchVideoSettings = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/learning_center/video_settings/`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            setVideoSettings(data[0]);
+          } else if (data.id) {
+            setVideoSettings(data);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch video settings", err);
+      }
+    };
+
     if (courseId) {
       fetchCourse();
+      fetchVideoSettings();
     }
   }, [courseId, token, employeeName]);
 
@@ -135,6 +155,8 @@ export default function CoursePreview() {
   const getIsLocked = (pointId: number) => {
     // Admin bypass
     if (portalType === 'site_admin' || portalType === 'super_user' || role === 'admin') return false;
+    // Settings override
+    if (videoSettings?.enforce_linear_progression === false) return false;
     
     const idx = flatPoints.findIndex((p: any) => p.id === pointId);
     if (idx <= 0) return false; // First video is always unlocked
@@ -165,6 +187,7 @@ export default function CoursePreview() {
         employeeName={employeeName} 
         onClose={() => setShowFinalAssessment(false)} 
         onPassed={handleAssessmentPassed}
+        maxWarnings={videoSettings?.max_assessment_warnings}
       />
     );
   }
@@ -358,11 +381,11 @@ export default function CoursePreview() {
                     )}
 
                     <Button 
-                      disabled={!isAllCompleted && !hasAccess}
+                      disabled={(videoSettings?.require_video_completion ?? true) ? !isAllCompleted : false}
                       onClick={() => setShowFinalAssessment(true)}
-                      className={`px-8 py-6 text-lg font-bold rounded-xl transition-all ${isAllCompleted || hasAccess ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg' : 'bg-slate-100 text-slate-400 border border-slate-200'}`}
+                      className={`px-8 py-6 text-lg font-bold rounded-xl transition-all ${(!(videoSettings?.require_video_completion ?? true) || isAllCompleted) ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg' : 'bg-slate-100 text-slate-400 border border-slate-200'}`}
                     >
-                      {isAllCompleted || hasAccess ? 'Start Final Assessment' : 'Locked (Finish Curriculum First)'}
+                      {(!(videoSettings?.require_video_completion ?? true) || isAllCompleted) ? 'Start Final Assessment' : 'Locked (Finish Curriculum First)'}
                     </Button>
                   </div>
                 </TabsContent>

@@ -26,7 +26,9 @@ export default function VideoSettingsModal({ isOpen, onClose }: VideoSettingsMod
     disable_fast_forward: true,
     watch_percentage_required: 80,
     assessment_question_count: 50,
-    assessment_passing_score: 80
+    assessment_passing_score: 80,
+    max_assessment_warnings: 3,
+    require_video_completion: true
   });
 
   useEffect(() => {
@@ -183,6 +185,32 @@ export default function VideoSettingsModal({ isOpen, onClose }: VideoSettingsMod
                   />
                   <p className="text-xs text-slate-400">Score to pass exam.</p>
                 </div>
+              </div>
+            </div>
+
+            {/* Assessment Anti-Cheat Settings */}
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4 pt-4">
+              <div className="space-y-0.5">
+                <Label className="text-base font-semibold text-slate-800">Require Video Completion</Label>
+                <p className="text-sm text-slate-500">Lock the assessment until all course videos are watched.</p>
+              </div>
+              <Switch 
+                checked={settings.require_video_completion}
+                onCheckedChange={(c) => setSettings({...settings, require_video_completion: c})}
+              />
+            </div>
+
+            <div className="space-y-2 pt-2 pb-4 border-b border-slate-100">
+              <Label className="text-base font-semibold text-slate-800">Max Assessment Warnings</Label>
+              <div className="flex items-center gap-3">
+                <Input 
+                  type="number" 
+                  min="0" max="10"
+                  value={settings.max_assessment_warnings}
+                  onChange={(e) => setSettings({...settings, max_assessment_warnings: parseInt(e.target.value) || 0})}
+                  className="w-24 bg-slate-50"
+                />
+                <p className="text-xs text-slate-400">Warnings allowed before auto-failing exam (tab switching, etc).</p>
               </div>
             </div>
 

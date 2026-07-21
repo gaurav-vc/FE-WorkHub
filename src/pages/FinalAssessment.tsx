@@ -8,16 +8,17 @@ import { useAuth } from "@/context/AuthContext";
 import { startAssessment as startAssessmentApi, submitAssessmentAnswer, finishAssessment as finishAssessmentApi } from "@/api/learning";
 const GLOBAL_TIMER_START = 1800; // 30 mins in seconds
 const QUESTION_TIMER_START = 60; // 60 seconds
-const MAX_WARNINGS = 2;
 
 interface FinalAssessmentProps {
   courseId: number;
   employeeName: string;
   onClose: () => void;
   onPassed: () => void;
+  maxWarnings?: number;
 }
 
-export default function FinalAssessment({ courseId, employeeName, onClose, onPassed }: FinalAssessmentProps) {
+export default function FinalAssessment({ courseId, employeeName, onClose, onPassed, maxWarnings }: FinalAssessmentProps) {
+  const maxWarningsLimit = maxWarnings !== undefined ? maxWarnings : 3;
   const { token } = useAuth();
   const [loading, setLoading] = useState(true);
   
@@ -37,7 +38,9 @@ export default function FinalAssessment({ courseId, employeeName, onClose, onPas
   const [globalTimeLeft, setGlobalTimeLeft] = useState(GLOBAL_TIMER_START);
   const [questionTimeLeft, setQuestionTimeLeft] = useState(QUESTION_TIMER_START);
   const [warnings, setWarnings] = useState(0);
+  const warningsRef = useRef(0);
   const [showWarningModal, setShowWarningModal] = useState(false);
+  const isWarningActiveRef = useRef(false);
   const [warningMessage, setWarningMessage] = useState("");
   const [shuffledOptions, setShuffledOptions] = useState<string[]>(['A', 'B', 'C', 'D']);
 
@@ -80,6 +83,7 @@ export default function FinalAssessment({ courseId, employeeName, onClose, onPas
           setQuestions(data.questions);
           setCurrentIndex(data.currentIndex);
           setWarnings(data.warnings || 0);
+          warningsRef.current = data.warnings || 0;
           setGlobalTimeLeft(newGlobalTime);
           
           if (newQuestionTime <= 0) {
@@ -136,7 +140,9 @@ export default function FinalAssessment({ courseId, employeeName, onClose, onPas
     setGlobalTimeLeft(GLOBAL_TIMER_START);
     setQuestionTimeLeft(QUESTION_TIMER_START);
     setWarnings(0);
+    warningsRef.current = 0;
     setShowWarningModal(false);
+    isWarningActiveRef.current = false;
     setWarningMessage("");
     setLoading(true);
     localStorage.removeItem(STORAGE_KEY);
@@ -207,17 +213,21 @@ export default function FinalAssessment({ courseId, employeeName, onClose, onPas
   }, [sessionId, isFinished, showWarningModal, selectedOption, submittingAnswer, loading]);
 
   const triggerWarning = (msg: string) => {
-    if (isFinished || showWarningModal) return;
-    const newWarnings = warnings + 1;
+    if (isFinished || isWarningActiveRef.current) return;
+    
+    isWarningActiveRef.current = true;
+    const newWarnings = warningsRef.current + 1;
+    warningsRef.current = newWarnings;
     setWarnings(newWarnings);
-    if (newWarnings > MAX_WARNINGS) {
+    
+    if (newWarnings > maxWarningsLimit) {
       setWarningMessage("You have exceeded the maximum number of warnings. The assessment will now automatically fail.");
       setShowWarningModal(true);
       setTimeout(() => {
         finishAssessment(sessionId!, true);
       }, 3000);
     } else {
-      setWarningMessage(msg + ` (Warning ${newWarnings} of ${MAX_WARNINGS})`);
+      setWarningMessage(msg + ` (Warning ${newWarnings} of ${maxWarningsLimit})`);
       setShowWarningModal(true);
     }
   };
@@ -436,11 +446,12 @@ export default function FinalAssessment({ courseId, employeeName, onClose, onPas
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="sm:justify-end mt-4">
-            {warnings <= MAX_WARNINGS && (
+            {warnings <= maxWarningsLimit && (
               <Button 
                 type="button" 
                 onClick={() => {
                   setShowWarningModal(false);
+                  setTimeout(() => { isWarningActiveRef.current = false; }, 500);
                   enterFullscreen();
                 }} 
                 className="bg-indigo-600 text-white"
