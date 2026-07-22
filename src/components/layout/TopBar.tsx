@@ -28,7 +28,7 @@ import { CreateTaskModal } from "@/components/tasks/CreateTaskModal";
 import { useTaskContext } from "@/context/TaskContext";
 
 export function TopBar() {
-  const { username, role, logout, portalType } = useAuth();
+  const { username, role, email, logout, portalType } = useAuth();
   const navigate = useNavigate();
   const { tasks, addTask } = useTaskContext();
   
@@ -95,6 +95,15 @@ export function TopBar() {
           </DropdownMenu>
         )}
 
+        <Button 
+          variant="outline" 
+          className="bg-yellow-400 hover:bg-yellow-500 text-slate-900 border-none rounded-full px-4 h-9 font-semibold flex items-center gap-2"
+          onClick={() => window.open('https://hrms.vibecopilot.ai/', '_blank')}
+        >
+          <Briefcase className="h-4 w-4" />
+          HRMS
+        </Button>
+
         <NotificationPanel />
 
         <DropdownMenu>
@@ -112,15 +121,19 @@ export function TopBar() {
               <ChevronDown className="h-3.5 w-3.5 text-muted-foreground hidden md:block" />
             </div>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>My Account</DropdownMenuLabel>
+          <DropdownMenuContent align="end" className="w-64 p-2">
+            <div className="flex flex-col space-y-1 p-2">
+              <p className="text-sm font-medium leading-none">{username || "User"}</p>
+              <p className="text-xs text-muted-foreground">{email || "No email provided"}</p>
+              <p className="text-xs text-indigo-500 font-medium capitalize mt-1">{role || "Member"}</p>
+            </div>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer">
+            <DropdownMenuItem className="cursor-pointer py-2">
               <User className="mr-2 h-4 w-4" />
               <span>Profile</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive focus:bg-destructive/10 cursor-pointer" onClick={logout}>
+            <DropdownMenuItem className="text-destructive focus:bg-destructive/10 cursor-pointer py-2" onClick={logout}>
               <LogOut className="mr-2 h-4 w-4" />
               <span>Log out</span>
             </DropdownMenuItem>

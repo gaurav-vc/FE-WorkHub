@@ -8,6 +8,7 @@ interface AuthContextType {
   token: string | null;
   role: string | null;
   username: string | null;
+  email: string | null;
   userType: string | null;
   portalType: PortalType;
   accessRoutes: any[];
@@ -23,6 +24,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
   const [role, setRole] = useState<string | null>(localStorage.getItem('role'));
   const [username, setUsername] = useState<string | null>(localStorage.getItem('username'));
+  const [email, setEmail] = useState<string | null>(localStorage.getItem('email'));
   const [userType, setUserType] = useState<string | null>(localStorage.getItem('user_type'));
   const [accessRoutes, setAccessRoutes] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -51,6 +53,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUsername(data.username);
         localStorage.setItem('username', data.username);
       }
+      if (data.email) {
+        setEmail(data.email);
+        localStorage.setItem('email', data.email);
+      }
       if (data.user_type) {
         setUserType(data.user_type);
         localStorage.setItem('user_type', data.user_type);
@@ -65,6 +71,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    const originalFetch = window.fetch;
+    window.fetch = async function (...args) {
+      let [resource, config] = args;
+      
+      // Determine module ID based on current pathname and accessRoutes
+      const currentPath = window.location.pathname;
+      let accessObj = accessRoutes.find(r => r.site_name === currentPath);
+      if (!accessObj) {
+        accessObj = accessRoutes.find(r => r.site_name !== '/' && currentPath.startsWith(r.site_name));
+      }
+      
+      if (accessObj) {
+        config = config || {};
+        const headers = new Headers(config.headers || {});
+        headers.set('X-Module-ID', accessObj.site_id);
+        config.headers = headers;
+        args[1] = config;
+      }
+      return originalFetch.apply(this, args);
+    };
+    return () => {
+      window.fetch = originalFetch;
+    };
+  }, [accessRoutes]);
 
   const login = (newToken: string, user_id: string, newRole?: string, newUserType?: string) => {
     // Clear stale role/userType from previous session before setting new values
@@ -95,18 +127,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setToken(null);
     setRole(null);
     setUsername(null);
+    setEmail(null);
     setUserType(null);
     setAccessRoutes([]);
     localStorage.removeItem('token');
     localStorage.removeItem('role');
     localStorage.removeItem('username');
+    localStorage.removeItem('email');
     localStorage.removeItem('user_type');
     navigate('/login');
     toast.success('Logged out successfully');
   };
 
   return (
-    <AuthContext.Provider value={{ token, role, username, userType, portalType, accessRoutes, login, logout, isAuthenticated: !!token, isLoading }}>
+    <AuthContext.Provider value={{ token, role, username, email, userType, portalType, accessRoutes, login, logout, isAuthenticated: !!token, isLoading }}>
       {children}
     </AuthContext.Provider>
   );
@@ -129,7 +163,7 @@ export const usePageAccess = () => {
   }
 
   if (accessRoutes.length === 0) {
-    return { canView: true, canCreate: true, canEdit: true };
+    return { canView: false, canCreate: false, canEdit: false };
   }
 
   const currentPath = location.pathname;

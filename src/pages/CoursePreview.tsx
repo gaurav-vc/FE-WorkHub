@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useParams } from "react-router-dom";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth, usePageAccess } from "@/context/AuthContext";
 import CourseVideoPlayer from "./CourseVideoPlayer";
 import FinalAssessment from "./FinalAssessment";
 
@@ -123,8 +123,8 @@ export default function CoursePreview() {
       setRequesting(false);
     }
   };
-
-  const hasAccess = portalType === 'site_admin' || portalType === 'super_user' || role === 'admin' || accessStatus === 'Approved';
+    const { canEdit } = usePageAccess();
+  const hasAccess = portalType === 'site_admin' || portalType === 'super_user' || canEdit || accessStatus === 'Approved';
 
   if (loading) {
     return (
@@ -154,7 +154,7 @@ export default function CoursePreview() {
   const flatPoints = course.topics ? course.topics.flatMap((t: any) => t.points) : [];
   const getIsLocked = (pointId: number) => {
     // Admin bypass
-    if (portalType === 'site_admin' || portalType === 'super_user' || role === 'admin') return false;
+    if (portalType === 'site_admin' || portalType === 'super_user' || canEdit) return false;
     // Settings override
     if (videoSettings?.enforce_linear_progression === false) return false;
     

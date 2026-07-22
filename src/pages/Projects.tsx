@@ -40,6 +40,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { getProjects, createProject, updateProject, deleteProject as deleteProjectApi, getDepartments, getTemplates, importTemplate } from "@/api/projects";
 import { toast } from "sonner";
+import { PermissionGuard } from "@/components/auth/PermissionGuard";
 
 interface Project {
   id: string;
@@ -194,9 +195,11 @@ export default function Projects() {
           </h1>
           <p className="text-muted-foreground mt-1">Track project progress, teams, and milestones</p>
         </div>
-        <Button className="gradient-primary text-primary-foreground gap-1.5 px-6 py-5 text-base shadow-md hover:shadow-lg transition-all" onClick={openCreate}>
-          <Plus className="h-5 w-5" /> New Project
-        </Button>
+        <PermissionGuard requires="create">
+          <Button className="gradient-primary text-primary-foreground gap-1.5 px-6 py-5 text-base shadow-md hover:shadow-lg transition-all" onClick={openCreate}>
+            <Plus className="h-5 w-5" /> New Project
+          </Button>
+        </PermissionGuard>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">
@@ -244,10 +247,12 @@ export default function Projects() {
                     <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                       <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0"><MoreHorizontal className="h-4 w-4" /></Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={(e) => openEdit(e, project)}><Edit className="h-3.5 w-3.5 mr-1.5" /> Edit</DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive" onClick={(e) => deleteProject(e, project.id)}><Trash2 className="h-3.5 w-3.5 mr-1.5" /> Delete</DropdownMenuItem>
-                    </DropdownMenuContent>
+                    <PermissionGuard requires="edit">
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={(e) => openEdit(e, project)}><Edit className="h-3.5 w-3.5 mr-1.5" /> Edit</DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive" onClick={(e) => deleteProject(e, project.id)}><Trash2 className="h-3.5 w-3.5 mr-1.5" /> Delete</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </PermissionGuard>
                   </DropdownMenu>
                 </div>
                 <div className="flex items-center gap-2 mb-3">

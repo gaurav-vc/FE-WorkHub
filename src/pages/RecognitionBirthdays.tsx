@@ -33,6 +33,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { API_BASE } from "@/config";
 import { toast } from "sonner";
+import { PermissionGuard } from "@/components/auth/PermissionGuard";
 
 interface Kudos {
   id: string;
@@ -128,10 +129,10 @@ export default function RecognitionBirthdays() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          from_name: payload.fromName,
-          from_initials: payload.fromInitials,
-          to_name: payload.toName,
-          to_initials: payload.toInitials,
+          fromName: payload.fromName,
+          fromInitials: payload.fromInitials,
+          toName: payload.toName,
+          toInitials: payload.toInitials,
           message: payload.message,
           category: payload.category
         })
@@ -186,9 +187,11 @@ export default function RecognitionBirthdays() {
           </h1>
           <p className="text-muted-foreground mt-1">Celebrate achievements and team birthdays</p>
         </div>
-        <Button size="lg" className="gradient-primary text-primary-foreground gap-2 px-8 py-6 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all w-full sm:w-auto" onClick={() => setShowCreate(true)}>
-          <Send className="h-5 w-5" /> Send Kudos
-        </Button>
+        <PermissionGuard requires="create">
+          <Button size="lg" className="gradient-primary text-primary-foreground gap-2 px-8 py-6 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all w-full sm:w-auto" onClick={() => setShowCreate(true)}>
+            <Send className="h-5 w-5" /> Send Kudos
+          </Button>
+        </PermissionGuard>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -227,9 +230,11 @@ export default function RecognitionBirthdays() {
                         ❤️ {k.reactions}
                       </Button>
                       <span className="text-[11px] text-muted-foreground">{k.time}</span>
-                      <Button size="sm" variant="ghost" className="text-xs h-7 opacity-0 group-hover:opacity-100 ml-auto text-destructive" onClick={() => deleteKudos(k.id)}>
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
+                      <PermissionGuard requires="delete">
+                        <Button size="sm" variant="ghost" className="text-xs h-7 opacity-0 group-hover:opacity-100 ml-auto text-destructive" onClick={() => deleteKudos(k.id)}>
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </PermissionGuard>
                     </div>
                   </div>
                 </div>

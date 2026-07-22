@@ -71,6 +71,20 @@ export default function Dashboard() {
       toast.error("An error occurred");
     }
   };
+  const getTimelineStatus = (dueDateStr: string | null) => {
+    if (!dueDateStr) return { border: "border-transparent", text: "text-muted-foreground", label: "" };
+    const due = new Date(dueDateStr);
+    due.setHours(0,0,0,0);
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const diffTime = due.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) return { border: "border-destructive/50 shadow-[0_0_10px_rgba(239,68,68,0.2)]", text: "text-destructive font-semibold", label: "Delayed" };
+    if (diffDays === 0) return { border: "border-destructive/50 shadow-[0_0_10px_rgba(239,68,68,0.2)]", text: "text-destructive font-semibold", label: "Due Today" };
+    if (diffDays <= 2) return { border: "border-warning/50 shadow-[0_0_10px_rgba(245,158,11,0.2)]", text: "text-warning font-medium", label: "Approaching" };
+    return { border: "border-success/50 shadow-[0_0_10px_rgba(34,197,94,0.2)]", text: "text-success font-medium", label: "On Track" };
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -82,10 +96,6 @@ export default function Dashboard() {
               {greeting}, {currentUser?.name?.split(" ")[0]}! <span className="inline-block animate-bounce">👋</span>
             </h1>
             <p className="mt-1 text-primary-foreground/80 text-sm">{dateStr}</p>
-          </div>
-          <div className="hidden md:flex items-center gap-2 rounded-lg bg-primary-foreground/10 px-4 py-2 backdrop-blur-sm">
-            <Sparkles className="h-4 w-4" />
-            <span className="text-sm font-medium">AI Assistant ready</span>
           </div>
         </div>
       </div>
@@ -125,26 +135,36 @@ export default function Dashboard() {
             </div>
           </CardHeader>
           <CardContent className="space-y-2">
-            {todayTasks?.length > 0 ? todayTasks.map((task: any) => (
-              <div
-                key={task.id}
-                className="flex items-center gap-3 rounded-lg border p-3 hover:bg-secondary/50 transition-colors group"
-              >
-                <div className="h-4 w-4 rounded border-2 border-muted-foreground/30 group-hover:border-primary transition-colors" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{task.title}</p>
-                  <p className="text-xs text-muted-foreground">{task.project || 'General'} {task.dueTime ? `· ${task.dueTime}` : ''}</p>
+            {todayTasks?.length > 0 ? todayTasks.map((task: any) => {
+              const timeline = getTimelineStatus(task.due_date);
+              return (
+                <div
+                  key={task.id}
+                  className={`flex items-center gap-3 rounded-lg border-2 p-3 hover:bg-secondary/50 transition-colors group ${timeline.border}`}
+                >
+                  <div className="h-4 w-4 rounded border-2 border-muted-foreground/30 group-hover:border-primary transition-colors" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{task.title}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {task.project || 'General'}
+                      {task.due_date && (
+                        <span className={`ml-2 ${timeline.text}`}>
+                          · {timeline.label} ({new Date(task.due_date).toLocaleDateString()})
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className={`text-[10px] ${priorityColors[task.priority] || priorityColors.P3}`}>
+                      {task.priority || 'P3'}
+                    </Badge>
+                    <Badge variant="outline" className={`text-[10px] ${task.status === 'done' ? 'bg-success/10 text-success border-success/20' : task.status === 'in-progress' ? 'bg-primary/10 text-primary border-primary/20' : 'bg-muted text-muted-foreground'}`}>
+                      {task.status === 'in-progress' ? 'In Progress' : task.status === 'done' ? 'Done' : task.status === 'blocked' ? 'Blocked' : 'To Do'}
+                    </Badge>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className={`text-[10px] ${priorityColors[task.priority] || priorityColors.P3}`}>
-                    {task.priority || 'P3'}
-                  </Badge>
-                  <Badge variant="outline" className={`text-[10px] ${task.status === 'done' ? 'bg-success/10 text-success border-success/20' : task.status === 'in-progress' ? 'bg-primary/10 text-primary border-primary/20' : 'bg-muted text-muted-foreground'}`}>
-                    {task.status === 'in-progress' ? 'In Progress' : task.status === 'done' ? 'Done' : task.status === 'blocked' ? 'Blocked' : 'To Do'}
-                  </Badge>
-                </div>
-              </div>
-            )) : (
+              );
+            }) : (
               <p className="text-sm text-muted-foreground">No pending tasks for today.</p>
             )}
           </CardContent>

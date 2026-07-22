@@ -12,6 +12,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { API_BASE } from "@/config";
+import { PermissionGuard } from "@/components/auth/PermissionGuard";
 
 interface MOM {
   id: number;
@@ -168,9 +169,11 @@ export default function MOMList() {
           <p className="text-muted-foreground mt-1">Track and manage meeting outcomes and action items.</p>
         </div>
         
-        <Button className="gap-1.5 gradient-primary text-primary-foreground shadow-sm hover:shadow-md transition-shadow" onClick={() => navigate('/collaboration/moms/create')}>
-          <Plus className="h-4 w-4" /> New MOM
-        </Button>
+        <PermissionGuard requires="create">
+          <Button className="gap-1.5 gradient-primary text-primary-foreground shadow-sm hover:shadow-md transition-shadow" onClick={() => navigate('/collaboration/moms/create')}>
+            <Plus className="h-4 w-4" /> New MOM
+          </Button>
+        </PermissionGuard>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -181,12 +184,16 @@ export default function MOMList() {
               <CardTitle className="text-lg font-display flex justify-between items-start group-hover:text-primary transition-colors">
                 <span className="truncate pr-2">{mom.title}</span>
                 <div className="flex gap-1 -mt-1 -mr-2">
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => handleClone(e, mom.id)} title="Clone MOM">
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => handleDelete(e, mom.id)} title="Delete MOM">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <PermissionGuard requires="create">
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => handleClone(e, mom.id)} title="Clone MOM">
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </PermissionGuard>
+                  <PermissionGuard requires="delete">
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => handleDelete(e, mom.id)} title="Delete MOM">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </PermissionGuard>
                 </div>
               </CardTitle>
               <div className="flex items-center text-xs text-muted-foreground gap-1 mt-1">

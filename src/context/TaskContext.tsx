@@ -71,8 +71,10 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       const data = await getTasks();
       const rawTasks = data.results || data;
       setTasks(rawTasks.map(mapTaskFromApi));
-    } catch (err) {
-      console.error("Failed to fetch tasks", err);
+    } catch (err: any) {
+      if (err?.status !== 403) {
+        console.error("Failed to fetch tasks", err);
+      }
     }
   };
 
@@ -95,9 +97,13 @@ export function TaskProvider({ children }: { children: ReactNode }) {
           read: n.is_read || n.read || false,
           link: n.link
         })));
+      } else if (res.status !== 403) {
+        console.error("Failed to fetch notifications, status:", res.status);
       }
-    } catch (err) {
-      console.error("Failed to fetch notifications", err);
+    } catch (err: any) {
+      if (err?.status !== 403) {
+        console.error("Failed to fetch notifications", err);
+      }
     }
   };
 
@@ -117,7 +123,19 @@ export function TaskProvider({ children }: { children: ReactNode }) {
 
   const addTask = async (task: Task) => {
     try {
-      const newTask = await createTask(task);
+      const apiPayload: any = { ...task };
+      if (task.dueDate) apiPayload.due_date = task.dueDate;
+      else apiPayload.due_date = new Date().toISOString().split('T')[0]; // Required by backend
+      
+      if (task.startDate) apiPayload.start_date = task.startDate;
+      if (task.estimatedEffort) apiPayload.duration = task.estimatedEffort;
+      
+      const anyTask: any = task;
+      if (anyTask.assigneeIds && anyTask.assigneeIds.length > 0) {
+          apiPayload.assigned_to = anyTask.assigneeIds[0];
+      }
+      
+      const newTask = await createTask(apiPayload);
       setTasks((prev) => [...prev, mapTaskFromApi(newTask)]);
       toast.success("Task created");
     } catch (err) {

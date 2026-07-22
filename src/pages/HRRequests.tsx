@@ -36,11 +36,19 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { getHRRequests, createHRRequest, updateHRRequest } from "@/api/hr";
 import { toast } from "sonner";
+import { PermissionGuard } from "@/components/auth/PermissionGuard";
 
 const statusConfig: Record<string, { icon: React.ReactNode; color: string }> = {
   approved: { icon: <CheckCircle2 className="h-3.5 w-3.5" />, color: "bg-success/10 text-success border-success/20" },
   pending: { icon: <Clock className="h-3.5 w-3.5" />, color: "bg-warning/10 text-warning border-warning/20" },
   rejected: { icon: <XCircle className="h-3.5 w-3.5" />, color: "bg-destructive/10 text-destructive border-destructive/20" },
+};
+
+const formatDate = (dateString: string | undefined) => {
+  if (!dateString) return "";
+  const d = new Date(dateString);
+  if (isNaN(d.getTime())) return dateString;
+  return d.toLocaleString([], { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 };
 
 const typeIcons: Record<string, React.ReactNode> = {
@@ -166,14 +174,15 @@ export default function HRRequests() {
           </Tabs>
 
           {/* New Request Dialog */}
-          <Dialog open={showDialog} onOpenChange={setShowDialog}>
-            <DialogTrigger asChild>
-              <Button className="gradient-primary text-primary-foreground gap-1.5" onClick={() => setShowDialog(true)}>
-                <Plus className="h-4 w-4" />
-                New Request
-              </Button>
-            </DialogTrigger>
-          <DialogContent className="sm:max-w-lg">
+          <PermissionGuard requires="create">
+            <Dialog open={showDialog} onOpenChange={setShowDialog}>
+              <DialogTrigger asChild>
+                <Button className="gradient-primary text-primary-foreground gap-1.5" onClick={() => setShowDialog(true)}>
+                  <Plus className="h-4 w-4" />
+                  New Request
+                </Button>
+              </DialogTrigger>
+            <DialogContent className="sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>Submit New Request</DialogTitle>
             </DialogHeader>
@@ -320,6 +329,7 @@ export default function HRRequests() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </PermissionGuard>
         </div>
       </div>
 
@@ -409,7 +419,7 @@ export default function HRRequests() {
                       {st.icon}
                       {req.status}
                     </Badge>
-                    <p className="text-[10px] text-muted-foreground mt-1">{req.date}</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">{formatDate(req.created_at || req.date)}</p>
                   </div>
                 </div>
               );
@@ -463,7 +473,7 @@ export default function HRRequests() {
                               {log.actor_name} <span className="font-normal text-slate-500 capitalize">{log.action.replace('_', ' ')}</span>
                             </p>
                             {log.note && <p className="text-slate-500 mt-0.5">{log.note}</p>}
-                            <p className="text-slate-400 text-[10px] mt-0.5">{log.timestamp}</p>
+                            <p className="text-slate-400 text-[10px] mt-0.5">{formatDate(log.timestamp)}</p>
                           </div>
                         </div>
                       ))

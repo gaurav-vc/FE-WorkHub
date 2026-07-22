@@ -80,6 +80,35 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
   const [newTag, setNewTag] = useState("");
   const [attachment, setAttachment] = useState<File | null>(null);
 
+  useEffect(() => {
+    if (open) {
+      if (editTask) {
+        setForm({
+          title: editTask.title || "", description: editTask.description || "", taskType: editTask.taskType || "self",
+          priority: editTask.priority || "P3", project: editTask.project || "", dueDate: editTask.dueDate || "",
+          dueTime: editTask.dueTime || "", startDate: editTask.startDate || "",
+          estimatedEffort: editTask.estimatedEffort || 0, effortUnit: editTask.effortUnit || "hours",
+          timeIntervalMinutes: editTask.timeIntervalMinutes || 60,
+          isUrgent: editTask.isUrgent || false, assigneeIds: (editTask.assignees || []).map(a => {
+            const found = teamMembers.find(m => m.initials === a.initials);
+            return found?.id || a.initials;
+          }), dependencies: editTask.dependencies || [], tags: editTask.tags || [],
+        });
+        setRepeat(editTask.repeat || { enabled: false, type: "daily" });
+        setChecklist(editTask.checklist || []);
+        setSubtasks(editTask.subtasks || []);
+      } else {
+        setForm(defaultForm);
+        setRepeat({ enabled: false, type: "daily" });
+        setChecklist([]);
+        setSubtasks([]);
+      }
+      setNewCheckItem("");
+      setNewTag("");
+      setAttachment(null);
+    }
+  }, [open, editTask, teamMembers]);
+
   const handleSave = () => {
     if (!form.title.trim()) return;
     const assignees = form.taskType === "self"
@@ -193,13 +222,43 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
               {form.taskType === "assign" && (
                 <div className="space-y-1.5">
                   <Label className="text-sm">Assign To</Label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {teamMembers.map(m => (
-                      <Badge key={m.id} variant={form.assigneeIds.includes(m.id) ? "default" : "outline"}
-                        className="cursor-pointer text-xs" onClick={() => {
-                          setForm(f => ({ ...f, assigneeIds: f.assigneeIds.includes(m.id) ? f.assigneeIds.filter(id => id !== m.id) : [...f.assigneeIds, m.id] }));
-                        }}>{m.initials} {m.name ? m.name.split(" ")[0] : "Unknown"}</Badge>
-                    ))}
+                  <div className="flex flex-col gap-2">
+                    <Select onValueChange={(val) => {
+                      if (!form.assigneeIds.includes(val)) {
+                        setForm(f => ({ ...f, assigneeIds: [...f.assigneeIds, val] }));
+                      }
+                    }}>
+                      <SelectTrigger className="w-full sm:w-[360px] bg-background">
+                        <SelectValue placeholder="Select employees to assign..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {teamMembers.filter(m => !form.assigneeIds.includes(m.id)).length === 0 && (
+                          <SelectItem value="none" disabled>No more employees to assign</SelectItem>
+                        )}
+                        {teamMembers.filter(m => !form.assigneeIds.includes(m.id)).map(m => (
+                          <SelectItem key={m.id} value={m.id.toString()}>
+                            {m.name} ({m.initials})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    {form.assigneeIds.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {form.assigneeIds.map(id => {
+                          const m = teamMembers.find(t => t.id.toString() === id.toString());
+                          if (!m) return null;
+                          return (
+                            <Badge key={id} variant="default" className="cursor-pointer text-xs group pr-1" onClick={() => {
+                              setForm(f => ({ ...f, assigneeIds: f.assigneeIds.filter(fid => fid !== id) }));
+                            }}>
+                              {m.initials} {m.name ? m.name.split(" ")[0] : "Unknown"}
+                              <X className="h-3 w-3 ml-1 opacity-70 group-hover:opacity-100" />
+                            </Badge>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                   {/* Selected Assignees Workload Preview */}
                   {form.assigneeIds.length > 0 && (

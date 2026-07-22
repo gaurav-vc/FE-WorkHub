@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth, usePageAccess } from "@/context/AuthContext";
 import { API_BASE } from "@/config";
 import {
   Search,
@@ -81,7 +81,8 @@ export default function Attendance() {
   const [showTimeOffModal, setShowTimeOffModal] = useState(false);
   const [timeOffForm, setTimeOffForm] = useState({ employeeId: "", type: "sick", startDate: "", endDate: "", notes: "" });
   
-  const isPrivileged = role === "admin" || role === "manager" || role === "hr" || role === "site_admin" || portalType === "site_admin";
+  const { canCreate, canEdit } = usePageAccess();
+  const isPrivileged = canCreate || canEdit || portalType === "site_admin" || portalType === "super_user";
 
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
@@ -103,10 +104,8 @@ export default function Attendance() {
         console.error("Failed to fetch sites:", error);
       }
     };
-    if (isPrivileged) {
-      fetchSites();
-    }
-  }, [isPrivileged, token]);
+    fetchSites();
+  }, [token]);
 
   useEffect(() => {
     const fetchAttendance = async () => {
@@ -125,22 +124,8 @@ export default function Attendance() {
         setIsLoading(false);
       }
     };
-
-    if (isPrivileged) {
-      fetchAttendance();
-    } else {
-      setIsLoading(false);
-    }
-  }, [isPrivileged, token]);
-
-  if (!isPrivileged && !isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[60vh]">
-        <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
-        <p className="text-muted-foreground">You do not have permission to view this page.</p>
-      </div>
-    );
-  }
+    fetchAttendance();
+  }, [token]);
 
   const filtered = employees.filter((emp) => {
     const fullName = `${emp.first_name} ${emp.last_name}`.toLowerCase();

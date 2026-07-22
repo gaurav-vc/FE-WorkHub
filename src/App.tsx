@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { TaskProvider } from "@/context/TaskContext";
 import Dashboard from "@/pages/Dashboard";
 import MyDay from "@/pages/MyDay";
@@ -114,62 +115,62 @@ const App = () => (
           <TaskProvider>
             <AppLayout>
               <Routes>
-              <Route path="/" element={<Dashboard />} />
+              <Route path="/" element={<ProtectedRoute route="/"><Dashboard /></ProtectedRoute>} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               
               {/* Task & Project Management */}
-              <Route path="/tasks/my-day" element={<MyDay />} />
-              <Route path="/tasks/calendar" element={<CalendarMeetings />} />
-              <Route path="/tasks/projects" element={<Projects />} />
-              <Route path="/tasks/projects/:id" element={<ProjectDetails />} />
-              <Route path="/tasks/timeline" element={<Timeline />} />
-              <Route path="/tasks/resources" element={<ResourcePlanning />} />
-              <Route path="/tasks/templates" element={<TemplateMarketplace />} />
+              <Route path="/tasks/my-day" element={<ProtectedRoute route="/tasks/my-day"><MyDay /></ProtectedRoute>} />
+              <Route path="/tasks/calendar" element={<ProtectedRoute route="/tasks/calendar"><CalendarMeetings /></ProtectedRoute>} />
+              <Route path="/tasks/projects" element={<ProtectedRoute route="/tasks/projects"><Projects /></ProtectedRoute>} />
+              <Route path="/tasks/projects/:id" element={<ProtectedRoute route="/tasks/projects"><ProjectDetails /></ProtectedRoute>} />
+              <Route path="/tasks/timeline" element={<ProtectedRoute route="/tasks/timeline"><Timeline /></ProtectedRoute>} />
+              <Route path="/tasks/resources" element={<ProtectedRoute route="/tasks/resources"><ResourcePlanning /></ProtectedRoute>} />
+              <Route path="/tasks/templates" element={<ProtectedRoute route="/tasks/templates"><TemplateMarketplace /></ProtectedRoute>} />
               
               {/* Collaboration */}
-              <Route path="/collaboration/chat" element={<TeamChat />} />
-              <Route path="/collaboration/docs" element={<DocsNotes />} />
-              <Route path="/collaboration/wiki" element={<KnowledgeBase />} />
-              <Route path="/collaboration/boards" element={<CustomBoards />} />
-              <Route path="/collaboration/moms" element={<MOMList />} />
-              <Route path="/collaboration/moms/create" element={<CreateMOM />} />
-              <Route path="/collaboration/moms/:id" element={<MOMDetails />} />
+              <Route path="/collaboration/chat" element={<ProtectedRoute route="/collaboration/chat"><TeamChat /></ProtectedRoute>} />
+              <Route path="/collaboration/docs" element={<ProtectedRoute route="/collaboration/docs"><DocsNotes /></ProtectedRoute>} />
+              <Route path="/collaboration/wiki" element={<ProtectedRoute route="/collaboration/wiki"><KnowledgeBase /></ProtectedRoute>} />
+              <Route path="/collaboration/boards" element={<ProtectedRoute route="/collaboration/boards"><CustomBoards /></ProtectedRoute>} />
+              <Route path="/collaboration/moms" element={<ProtectedRoute route="/collaboration/moms"><MOMList /></ProtectedRoute>} />
+              <Route path="/collaboration/moms/create" element={<ProtectedRoute route="/collaboration/moms"><CreateMOM /></ProtectedRoute>} />
+              <Route path="/collaboration/moms/:id" element={<ProtectedRoute route="/collaboration/moms"><MOMDetails /></ProtectedRoute>} />
               
               {/* HR Services */}
-              <Route path="/hr/requests" element={<HRRequests />} />
-              <Route path="/hr/directory" element={<EmployeeDirectory />} />
-              <Route path="/hr/recognition" element={<RecognitionBirthdays />} />
-              <Route path="/hr/policies" element={<CompanyPolicies />} />
-              <Route path="/hr/attendance" element={<Attendance />} />
-              <Route path="/hr/company-pulse" element={<CompanyPulse />} />
-              <Route path="/hr/approvals" element={<PendingApprovals />} />
+              <Route path="/hr/requests" element={<ProtectedRoute route="/hr/requests"><HRRequests /></ProtectedRoute>} />
+              <Route path="/hr/directory" element={<ProtectedRoute route="/hr/directory"><EmployeeDirectory /></ProtectedRoute>} />
+              <Route path="/hr/recognition" element={<ProtectedRoute route="/hr/recognition"><RecognitionBirthdays /></ProtectedRoute>} />
+              <Route path="/hr/policies" element={<ProtectedRoute route="/hr/policies"><CompanyPolicies /></ProtectedRoute>} />
+              <Route path="/hr/attendance" element={<ProtectedRoute route="/hr/attendance"><Attendance /></ProtectedRoute>} />
+              <Route path="/hr/company-pulse" element={<ProtectedRoute route="/hr/company-pulse"><CompanyPulse /></ProtectedRoute>} />
+              <Route path="/hr/approvals" element={<ProtectedRoute route="/hr/approvals"><PendingApprovals /></ProtectedRoute>} />
               
               {/* Learning & Training */}
-              <Route path="/learning" element={<LearningCenter />} />
-              <Route path="/learning/certificates" element={<MyCertificates />} />
-              <Route path="/learning/course/:id" element={<CoursePreview />} />
+              <Route path="/learning" element={<ProtectedRoute route="/learning"><LearningCenter /></ProtectedRoute>} />
+              <Route path="/learning/certificates" element={<ProtectedRoute route="/learning/certificates"><MyCertificates /></ProtectedRoute>} />
+              <Route path="/learning/course/:id" element={<ProtectedRoute route="/learning"><CoursePreview /></ProtectedRoute>} />
               
               {/* AI & Automation */}
-              <Route path="/ai/assistant" element={<AIAssistant />} />
-              <Route path="/ai/workflows" element={<WorkflowAutomation />} />
-              <Route path="/ai/insights" element={<PredictiveInsights />} />
-              <Route path="/ai/agents" element={<AIAgents />} />
+              <Route path="/ai/assistant" element={<ProtectedRoute route="/ai/assistant"><AIAssistant /></ProtectedRoute>} />
+              <Route path="/ai/workflows" element={<ProtectedRoute route="/ai/workflows"><WorkflowAutomation /></ProtectedRoute>} />
+              <Route path="/ai/insights" element={<ProtectedRoute route="/ai/insights"><PredictiveInsights /></ProtectedRoute>} />
+              <Route path="/ai/agents" element={<ProtectedRoute route="/ai/agents"><AIAgents /></ProtectedRoute>} />
               
               {/* Admin */}
-              <Route path="/admin/setup" element={<Setup />} />
-              <Route path="/admin/branding" element={<Branding />} />
-              <Route path="/admin/integrations" element={<Integrations />} />
+              <Route path="/admin/setup" element={<ProtectedRoute route="/admin/setup"><Setup /></ProtectedRoute>} />
+              <Route path="/admin/branding" element={<ProtectedRoute route="/admin/branding"><Branding /></ProtectedRoute>} />
+              <Route path="/admin/integrations" element={<ProtectedRoute route="/admin/integrations"><Integrations /></ProtectedRoute>} />
               
               {/* Super Admin */}
-              <Route path="/superadmin" element={<SuperAdminDashboard />} />
-              <Route path="/admin/organizations" element={<OrganizationManagement />} />
-              <Route path="/admin/sites" element={<SitesList />} />
-              <Route path="/admin/sites/add" element={<AddSite />} />
-              <Route path="/admin/billing" element={<Billing />} />
-              <Route path="/admin/organizations/:id/billing" element={<OrganizationBillingDetails />} />
-              <Route path="/admin/users" element={<UsersList />} />
+              <Route path="/superadmin" element={<ProtectedRoute route="/superadmin"><SuperAdminDashboard /></ProtectedRoute>} />
+              <Route path="/admin/organizations" element={<ProtectedRoute route="/admin/organizations"><OrganizationManagement /></ProtectedRoute>} />
+              <Route path="/admin/sites" element={<ProtectedRoute route="/admin/sites"><SitesList /></ProtectedRoute>} />
+              <Route path="/admin/sites/add" element={<ProtectedRoute route="/admin/sites"><AddSite /></ProtectedRoute>} />
+              <Route path="/admin/billing" element={<ProtectedRoute route="/admin/billing"><Billing /></ProtectedRoute>} />
+              <Route path="/admin/organizations/:id/billing" element={<ProtectedRoute route="/admin/organizations"><OrganizationBillingDetails /></ProtectedRoute>} />
+              <Route path="/admin/users" element={<ProtectedRoute route="/admin/users"><UsersList /></ProtectedRoute>} />
               
               <Route path="*" element={<NotFound />} />
             </Routes>

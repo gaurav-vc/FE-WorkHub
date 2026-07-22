@@ -23,15 +23,25 @@ export const ProtectedRoute: React.FC<{ children: React.ReactNode; route?: strin
   const isAdminOrSuperAdminRoute = location.pathname.startsWith('/admin/') || location.pathname.startsWith(superAdminPrefix);
   const isSuperAdminRoute = location.pathname.startsWith(superAdminPrefix);
   
+  const handleRestricted = () => {
+    if (location.pathname === '/') {
+      return <div className="h-screen w-full bg-slate-50 flex flex-col items-center justify-center text-slate-500">
+        <h2 className="text-xl font-semibold mb-2">No Access</h2>
+        <p>You have not been granted access to the Dashboard.</p>
+      </div>;
+    }
+    return <Navigate to="/" replace />;
+  };
+
   if (portalType === 'super_user') {
     // Super user can strictly view ONLY super admin routes and some basic admin setup/org routes that are shared
     // actually, user said strictly: Dashboard, Organizations, Sites List, Billing & Payments.
     const allowedSuperUserPaths = ['/superadmin', '/admin/organizations', '/admin/sites', '/login', '/register'];
     const canSuperUserAccess = location.pathname === '/' || allowedSuperUserPaths.some(p => location.pathname.startsWith(p));
-    if (!canSuperUserAccess) return <AccessRestricted />;
+    if (!canSuperUserAccess) return handleRestricted();
   } else {
     // Non-super-users cannot access superadmin routes
-    if (isSuperAdminRoute) return <AccessRestricted />;
+    if (isSuperAdminRoute) return handleRestricted();
   }
 
   // Strict check for admin-only routes
@@ -42,7 +52,7 @@ export const ProtectedRoute: React.FC<{ children: React.ReactNode; route?: strin
   const superAdminOnlyAdminRoutes = ['/admin/organizations', '/admin/sites'];
   if (superAdminOnlyAdminRoutes.some(p => location.pathname.startsWith(p))) {
     if (portalType !== 'super_user') {
-      return <AccessRestricted />;
+      return handleRestricted();
     }
   }
 
@@ -51,13 +61,13 @@ export const ProtectedRoute: React.FC<{ children: React.ReactNode; route?: strin
   const hasAdminAccess = isAdminRoute ? (portalType === 'super_user' || portalType === 'site_admin' || role === 'admin') : true;
 
   if (!hasAdminAccess) {
-    return <AccessRestricted />;
+    return handleRestricted();
   }
 
   // Strict check for RBAC route permissions
   if (route && !(portalType === 'super_user' || portalType === 'site_admin' || role === 'admin')) {
     if (!accessRoutes || accessRoutes.length === 0) {
-      return <AccessRestricted />;
+      return handleRestricted();
     }
     
     // 1. Try exact match first
@@ -71,9 +81,9 @@ export const ProtectedRoute: React.FC<{ children: React.ReactNode; route?: strin
     // If NOT found, OR view is explicitly false, block access
     if (accessObj) {
       const viewPerm = accessObj.permissions?.view;
-      if (viewPerm === 'none' || viewPerm === false || !viewPerm) return <AccessRestricted />;
+      if (viewPerm === 'none' || viewPerm === false || !viewPerm) return handleRestricted();
     } else {
-      return <AccessRestricted />;
+      return handleRestricted();
     }
   }
 

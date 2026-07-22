@@ -135,7 +135,7 @@ export function AppSidebar() {
         return true;
       }
       
-      if (!accessRoutes || accessRoutes.length === 0) return true; // Fallback
+      if (!accessRoutes || accessRoutes.length === 0) return false; // Fallback
 
       // Check accessRoutes for this item.url
       let accessObj = accessRoutes.find((r: any) => r.site_name === item.url);

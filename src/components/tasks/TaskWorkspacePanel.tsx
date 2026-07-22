@@ -290,18 +290,32 @@ export function TaskWorkspacePanel() {
 
             {/* Files Tab */}
             <TabsContent value="files" className="mt-0 space-y-3">
-              {(task.attachments || []).map(a => (
+              {(task.attachments || []).map(a_typed => {
+                const a: any = a_typed;
+                return (
                 <div key={a.id} className="flex items-center gap-3 p-3 rounded-lg border bg-card">
                   <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                     <FileText className="h-5 w-5 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{a.name}</p>
-                    <p className="text-xs text-muted-foreground">{a.size} · {a.uploadedBy} · {a.uploadedAt}</p>
+                    <p className="text-sm font-medium truncate">{a.name || a.file?.split('/').pop() || 'Attachment'}</p>
+                    <p className="text-xs text-muted-foreground">{a.size || 'Unknown size'} · {a.uploaded_by_name || 'System'} · {a.created_at ? new Date(a.created_at).toLocaleDateString() : 'Unknown date'}</p>
                   </div>
-                  <Button size="sm" variant="outline" className="text-xs">Download</Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="text-xs"
+                    onClick={() => {
+                      if (a.file) {
+                        window.open(a.file, '_blank');
+                      }
+                    }}
+                  >
+                    Download
+                  </Button>
                 </div>
-              ))}
+                );
+              })}
               {(task.attachments || []).length === 0 && <p className="text-sm text-muted-foreground text-center py-8">No attachments.</p>}
             </TabsContent>
           </ScrollArea>

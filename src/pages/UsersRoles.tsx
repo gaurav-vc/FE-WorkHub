@@ -382,7 +382,7 @@ export default function UsersRoles() {
                         <SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger>
                         <SelectContent>
                           {roles.map(r => (
-                            <SelectItem key={r.id} value={r.code}>{r.name}</SelectItem>
+                            <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>
                           ))}
                           {roles.length === 0 && <SelectItem value="none" disabled>No roles available</SelectItem>}
                         </SelectContent>

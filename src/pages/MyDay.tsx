@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   CheckSquare, Plus, Clock, Flag, Circle, CheckCircle2, Calendar, Users, Video,
-  RotateCcw, AlertTriangle, Link2, MoreHorizontal, Edit, Trash2, Eye,
+  RotateCcw, AlertTriangle, Link2, MoreHorizontal, Edit, Trash2, Eye, PartyPopper, Cake
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -41,11 +41,15 @@ export default function MyDay() {
   const [filterPriority, setFilterPriority] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [meetings, setMeetings] = useState<any[]>([]);
+  const [birthdays, setBirthdays] = useState<any[]>([]);
 
   useEffect(() => {
     if (token) {
       getMyDayDashboard()
-        .then(data => setMeetings(data.upcomingMeetings || []))
+        .then(data => {
+          setMeetings(data.upcomingMeetings || []);
+          setBirthdays(data.upcomingBirthdays || []);
+        })
         .catch(console.error);
     }
   }, [token]);
@@ -57,9 +61,20 @@ export default function MyDay() {
   });
 
   const sortedTasks = [...filteredTasks].sort((a, b) => {
+    // 1. Urgent items first
     if (a.isUrgent && !b.isUrgent) return -1;
     if (!a.isUrgent && b.isUrgent) return 1;
-    return a.priority.localeCompare(b.priority);
+    
+    // 2. Priority
+    const prioritySort = a.priority.localeCompare(b.priority);
+    if (prioritySort !== 0) return prioritySort;
+    
+    // 3. Newest first (recently added on top)
+    const dateA = new Date(a.createdDate || 0).getTime();
+    const dateB = new Date(b.createdDate || 0).getTime();
+    // If we have actual IDs that increment, we can also use that as a fallback
+    if (dateA !== dateB) return dateB - dateA;
+    return (b.id?.toString() || "").localeCompare(a.id?.toString() || "");
   });
 
   const handleQuickAdd = () => {
@@ -322,12 +337,46 @@ export default function MyDay() {
               ].map(s => (
                 <div key={s.label} className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
-                    <div className={`h-2 w-2 rounded-full ${s.color}`} />
+                     <div className={`h-2 w-2 rounded-full ${s.color}`} />
                     <span className="text-muted-foreground">{s.label}</span>
                   </div>
                   <span className="font-semibold">{s.count}</span>
                 </div>
               ))}
+            </CardContent>
+          </Card>
+
+          {/* Upcoming Birthdays */}
+          <Card className="shadow-card overflow-hidden">
+            <CardHeader className="pb-2 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-b border-amber-500/20">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2 text-amber-700 dark:text-amber-500">
+                <PartyPopper className="h-4 w-4" /> Upcoming Birthdays
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 pt-3">
+              {birthdays.length > 0 ? (
+                birthdays.map(b => (
+                  <div key={b.id} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Avatar className="h-7 w-7 border border-amber-200">
+                        {b.avatar ? <img src={b.avatar} alt={b.name} className="object-cover" /> : <AvatarFallback className="bg-amber-100 text-amber-700 text-[10px]">{b.name.substring(0, 2).toUpperCase()}</AvatarFallback>}
+                      </Avatar>
+                      <div className="flex flex-col">
+                        <span className="text-xs font-medium text-foreground">{b.name}</span>
+                        <span className="text-[10px] text-muted-foreground">
+                          {b.days_until === 0 ? "Today!" : b.days_until === 1 ? "Tomorrow" : `In ${b.days_until} days`}
+                        </span>
+                      </div>
+                    </div>
+                    {b.days_until === 0 && <Cake className="h-4 w-4 text-amber-500 animate-pulse" />}
+                  </div>
+                ))
+              ) : (
+                <div className="text-xs text-muted-foreground text-center py-2 flex flex-col items-center gap-1">
+                  <Cake className="h-5 w-5 text-muted/50" />
+                  No upcoming birthdays
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

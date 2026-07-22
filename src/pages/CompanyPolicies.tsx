@@ -41,6 +41,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { getCompanyPolicies, createCompanyPolicy, updateCompanyPolicy, deleteCompanyPolicy as deleteCompanyPolicyApi } from "@/api/hr";
 import { toast } from "sonner";
+import { PermissionGuard } from "@/components/auth/PermissionGuard";
 
 interface Policy {
   id: string;
@@ -50,7 +51,8 @@ interface Policy {
   version: string;
   content: string;
   attachment?: string;
-  created_at_formatted?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 const policyCategories = ["All", "General", "HR", "IT", "Finance", "Legal"];
@@ -149,7 +151,7 @@ export default function CompanyPolicies() {
               <Badge variant="outline" className="text-[10px]">v{selectedPolicy.version}</Badge>
             </div>
             <h1 className="text-2xl font-display font-bold text-foreground">{selectedPolicy.title}</h1>
-            <p className="text-sm text-muted-foreground mt-1">Created: {formatDate(selectedPolicy.created_at_formatted)} · Last updated: {formatDate(selectedPolicy.lastUpdated)}</p>
+            <p className="text-sm text-muted-foreground mt-1">Created: {formatDate(selectedPolicy.created_at)} · Last updated: {formatDate(selectedPolicy.updated_at)}</p>
           </div>
           {selectedPolicy.attachment ? (
             <Button size="sm" variant="outline" className="gap-1.5" asChild>
@@ -185,9 +187,11 @@ export default function CompanyPolicies() {
           </h1>
           <p className="text-muted-foreground mt-1">Browse and search company policy documents</p>
         </div>
-        <Button className="gradient-primary text-primary-foreground gap-1.5" onClick={openCreate}>
-          <Plus className="h-4 w-4" /> Add Policy
-        </Button>
+        <PermissionGuard requires="create">
+          <Button className="gradient-primary text-primary-foreground gap-1.5" onClick={openCreate}>
+            <Plus className="h-4 w-4" /> Add Policy
+          </Button>
+        </PermissionGuard>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">
@@ -214,7 +218,7 @@ export default function CompanyPolicies() {
                 <h3 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">{policy.title}</h3>
                 <div className="flex items-center gap-2 mt-0.5">
                   <Badge variant="secondary" className="text-[10px]">{policy.category}</Badge>
-                  <span className="text-[11px] text-muted-foreground">v{policy.version} · Created {formatDate(policy.created_at_formatted)} · Updated {formatDate(policy.lastUpdated)}</span>
+                  <span className="text-[11px] text-muted-foreground">v{policy.version} · Created {formatDate(policy.created_at)} · Updated {formatDate(policy.updated_at)}</span>
                 </div>
               </div>
               <DropdownMenu>
@@ -222,8 +226,10 @@ export default function CompanyPolicies() {
                   <Button size="icon" variant="ghost" className="h-7 w-7 opacity-0 group-hover:opacity-100 shrink-0"><MoreHorizontal className="h-4 w-4" /></Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEdit(policy); }}>Edit</DropdownMenuItem>
-                  <DropdownMenuItem className="text-destructive" onClick={(e) => { e.stopPropagation(); deletePolicy(policy.id); }}>Delete</DropdownMenuItem>
+                  <PermissionGuard requires="edit">
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEdit(policy); }}>Edit</DropdownMenuItem>
+                    <DropdownMenuItem className="text-destructive" onClick={(e) => { e.stopPropagation(); deletePolicy(policy.id); }}>Delete</DropdownMenuItem>
+                  </PermissionGuard>
                 </DropdownMenuContent>
               </DropdownMenu>
               <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />

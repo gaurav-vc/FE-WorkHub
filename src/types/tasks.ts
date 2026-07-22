@@ -38,6 +38,9 @@ export interface TaskAttachment {
   size: string;
   uploadedBy: string;
   uploadedAt: string;
+  file?: string;
+  uploaded_by_name?: string;
+  created_at?: string;
 }
 
 export interface RepeatConfig {
@@ -84,6 +87,7 @@ export interface Task {
   chat: TaskChatMessage[];
   attachments: TaskAttachment[];
   tags: string[];
+  assigneeIds?: string[];
 }
 
 export interface TeamMember {

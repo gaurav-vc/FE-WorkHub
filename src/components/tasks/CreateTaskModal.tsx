@@ -137,7 +137,7 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
                     </Select>
                   </div>
                   
-                  <div className="flex items-center gap-6 sm:mt-8">
+                  <div className="flex items-center gap-6 sm:mt-2">
                     <div className="flex items-center gap-2">
                       <Switch checked={isUrgent} onCheckedChange={setIsUrgent} id="urgent" />
                       <Label htmlFor="urgent" className="text-sm font-medium cursor-pointer">Urgent Priority</Label>
@@ -146,6 +146,42 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
                       <Switch checked={isRepeat} onCheckedChange={setIsRepeat} id="repeat" />
                       <Label htmlFor="repeat" className="text-sm font-medium cursor-pointer">Recurring Task</Label>
                     </div>
+                  </div>
+
+                  <div className="space-y-2 mt-4 col-span-1 sm:col-span-2">
+                    <Label className="text-sm font-semibold">Attachment</Label>
+                    <div className="border-2 border-dashed border-border/60 rounded-lg h-20 flex flex-col items-center justify-center relative hover:bg-muted/50 transition-colors bg-background group cursor-pointer">
+                      <Input 
+                        type="file" 
+                        onChange={(e) => setFile(e.target.files?.[0] || null)}
+                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10" 
+                      />
+                      <div className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                        <span className="text-primary">{file ? file.name : "Click to select a file"}</span>
+                        {!file && <span className="font-normal text-xs">(or drag and drop)</span>}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 col-span-1 sm:col-span-2">
+                    <Label className="text-sm font-semibold">Select Dependent Tasks (Optional)</Label>
+                    <Select value={dependentTask} onValueChange={setDependentTask}>
+                      <SelectTrigger className="bg-background">
+                        <SelectValue placeholder="Select tasks..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        {Array.isArray(tasks) && tasks.map((t: any, idx) => {
+                          const uniqueVal = t?.id ? `${t.id}-${idx}` : `task-${idx}`;
+                          const displayTitle = t?.title || "Untitled Task";
+                          return (
+                            <SelectItem key={uniqueVal} value={uniqueVal}>
+                              {displayTitle}
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               )}
@@ -205,41 +241,6 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-sm font-semibold">Attachment</Label>
-                <div className="border-2 border-dashed border-border/60 rounded-lg h-20 flex flex-col items-center justify-center relative hover:bg-muted/50 transition-colors bg-background group cursor-pointer">
-                  <Input 
-                    type="file" 
-                    onChange={(e) => setFile(e.target.files?.[0] || null)}
-                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10" 
-                  />
-                  <div className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                    <span className="text-primary">{file ? file.name : "Click to select a file"}</span>
-                    {!file && <span className="font-normal text-xs">(or drag and drop)</span>}
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm font-semibold">Select Dependent Tasks (Optional)</Label>
-                <Select value={dependentTask} onValueChange={setDependentTask}>
-                  <SelectTrigger className="bg-background">
-                    <SelectValue placeholder="Select tasks..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">None</SelectItem>
-                    {Array.isArray(tasks) && tasks.map((t: any, idx) => {
-                      const uniqueVal = t?.id ? `${t.id}-${idx}` : `task-${idx}`;
-                      const displayTitle = t?.title || "Untitled Task";
-                      return (
-                        <SelectItem key={uniqueVal} value={uniqueVal}>
-                          {displayTitle}
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
           </ScrollArea>
 
