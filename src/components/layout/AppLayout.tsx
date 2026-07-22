@@ -42,13 +42,13 @@ export function AppLayout({ children }: AppLayoutProps) {
         
         {/* Global AI Chatbot Floating Button */}
         {!isAIAssistantPage && (
-          <div className="fixed bottom-6 right-6 z-50 animate-bounce-subtle">
+          <div className="fixed bottom-24 right-6 z-50 animate-bounce-subtle">
             <Button
               onClick={() => navigate("/ai/assistant")}
-              className="h-14 w-14 rounded-full shadow-xl bg-gradient-to-br from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 hover:scale-105 transition-all p-0 flex items-center justify-center border-[3px] border-white/20"
+              className="h-14 w-14 rounded-full shadow-xl bg-gradient-to-br from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 hover:scale-105 transition-all p-0 flex items-center justify-center border-[3px] border-white/20 group"
               title="Open AI Assistant"
             >
-              <Bot className="h-6 w-6 text-white" />
+              <Bot className="h-6 w-6 text-white group-hover:scale-110 transition-transform" />
               <div className="absolute -top-1 -right-1 h-4 w-4 bg-emerald-400 rounded-full border-2 border-white animate-pulse" />
               <Sparkles className="absolute -top-3 -left-2 h-4 w-4 text-yellow-400 animate-pulse delay-150" />
             </Button>
