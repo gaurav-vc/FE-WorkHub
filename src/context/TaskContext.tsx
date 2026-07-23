@@ -39,7 +39,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    return {
+    const mappedTask: Task = {
       ...t,
       dueDate: formatDate(t.due_date || t.dueDate),
       startDate: formatDate(t.start_date || t.created_at || t.startDate),
@@ -64,6 +64,14 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       effortUnit: t.effortUnit || "hours",
       actualEffort: t.actual_effort || t.actualEffort || 0,
     };
+    
+    // Map status from backend to frontend
+    if (t.status === "pending" || t.status === "open" || t.status === "planning") mappedTask.status = "todo";
+    else if (t.status === "in_progress") mappedTask.status = "in-progress";
+    else if (t.status === "delayed" || t.status === "on_hold") mappedTask.status = "blocked";
+    else if (t.status === "completed" || t.status === "done") mappedTask.status = "done";
+    
+    return mappedTask;
   };
 
   const fetchTasks = async () => {
@@ -135,6 +143,10 @@ export function TaskProvider({ children }: { children: ReactNode }) {
           apiPayload.assigned_to = anyTask.assigneeIds[0];
       }
       
+      if (task.status === "todo") apiPayload.status = "pending";
+      else if (task.status === "in-progress") apiPayload.status = "in_progress";
+      else if (task.status === "blocked") apiPayload.status = "delayed";
+      
       const newTask = await createTask(apiPayload);
       setTasks((prev) => [...prev, mapTaskFromApi(newTask)]);
       toast.success("Task created");
@@ -155,11 +167,21 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     if (updates.startDate !== undefined) apiPayload.start_date = updates.startDate;
     if (updates.estimatedEffort !== undefined) apiPayload.duration = updates.estimatedEffort;
     
+    if (updates.status === "todo") apiPayload.status = "pending";
+    else if (updates.status === "in-progress") apiPayload.status = "in_progress";
+    else if (updates.status === "blocked") apiPayload.status = "delayed";
+    else if (updates.status === "done") apiPayload.status = "done";
+    
+    console.log("Sending update to backend:", id, apiPayload);
+    
     // Pass snake_case payload
     try {
       await updateTaskApi(id, apiPayload);
+      console.log("Update successful, refetching tasks...");
       fetchTasks();
-    } catch (err) {
+    } catch (err: any) {
+      toast.error(`Failed to update task: ${err.message || 'Unknown error'}`);
+      console.error("Update task failed:", err);
       fetchTasks();
     }
   };
