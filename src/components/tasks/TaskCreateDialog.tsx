@@ -114,7 +114,7 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
     const assignees = form.taskType === "self"
       ? [{ name: username || "User", initials: username ? username.substring(0, 2).toUpperCase() : "U" }]
       : form.assigneeIds.map(id => {
-        const m = teamMembers.find(t => t.id === id);
+        const m = teamMembers.find(t => t.id.toString() === id.toString());
         return m ? { name: m.name, initials: m.initials } : { name: "Unknown", initials: "??" };
       });
 
@@ -232,10 +232,10 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
                         <SelectValue placeholder="Select employees to assign..." />
                       </SelectTrigger>
                       <SelectContent>
-                        {teamMembers.filter(m => !form.assigneeIds.includes(m.id)).length === 0 && (
+                        {teamMembers.filter(m => !form.assigneeIds.includes(m.id.toString())).length === 0 && (
                           <SelectItem value="none" disabled>No more employees to assign</SelectItem>
                         )}
-                        {teamMembers.filter(m => !form.assigneeIds.includes(m.id)).map(m => (
+                        {teamMembers.filter(m => !form.assigneeIds.includes(m.id.toString())).map(m => (
                           <SelectItem key={m.id} value={m.id.toString()}>
                             {m.name} ({m.initials})
                           </SelectItem>
