@@ -28,7 +28,7 @@ import { CreateTaskModal } from "@/components/tasks/CreateTaskModal";
 import { useTaskContext } from "@/context/TaskContext";
 
 export function TopBar() {
-  const { username, role, email, logout, portalType } = useAuth();
+  const { username, role, email, logout, portalType, siteName } = useAuth();
   const navigate = useNavigate();
   const { tasks, addTask } = useTaskContext();
   
@@ -99,9 +99,12 @@ export function TopBar() {
           variant="outline" 
           className="bg-yellow-400 hover:bg-yellow-500 text-slate-900 border-none rounded-full px-4 h-9 font-semibold flex items-center gap-2"
           onClick={() => window.open('https://hrms.vibecopilot.ai/', '_blank')}
+          title={siteName ? `Current Site: ${siteName}` : "HRMS"}
         >
           <Briefcase className="h-4 w-4" />
-          HRMS
+          <span className="max-w-[120px] truncate">
+            {siteName || "HRMS"}
+          </span>
         </Button>
 
         <NotificationPanel />

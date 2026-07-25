@@ -10,6 +10,8 @@ interface AuthContextType {
   username: string | null;
   email: string | null;
   userType: string | null;
+  orgName: string | null;
+  siteName: string | null;
   portalType: PortalType;
   accessRoutes: any[];
   login: (token: string, user_id: string, role?: string, user_type?: string) => void;
@@ -26,6 +28,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [username, setUsername] = useState<string | null>(localStorage.getItem('username'));
   const [email, setEmail] = useState<string | null>(localStorage.getItem('email'));
   const [userType, setUserType] = useState<string | null>(localStorage.getItem('user_type'));
+  const [orgName, setOrgName] = useState<string | null>(localStorage.getItem('org_name'));
+  const [siteName, setSiteName] = useState<string | null>(localStorage.getItem('site_name'));
   const [accessRoutes, setAccessRoutes] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const navigate = useNavigate();
@@ -60,6 +64,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (data.user_type) {
         setUserType(data.user_type);
         localStorage.setItem('user_type', data.user_type);
+      }
+      if (data.org_name) {
+        setOrgName(data.org_name);
+        localStorage.setItem('org_name', data.org_name);
+      }
+      if (data.site_name) {
+        setSiteName(data.site_name);
+        localStorage.setItem('site_name', data.site_name);
       }
       setAccessRoutes(data.access);
     } catch (error: any) {
@@ -135,12 +147,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('username');
     localStorage.removeItem('email');
     localStorage.removeItem('user_type');
+    localStorage.removeItem('org_name');
+    localStorage.removeItem('site_name');
     navigate('/login');
     toast.success('Logged out successfully');
   };
 
   return (
-    <AuthContext.Provider value={{ token, role, username, email, userType, portalType, accessRoutes, login, logout, isAuthenticated: !!token, isLoading }}>
+    <AuthContext.Provider value={{ token, role, username, email, userType, orgName, siteName, portalType, accessRoutes, login, logout, isAuthenticated: !!token, isLoading }}>
       {children}
     </AuthContext.Provider>
   );
