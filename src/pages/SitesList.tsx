@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { ChevronLeft, Plus, Search, MapPin, Building2, UserCircle, LayoutGrid, Calendar, Trash2, Activity, Filter, Settings } from 'lucide-react';
+import { ChevronLeft, Plus, Search, MapPin, Building2, UserCircle, LayoutGrid, Calendar, Trash2, Activity, Filter, Settings, Edit3 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { API_BASE } from "@/config";
@@ -170,6 +170,9 @@ export default function SitesList() {
                         </td>
                         <td className="px-2 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onClick={(e) => { e.stopPropagation(); navigate(`/admin/sites/edit/${site.id}`); }} className="text-slate-500 hover:text-slate-700 transition-colors" title="Edit Site">
+                              <Edit3 className="h-4 w-4" />
+                            </button>
                             <button onClick={(e) => { e.stopPropagation(); openDetailView(site); }} className="text-indigo-500 hover:text-indigo-700 transition-colors" title="Manage">
                               <Settings className="h-4 w-4" />
                             </button>
@@ -206,6 +209,9 @@ export default function SitesList() {
                 </div>
               </div>
               <div className="flex items-center gap-3 mt-6 sm:mt-0">
+                <Button variant="outline" onClick={() => navigate(`/admin/sites/edit/${selectedSite.id}`)} className="gap-2 h-11 px-5 rounded-xl border-indigo-200 text-indigo-700 hover:bg-indigo-50 shadow-sm font-semibold transition-all">
+                  <Edit3 className="h-4 w-4" /> Edit Site
+                </Button>
                 <Button variant="destructive" onClick={() => handleDelete(selectedSite.id)} className="gap-2 h-11 px-5 rounded-xl bg-red-50 text-red-600 border border-red-200 hover:bg-red-500 hover:text-white shadow-sm font-semibold transition-all">
                   <Trash2 className="h-4 w-4" /> Delete Site
                 </Button>
@@ -262,12 +268,39 @@ export default function SitesList() {
                   </div>
                   <div className="flex flex-wrap gap-2.5 pt-2">
                     {selectedSite.modules_access && selectedSite.modules_access.length > 0 ? (
-                      selectedSite.modules_access.map((mod: string, idx: number) => (
+                      selectedSite.modules_access.map((mod: string, idx: number) => {
+                        // Map IDs back to readable labels if possible
+                        const moduleMap: Record<string, string> = {
+                          'dashboard': 'Dashboard',
+                          'tasks-my-day': 'My Day',
+                          'tasks-calendar': 'Calendar Meetings',
+                          'tasks-projects': 'Projects',
+                          'tasks-resources': 'Resource Planning',
+                          'tasks-templates': 'Template Marketplace',
+                          'mom-list': 'Minutes of Meeting',
+                          'team-chat': 'Team Chat',
+                          'docs-notes': 'Docs & Notes',
+                          'knowledge-base': 'Knowledge Base',
+                          'custom-boards': 'Custom Boards',
+                          'learning-center': 'Learning Center',
+                          'company-pulse': 'Company Pulse',
+                          'hr-requests': 'HR Requests',
+                          'employee-directory': 'Directory',
+                          'attendance': 'Attendance',
+                          'recognition': 'Recognition',
+                          'company-policies': 'Policies',
+                          'workflow-automation': 'Workflow Automation',
+                          'predictive-insights': 'Predictive Insights',
+                          'ai-agents': 'AI Agents',
+                        };
+                        const displayMod = moduleMap[mod] || mod;
+                        return (
                         <span key={idx} className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[13px] font-semibold bg-white border border-slate-200 shadow-sm text-slate-700 hover:border-purple-200 transition-colors">
                           <div className="h-1.5 w-1.5 rounded-full bg-purple-500"></div>
-                          {mod}
+                          {displayMod}
                         </span>
-                      ))
+                        );
+                      })
                     ) : (
                       <p className="text-slate-500 text-sm italic w-full">No modules assigned to this site.</p>
                     )}

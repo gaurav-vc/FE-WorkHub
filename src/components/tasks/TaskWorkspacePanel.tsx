@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { useTaskContext } from "@/context/TaskContext";
 import { Task } from "@/types/tasks";
+import { useAuth } from "@/context/AuthContext";
 import { addTaskComment, addTaskChat } from "@/api/tasks";
 
 const priorityConfig: Record<string, { color: string; label: string }> = {
@@ -35,8 +36,12 @@ const statusConfig: Record<string, { color: string; label: string }> = {
 
 export function TaskWorkspacePanel() {
   const { selectedTask, setSelectedTask, updateTask, tasks } = useTaskContext();
+  const { token, username } = useAuth();
   const [chatInput, setChatInput] = useState("");
   const [commentInput, setCommentInput] = useState("");
+
+  const meName = username || "Me";
+  const meInitials = meName.substring(0, 2).toUpperCase();
 
   if (!selectedTask) return null;
 
@@ -59,7 +64,7 @@ export function TaskWorkspacePanel() {
     try {
       const res = await addTaskChat(task.id, chatInput);
       updateTask(task.id, {
-        chat: [...(task.chat || []), { id: `ch-${Date.now()}`, user: "Sarah Johnson", initials: "SJ", text: chatInput, time: "Just now" }],
+        chats: [...(task.chats || []), { id: `ch-${Date.now()}`, user_name: meName, text: chatInput, created_at: new Date().toISOString() }],
       });
       setChatInput("");
     } catch (error) {
@@ -72,7 +77,7 @@ export function TaskWorkspacePanel() {
     try {
       const res = await addTaskComment(task.id, commentInput);
       updateTask(task.id, {
-        comments: [...(task.comments || []), { id: `c-${Date.now()}`, user: "Sarah Johnson", initials: "SJ", text: commentInput, time: "Just now" }],
+        comments: [...(task.comments || []), { id: `c-${Date.now()}`, user_name: meName, text: commentInput, created_at: new Date().toISOString() }],
       });
       setCommentInput("");
     } catch (error) {
@@ -193,14 +198,14 @@ export function TaskWorkspacePanel() {
 
             {/* Chat Tab */}
             <TabsContent value="chat" className="mt-0 space-y-3">
-              {(task.chat || []).length === 0 && <p className="text-sm text-muted-foreground text-center py-8">No messages yet. Start a conversation!</p>}
-              {(task.chat || []).map(msg => (
+              {(task.chats || []).length === 0 && <p className="text-sm text-muted-foreground text-center py-8">No messages yet. Start a conversation!</p>}
+              {(task.chats || []).map(msg => (
                 <div key={msg.id} className="flex gap-2">
-                  <Avatar className="h-7 w-7 shrink-0"><AvatarFallback className="text-[8px] bg-primary/10 text-primary">{msg.initials}</AvatarFallback></Avatar>
+                  <Avatar className="h-7 w-7 shrink-0"><AvatarFallback className="text-[8px] bg-primary/10 text-primary">{(msg.user_name || "??").substring(0,2).toUpperCase()}</AvatarFallback></Avatar>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium">{msg.user}</span>
-                      <span className="text-[10px] text-muted-foreground">{msg.time}</span>
+                      <span className="text-xs font-medium">{msg.user_name}</span>
+                      <span className="text-[10px] text-muted-foreground">{msg.created_at ? new Date(msg.created_at).toLocaleTimeString() : "Just now"}</span>
                     </div>
                     <p className="text-sm mt-0.5">{msg.text}</p>
                     {msg.file && <Badge variant="outline" className="text-[10px] mt-1 gap-1"><Paperclip className="h-2.5 w-2.5" />{msg.file}</Badge>}
@@ -218,11 +223,11 @@ export function TaskWorkspacePanel() {
               {(task.comments || []).length === 0 && <p className="text-sm text-muted-foreground text-center py-8">No comments yet.</p>}
               {(task.comments || []).map(c => (
                 <div key={c.id} className="flex gap-2">
-                  <Avatar className="h-7 w-7 shrink-0"><AvatarFallback className="text-[8px] bg-accent/10 text-accent">{c.initials}</AvatarFallback></Avatar>
+                  <Avatar className="h-7 w-7 shrink-0"><AvatarFallback className="text-[8px] bg-accent/10 text-accent">{(c.user_name || "??").substring(0,2).toUpperCase()}</AvatarFallback></Avatar>
                   <div className="flex-1 min-w-0 p-2 rounded-lg bg-muted/50">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium">{c.user}</span>
-                      <span className="text-[10px] text-muted-foreground">{c.time}</span>
+                      <span className="text-xs font-medium">{c.user_name}</span>
+                      <span className="text-[10px] text-muted-foreground">{c.created_at ? new Date(c.created_at).toLocaleTimeString() : "Just now"}</span>
                     </div>
                     <p className="text-sm mt-0.5">{c.text}</p>
                   </div>

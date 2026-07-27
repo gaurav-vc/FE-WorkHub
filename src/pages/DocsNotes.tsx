@@ -96,7 +96,7 @@ export default function DocsNotes() {
       const payload = {
         name: newFolderName,
         is_common: activeTab === 'company',
-        parent: currentFolderId
+        parent: currentFolderId ? currentFolderId : null
       };
       const res = await fetch(`${API_BASE}/docs/folders/`, {
         method: 'POST',
@@ -124,7 +124,9 @@ export default function DocsNotes() {
     const formData = new FormData();
     formData.append('title', uploadTitle);
     formData.append('file', uploadFile);
-    if (currentFolderId) formData.append('folder', currentFolderId.toString());
+    if (currentFolderId && currentFolderId !== null && currentFolderId !== undefined) {
+      formData.append('folder', currentFolderId.toString());
+    }
     
     // For Company folder upload at the root
     if (activeTab === 'company') formData.append('is_common', 'true');

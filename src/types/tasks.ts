@@ -14,20 +14,24 @@ export interface SubTask {
 
 export interface TaskComment {
   id: string;
-  user: string;
-  initials: string;
+  user?: string;
+  user_name?: string;
+  initials?: string;
   text: string;
-  time: string;
+  time?: string;
+  created_at?: string;
   attachments?: string[];
   mentions?: string[];
 }
 
 export interface TaskChatMessage {
   id: string;
-  user: string;
-  initials: string;
+  user?: string;
+  user_name?: string;
+  initials?: string;
   text: string;
-  time: string;
+  time?: string;
+  created_at?: string;
   file?: string;
 }
 
@@ -84,7 +88,8 @@ export interface Task {
   checklists?: ChecklistItem[];
   subtasks: SubTask[];
   comments: TaskComment[];
-  chat: TaskChatMessage[];
+  chat?: TaskChatMessage[];
+  chats?: TaskChatMessage[];
   attachments: TaskAttachment[];
   tags: string[];
   assigneeIds?: string[];

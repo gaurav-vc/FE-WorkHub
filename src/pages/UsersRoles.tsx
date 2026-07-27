@@ -62,7 +62,8 @@ export default function UsersRoles() {
 
   // New User Form State
   const defaultUserState = {
-    name: '', email: '', dept: '', role: '', status: true
+    name: '', email: '', dept: '', role: '', status: true,
+    phone: '', location: '', dob: '', manager: '', skills: '', photo: null as File | null
   };
   const [newUser, setNewUser] = useState(defaultUserState);
 
@@ -132,21 +133,35 @@ export default function UsersRoles() {
     if (!newUser.name || !newUser.email) return toast({ title: "Error", description: "Name and email are required", variant: "destructive" });
     setSaving(true);
     try {
-      const body = {
-        name: newUser.name,
-        email: newUser.email,
-        dept: newUser.dept,
-        role: newUser.role,
-        status: newUser.status
-      };
+      const formData = new FormData();
+      formData.append("name", newUser.name);
+      formData.append("email", newUser.email);
+      formData.append("dept", newUser.dept);
+      formData.append("role", newUser.role);
+      formData.append("status", newUser.status ? "true" : "false");
+      
+      formData.append("phone", newUser.phone);
+      formData.append("location", newUser.location);
+      formData.append("date_of_birth", newUser.dob);
+      if (newUser.manager && newUser.manager !== 'none') {
+        formData.append("manager_id", newUser.manager);
+        const managerUser = users.find(u => u.id.toString() === newUser.manager);
+        if (managerUser) {
+          formData.append("manager", managerUser.name);
+        }
+      } else {
+        formData.append("manager", "");
+      }
+      formData.append("skills", newUser.skills);
+      if (newUser.photo) formData.append("photo", newUser.photo);
 
       const method = editUserId ? "PATCH" : "POST";
       const url = editUserId ? `${API_BASE}/rbac/users/${editUserId}/` : `${API_BASE}/rbac/users/`;
 
       const res = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify(body)
+        headers: { "Authorization": `Bearer ${token}` },
+        body: formData
       });
 
       if (res.ok) {
@@ -224,7 +239,8 @@ export default function UsersRoles() {
   const openEditUser = (u: any) => {
     setEditUserId(u.id);
     setNewUser({
-      name: u.name || '', email: u.email || '', dept: u.dept || '', role: u.role || '', status: u.status === 'Active'
+      name: u.name || '', email: u.email || '', dept: u.dept || '', role: u.role || '', status: u.status === 'Active',
+      phone: u.phone || '', location: u.location || '', dob: u.dob || '', manager: u.manager_id || 'none', skills: u.skills || '', photo: null
     });
     setIsUserModalOpen(true);
   };
@@ -287,12 +303,11 @@ export default function UsersRoles() {
                     </div>
                     <div className="space-y-2">
                       <Label>Department</Label>
-                      <Select value={newRole.dept} onValueChange={(v) => setNewRole({ ...newRole, dept: v })}>
+                      <Select value={newRole.dept || undefined} onValueChange={(v) => setNewRole({ ...newRole, dept: v })}>
                         <SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger>
                         <SelectContent>
-                          {departments.map(d => (
-                            <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>
-
+                          {Array.isArray(departments) && departments.map(d => (
+                            <SelectItem key={d.id} value={d.name || d.id.toString()}>{d.name || `Dept ${d.id}`}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -360,6 +375,26 @@ export default function UsersRoles() {
                       <Label>Email <span className="text-red-500">*</span></Label>
                       <Input type="email" placeholder="user@company.com" value={newUser.email} onChange={e => setNewUser({ ...newUser, email: e.target.value })} disabled={!!editUserId} />
                     </div>
+                    <div className="space-y-2">
+                      <Label>Phone</Label>
+                      <Input placeholder="+1 (555) 000-0000" value={newUser.phone} onChange={e => setNewUser({ ...newUser, phone: e.target.value })} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Date of Birth</Label>
+                      <Input type="date" value={newUser.dob} onChange={e => setNewUser({ ...newUser, dob: e.target.value })} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Location</Label>
+                      <Input placeholder="e.g. New York, NY" value={newUser.location} onChange={e => setNewUser({ ...newUser, location: e.target.value })} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Skills (comma separated)</Label>
+                      <Input placeholder="React, Node.js" value={newUser.skills} onChange={e => setNewUser({ ...newUser, skills: e.target.value })} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Profile Photo</Label>
+                      <Input type="file" accept="image/*" onChange={e => { if (e.target.files && e.target.files.length > 0) setNewUser({ ...newUser, photo: e.target.files[0] }); }} className="cursor-pointer file:mr-4 file:py-1 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20" />
+                    </div>
                   </div>
                 </div>
                 <div>
@@ -367,11 +402,11 @@ export default function UsersRoles() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Department</Label>
-                      <Select value={newUser.dept} onValueChange={(v) => setNewUser({ ...newUser, dept: v })}>
+                      <Select value={newUser.dept || undefined} onValueChange={(v) => setNewUser({ ...newUser, dept: v })}>
                         <SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger>
                         <SelectContent>
-                          {departments.map(d => (
-                            <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>
+                          {Array.isArray(departments) && departments.map(d => (
+                            <SelectItem key={d.id} value={d.name || d.id.toString()}>{d.name || `Dept ${d.id}`}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -385,6 +420,18 @@ export default function UsersRoles() {
                             <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>
                           ))}
                           {roles.length === 0 && <SelectItem value="none" disabled>No roles available</SelectItem>}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Manager</Label>
+                      <Select value={newUser.manager} onValueChange={v => setNewUser({ ...newUser, manager: v })}>
+                        <SelectTrigger><SelectValue placeholder="Select manager" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">None</SelectItem>
+                          {users.map(u => (
+                            <SelectItem key={u.id} value={u.id.toString()}>{u.name}</SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>

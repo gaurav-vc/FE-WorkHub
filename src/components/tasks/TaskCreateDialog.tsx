@@ -20,6 +20,7 @@ import { useTaskContext } from "@/context/TaskContext";
 import { Task, ChecklistItem, SubTask, RepeatConfig } from "@/types/tasks";
 import { useAuth } from "@/context/AuthContext";
 import { API_BASE } from "@/config";
+import { getProjects } from "@/api/projects";
 
 interface TaskCreateDialogProps {
   open: boolean;
@@ -32,6 +33,17 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
   const { token, username } = useAuth();
 
   const [teamMembers, setTeamMembers] = useState<any[]>([]);
+  const [projects, setProjects] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (token && open) {
+      getProjects()
+        .then(data => {
+          setProjects(Array.isArray(data) ? data : data.results || []);
+        })
+        .catch(console.error);
+    }
+  }, [token, open]);
 
   useEffect(() => {
     if (token && open) {
@@ -318,7 +330,15 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-sm">Project</Label>
-                  <Input value={form.project} onChange={e => setForm(f => ({ ...f, project: e.target.value }))} placeholder="e.g., Engineering" />
+                  <Select value={form.project?.toString() || "none"} onValueChange={v => setForm(f => ({ ...f, project: v === "none" ? "" : v }))}>
+                    <SelectTrigger><SelectValue placeholder="Select a project..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No Project / General</SelectItem>
+                      {projects.map(p => (
+                        <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 

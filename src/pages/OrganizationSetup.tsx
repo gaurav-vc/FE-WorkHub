@@ -62,6 +62,12 @@ export default function OrganizationSetup() {
   const [newUserEmail, setNewUserEmail] = useState("");
   const [newUserFullName, setNewUserFullName] = useState("");
   const [newUserPassword, setNewUserPassword] = useState("");
+  const [newUserPhone, setNewUserPhone] = useState("");
+  const [newUserLocation, setNewUserLocation] = useState("");
+  const [newUserDOB, setNewUserDOB] = useState("");
+  const [newUserManager, setNewUserManager] = useState("");
+  const [newUserSkills, setNewUserSkills] = useState("");
+  const [newUserPhoto, setNewUserPhoto] = useState<File | null>(null);
   const [isCreatingUser, setIsCreatingUser] = useState(false);
 
   // Create admin dialog
@@ -79,6 +85,7 @@ export default function OrganizationSetup() {
   const [newOrgState, setNewOrgState] = useState("");
   const [newOrgCity, setNewOrgCity] = useState("");
   const [newOrgAddress, setNewOrgAddress] = useState("");
+  const [newOrgLogo, setNewOrgLogo] = useState<File | null>(null);
   const [isCreatingOrg, setIsCreatingOrg] = useState(false);
 
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
@@ -127,13 +134,21 @@ export default function OrganizationSetup() {
     if (!newOrgName.trim() || !newOrgState) return;
     setIsCreatingOrg(true);
     try {
+      const formData = new FormData();
+      formData.append("name", newOrgName);
+      formData.append("state", newOrgState);
+      formData.append("city", newOrgCity);
+      formData.append("address", newOrgAddress);
+      if (newOrgLogo) formData.append("logo", newOrgLogo);
+
       const res = await fetch(`${API_BASE}/auth/organizations/`, {
-        method: "POST", headers,
-        body: JSON.stringify({ name: newOrgName, state: newOrgState, city: newOrgCity, address: newOrgAddress }),
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` }, // Removed Content-Type to allow multipart form
+        body: formData,
       });
       if (!res.ok) { toast.error("Failed to create organization"); return; }
       toast.success(`Organization "${newOrgName}" created!`);
-      setNewOrgName(""); setNewOrgState(""); setNewOrgCity(""); setNewOrgAddress("");
+      setNewOrgName(""); setNewOrgState(""); setNewOrgCity(""); setNewOrgAddress(""); setNewOrgLogo(null);
       setShowCreateOrg(false);
       await fetchOrganizations();
     } catch { toast.error("Network error"); }
@@ -145,17 +160,29 @@ export default function OrganizationSetup() {
     if (!newUserName.trim() || !newUserPassword.trim()) return;
     setIsCreatingUser(true);
     try {
+      const formData = new FormData();
+      formData.append("username", newUserName);
+      formData.append("email", newUserEmail);
+      formData.append("full_name", newUserFullName);
+      formData.append("password", newUserPassword);
+      if (selectedDept?.id) formData.append("department_id", selectedDept.id.toString());
+      
+      formData.append("phone", newUserPhone);
+      formData.append("location", newUserLocation);
+      formData.append("date_of_birth", newUserDOB);
+      formData.append("manager", newUserManager);
+      formData.append("skills", newUserSkills);
+      if (newUserPhoto) formData.append("photo", newUserPhoto);
+
       const res = await fetch(`${API_BASE}/auth/create-user/`, {
-        method: "POST", headers,
-        body: JSON.stringify({
-          username: newUserName, email: newUserEmail,
-          full_name: newUserFullName, password: newUserPassword,
-          department_id: selectedDept?.id,
-        }),
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` }, // Removed Content-Type to allow browser to set boundary for multipart form
+        body: formData,
       });
       if (!res.ok) { const e = await res.json(); toast.error(e.error || "Failed to create member"); return; }
       toast.success(`Member "${newUserName}" created and assigned!`);
       setNewUserName(""); setNewUserEmail(""); setNewUserFullName(""); setNewUserPassword("");
+      setNewUserPhone(""); setNewUserLocation(""); setNewUserDOB(""); setNewUserManager(""); setNewUserSkills(""); setNewUserPhoto(null);
       setShowCreateUser(false);
       fetchEmployees();
     } catch { toast.error("Network error"); }
@@ -436,6 +463,10 @@ export default function OrganizationSetup() {
               <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">Address (optional)</label>
               <Input value={newOrgAddress} onChange={e => setNewOrgAddress(e.target.value)} placeholder="e.g., 42 Park Street, 3rd Floor" className="h-10" />
             </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">Company Logo</label>
+              <Input type="file" accept="image/*" onChange={e => { if (e.target.files && e.target.files.length > 0) setNewOrgLogo(e.target.files[0]); }} className="cursor-pointer file:mr-4 file:py-1 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20" />
+            </div>
           </div>
           <DialogFooter className="mt-4">
             <Button variant="outline" onClick={() => setShowCreateOrg(false)}>Cancel</Button>
@@ -479,22 +510,48 @@ export default function OrganizationSetup() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><UserCheck className="h-5 w-5 text-primary" /> Add New Member to {selectedDept?.name}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 mt-2">
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">Full Name</label>
-              <Input value={newUserFullName} onChange={e => setNewUserFullName(e.target.value)} placeholder="e.g., John Doe" className="h-10" />
+          <div className="space-y-4 mt-2 max-h-[70vh] overflow-y-auto px-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">Full Name *</label>
+                <Input value={newUserFullName} onChange={e => setNewUserFullName(e.target.value)} placeholder="e.g. Jane Doe" className="h-10" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">Username *</label>
+                <Input value={newUserName} onChange={e => setNewUserName(e.target.value)} placeholder="e.g. janedoe" className="h-10" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">Email</label>
+                <Input type="email" value={newUserEmail} onChange={e => setNewUserEmail(e.target.value)} placeholder="jane@company.com" className="h-10" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">Phone</label>
+                <Input value={newUserPhone} onChange={e => setNewUserPhone(e.target.value)} placeholder="+1 (555) 000-0000" className="h-10" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">Password *</label>
+                <Input type="password" value={newUserPassword} onChange={e => setNewUserPassword(e.target.value)} placeholder="Temporary password" className="h-10" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">Location</label>
+                <Input value={newUserLocation} onChange={e => setNewUserLocation(e.target.value)} placeholder="e.g. New York, NY" className="h-10" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">Date of Birth</label>
+                <Input type="date" value={newUserDOB} onChange={e => setNewUserDOB(e.target.value)} className="h-10" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">Manager</label>
+                <Input value={newUserManager} onChange={e => setNewUserManager(e.target.value)} placeholder="Manager Name" className="h-10" />
+              </div>
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">Username *</label>
-              <Input value={newUserName} onChange={e => setNewUserName(e.target.value)} placeholder="e.g., johndoe" className="h-10" />
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">Skills (comma separated)</label>
+              <Input value={newUserSkills} onChange={e => setNewUserSkills(e.target.value)} placeholder="React, Node.js, Design" className="h-10" />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">Email</label>
-              <Input type="email" value={newUserEmail} onChange={e => setNewUserEmail(e.target.value)} placeholder="e.g., john@company.com" className="h-10" />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">Password *</label>
-              <Input type="password" value={newUserPassword} onChange={e => setNewUserPassword(e.target.value)} placeholder="Temporary password" className="h-10" />
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">Profile Photo</label>
+              <Input type="file" accept="image/*" onChange={e => { if (e.target.files && e.target.files.length > 0) setNewUserPhoto(e.target.files[0]); }} className="cursor-pointer file:mr-4 file:py-1 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20" />
             </div>
           </div>
           <DialogFooter className="mt-4">

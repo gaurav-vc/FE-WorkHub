@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ChevronLeft, Info, MapPin, CheckSquare, Plus } from 'lucide-react';
 import { Button } from '../components/ui/button';
@@ -9,30 +9,33 @@ import { API_BASE } from "@/config";
 
 const MODULES_LIST = [
   { id: 'dashboard', label: 'Dashboard', group: 'Core Services' },
-  { id: 'my-day', label: 'My Day', group: 'Core Services' },
-  { id: 'calendar', label: 'Calendar Meetings', group: 'Core Services' },
-  { id: 'projects', label: 'Projects', group: 'Core Services' },
-  { id: 'resources', label: 'Resource Planning', group: 'Core Services' },
-  { id: 'templates', label: 'Template Marketplace', group: 'Core Services' },
-  { id: 'mom', label: 'Minutes of Meeting', group: 'Core Services' },
-  { id: 'chat', label: 'Team Chat', group: 'Collaboration' },
-  { id: 'docs', label: 'Docs & Notes', group: 'Collaboration' },
-  { id: 'wiki', label: 'Knowledge Base', group: 'Collaboration' },
-  { id: 'boards', label: 'Custom Boards', group: 'Collaboration' },
-  { id: 'pulse', label: 'Company Pulse', group: 'HR Services' },
+  { id: 'tasks-my-day', label: 'My Day', group: 'Core Services' },
+  { id: 'tasks-calendar', label: 'Calendar Meetings', group: 'Core Services' },
+  { id: 'tasks-projects', label: 'Projects', group: 'Core Services' },
+  { id: 'tasks-resources', label: 'Resource Planning', group: 'Core Services' },
+  { id: 'tasks-templates', label: 'Template Marketplace', group: 'Core Services' },
+  { id: 'mom-list', label: 'Minutes of Meeting', group: 'Core Services' },
+  { id: 'team-chat', label: 'Team Chat', group: 'Collaboration' },
+  { id: 'docs-notes', label: 'Docs & Notes', group: 'Collaboration' },
+  { id: 'knowledge-base', label: 'Knowledge Base', group: 'Collaboration' },
+  { id: 'custom-boards', label: 'Custom Boards', group: 'Collaboration' },
+  { id: 'learning-center', label: 'Learning Center', group: 'Learning Center' },
+  { id: 'company-pulse', label: 'Company Pulse', group: 'HR Services' },
   { id: 'hr-requests', label: 'HR Requests', group: 'HR Services' },
-  { id: 'hr-directory', label: 'Directory', group: 'HR Services' },
-  { id: 'hr-attendance', label: 'Attendance', group: 'HR Services' },
-  { id: 'hr-recognition', label: 'Recognition', group: 'HR Services' },
-  { id: 'hr-policies', label: 'Policies', group: 'HR Services' },
-  { id: 'ai-workflows', label: 'Workflow Automation', group: 'AI & Automation' },
-  { id: 'ai-insights', label: 'Predictive Insights', group: 'AI & Automation' },
+  { id: 'employee-directory', label: 'Directory', group: 'HR Services' },
+  { id: 'attendance', label: 'Attendance', group: 'HR Services' },
+  { id: 'recognition', label: 'Recognition', group: 'HR Services' },
+  { id: 'company-policies', label: 'Policies', group: 'HR Services' },
+  { id: 'workflow-automation', label: 'Workflow Automation', group: 'AI & Automation' },
+  { id: 'predictive-insights', label: 'Predictive Insights', group: 'AI & Automation' },
   { id: 'ai-agents', label: 'AI Agents', group: 'AI & Automation' },
 ];
 
 export default function AddSite() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { id: siteId } = useParams<{ id: string }>();
+  const isEditMode = !!siteId;
   const urlOrgId = searchParams.get('orgId');
   const { token, portalType } = useAuth();
 
@@ -55,9 +58,41 @@ export default function AddSite() {
   const [selectedModules, setSelectedModules] = useState<string[]>(MODULES_LIST.map(m => m.id)); // Default select all
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  React.useEffect(() => {
-    if (portalType === 'super_user') fetchOrganizations();
-  }, [portalType, token]);
+  useEffect(() => {
+    if (portalType === 'super_user') {
+        fetchOrganizations();
+        if (isEditMode) fetchSiteDetails();
+    }
+  }, [portalType, token, isEditMode, siteId]);
+
+  const fetchSiteDetails = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/organization/sites/${siteId}/`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSelectedOrg(data.organization?.toString() || '');
+        setFormData({
+          site_name: data.site_name || '',
+          site_code: data.site_code || '',
+          product_type: data.product_type || '',
+          country: data.country || '',
+          location_address: data.location_address || '',
+          activate_date: data.activate_date || '',
+          status: data.status || 'active',
+          contact_name: data.contact_name || '',
+          contact_phone: data.contact_phone || '',
+          contact_email: data.contact_email || '',
+        });
+        if (data.modules_access) {
+            setSelectedModules(data.modules_access);
+        }
+      }
+    } catch (e) {
+      console.error("Error fetching site details", e);
+    }
+  };
 
   const fetchOrganizations = async () => {
     try {
@@ -115,8 +150,13 @@ export default function AddSite() {
         modules_access: selectedModules
       };
 
-      const res = await fetch(`${API_BASE}/organization/sites/`, {
-        method: 'POST',
+      const url = isEditMode 
+        ? `${API_BASE}/organization/sites/${siteId}/` 
+        : `${API_BASE}/organization/sites/`;
+      const method = isEditMode ? 'PATCH' : 'POST';
+
+      const res = await fetch(url, {
+        method: method,
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`
@@ -128,8 +168,8 @@ export default function AddSite() {
         navigate(`/admin/sites`);
       } else {
         const err = await res.json();
-        console.error("Failed to create site", err);
-        alert("Failed to create site. Check console for details.");
+        console.error(`Failed to ${isEditMode ? 'update' : 'create'} site`, err);
+        alert(`Failed to ${isEditMode ? 'update' : 'create'} site. Check console for details.`);
       }
     } catch (e) {
       console.error(e);
@@ -160,8 +200,8 @@ export default function AddSite() {
             <ChevronLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900">Add Site / Project</h1>
-            <p className="text-slate-500 mt-1 text-sm font-medium">Create a new operational site and configure module access.</p>
+            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900">{isEditMode ? 'Edit' : 'Add'} Site / Project</h1>
+            <p className="text-slate-500 mt-1 text-sm font-medium">{isEditMode ? 'Update the operational site details and configure module access.' : 'Create a new operational site and configure module access.'}</p>
           </div>
         </div>
 
@@ -331,7 +371,7 @@ export default function AddSite() {
             <div className="pt-8 border-t border-slate-200 flex justify-end gap-4">
               <Button type="button" variant="outline" onClick={() => navigate(-1)} className="w-32 h-12 rounded-xl font-bold border-slate-200 hover:bg-slate-50 text-slate-600">Cancel</Button>
               <Button type="submit" disabled={isSubmitting} className="w-48 h-12 rounded-xl font-bold bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white shadow-lg shadow-indigo-200 transition-all hover:scale-105">
-                {isSubmitting ? 'Saving...' : 'Create Site'}
+                {isSubmitting ? 'Saving...' : (isEditMode ? 'Update Site' : 'Create Site')}
               </Button>
             </div>
           </form>

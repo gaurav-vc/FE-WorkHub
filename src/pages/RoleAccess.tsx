@@ -17,13 +17,13 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 
-interface RoleAccessData { id: string; site_id: string; site_name: string; role: string; title: string; permissions: any; }
+interface RoleAccessData { id: string; frontend_site_id: string; site_name: string; role: string; title: string; permissions: any; }
 interface Employee { id: number; username: string; full_name: string; email: string; department: string | null; department_id: number | null; reporting_to_id?: number | null; reporting_to_name?: string | null; }
 interface RoleObj { id: number; name: string; description: string; }
 interface RoleObj { id: number; name: string; description: string; }
 
 const RoleBaseAccessPage: React.FC = () => {
-  const { token, portalType } = useAuth();
+  const { token, portalType, accessRoutes } = useAuth();
 
   // Role permissions
   const [accessMappings, setAccessMappings] = useState<RoleAccessData[]>([]);
@@ -66,12 +66,12 @@ const RoleBaseAccessPage: React.FC = () => {
       setRolesObjList(filteredData);
       const roleNames = filteredData.map(r => r.name.toLowerCase());
       setRolesList(roleNames);
-      
+
       if (roleNames.length > 0 && !selectedRole) {
         setSelectedRole(roleNames[0]);
       }
       if (filteredData.length > 0 && !selectedManagementRoleId) {
-         setSelectedManagementRoleId(filteredData[0].id);
+        setSelectedManagementRoleId(filteredData[0].id);
       }
     }
   };
@@ -110,7 +110,7 @@ const RoleBaseAccessPage: React.FC = () => {
     try {
       const roleRes = await fetch(`${API_BASE}/rbac/roles/`, { method: 'POST', headers, body: JSON.stringify({ name: newRoleName, code: newRoleName.toUpperCase().replace(/\s+/g, '_') }) });
       if (!roleRes.ok) { toast.error("Failed to create role"); return; }
-      
+
       const newRole: RoleObj = await roleRes.json();
       toast.success(`Role "${newRoleName}" created!`);
 
@@ -155,7 +155,7 @@ const RoleBaseAccessPage: React.FC = () => {
     else toast.error('Failed to remove user');
   };
 
-  const toggleAccess = async (mapping: RoleAccessData, permissionType: 'view' | 'create' | 'edit') => {
+  const toggleAccess = async (mapping: RoleAccessData, permissionType: 'view' | 'create' | 'edit' | 'delete') => {
     const newPermissions = { ...mapping.permissions, [permissionType]: !mapping.permissions[permissionType] };
     const res = await fetch(`${API_BASE}/rbac/role-access/${mapping.id}/`, { method: 'PATCH', headers, body: JSON.stringify({ permissions: newPermissions }) });
     if (res.ok) {
@@ -164,7 +164,7 @@ const RoleBaseAccessPage: React.FC = () => {
     }
   };
 
-  const setScopeAccess = async (mapping: RoleAccessData, permissionType: 'view' | 'create' | 'edit', scope: string) => {
+  const setScopeAccess = async (mapping: RoleAccessData, permissionType: 'view' | 'create' | 'edit' | 'delete', scope: string) => {
     const newPermissions = { ...mapping.permissions, [permissionType]: scope };
     const res = await fetch(`${API_BASE}/rbac/role-access/${mapping.id}/`, { method: 'PATCH', headers, body: JSON.stringify({ permissions: newPermissions }) });
     if (res.ok) {
@@ -224,169 +224,188 @@ const RoleBaseAccessPage: React.FC = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {Object.entries(
-                  accessMappings
-                    .filter(mapping => APP_ROUTES.some(r => r.id === mapping.site_id))
-                    .reduce((acc, mapping) => {
-                      const route = APP_ROUTES.find(r => r.id === mapping.site_id);
-                      const category = route?.category || 'Other Modules';
-                      if (!acc[category]) acc[category] = [];
-                      acc[category].push(mapping);
-                      return acc;
-                    }, {} as Record<string, RoleAccessData[]>)
-                ).map(([category, mappings]) => (
-                  <React.Fragment key={category}>
-                    <TableRow className="bg-slate-100/60 hover:bg-slate-100/60">
-                      <TableCell colSpan={4} className="font-extrabold text-slate-800 uppercase tracking-widest text-xs pl-6 py-2">
-                        {category}
-                      </TableCell>
-                    </TableRow>
-                    {mappings.map(mapping => {
-                      return (
-                        <TableRow key={mapping.id} className="hover:bg-slate-50/80 transition-colors">
-                          <TableCell className="pl-10">
-                            <div className="flex items-center gap-3">
-                              <div className="h-8 w-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200/60">
-                                <Settings2 className="h-4 w-4 text-slate-500" />
+                {(() => {
+                  const filteredAppRoutes = portalType === 'site_admin'
+                    ? APP_ROUTES.filter(route => accessRoutes.some(ar => ar.site_id === route.id))
+                    : APP_ROUTES;
+
+                  const mappedEntries = Object.entries(
+                    accessMappings
+                      .filter(mapping => filteredAppRoutes.some(r => r.id === mapping.frontend_site_id))
+                      .reduce((acc, mapping) => {
+                        const route = filteredAppRoutes.find(r => r.id === mapping.frontend_site_id);
+                        const category = route?.category || 'Other Modules';
+                        if (!acc[category]) acc[category] = [];
+                        
+                        // Deduplicate by frontend_site_id
+                        if (!acc[category].some(m => m.frontend_site_id === mapping.frontend_site_id)) {
+                          acc[category].push(mapping);
+                        }
+                        
+                        return acc;
+                      }, {} as Record<string, RoleAccessData[]>)
+                  );
+
+                  if (mappedEntries.length === 0 && !isLoading) {
+                    return (
+                      <TableRow>
+                        <TableCell colSpan={5}>
+                          <div className="bg-red-50 border border-red-200 text-red-700 p-6 rounded-xl flex items-center justify-center flex-col gap-2 my-8 mx-auto max-w-2xl">
+                            <Shield className="h-10 w-10 text-red-500 mb-2" />
+                            <p className="font-extrabold text-lg text-center">No modules are available to configure.</p>
+                            <p className="text-sm text-center opacity-90">
+                              If you are a Site Admin, you can only grant permissions for modules that have been assigned to your site by the Super Admin. <br /><br />
+                              Please ensure modules are enabled for your site, and click <b>Sync App Routes</b> to pull them in.
+                            </p>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  }
+
+                  return mappedEntries.map(([category, mappings]) => (
+                    <React.Fragment key={category}>
+                      <TableRow className="bg-slate-100/60 hover:bg-slate-100/60">
+                        <TableCell colSpan={4} className="font-extrabold text-slate-800 uppercase tracking-widest text-xs pl-6 py-2">
+                          {category}
+                        </TableCell>
+                      </TableRow>
+                      {mappings.map(mapping => {
+                        return (
+                          <TableRow key={mapping.id} className="hover:bg-slate-50/80 transition-colors">
+                            <TableCell className="pl-10">
+                              <div className="flex items-center gap-3">
+                                <div className="h-8 w-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200/60">
+                                  <Settings2 className="h-4 w-4 text-slate-500" />
+                                </div>
+                                <div>
+                                  <div className="font-bold text-slate-900">{mapping.title}</div>
+                                  <div className="text-[11px] font-mono text-slate-400 mt-0.5">{mapping.site_name}</div>
+                                </div>
                               </div>
-                              <div>
-                                <div className="font-bold text-slate-900">{mapping.title}</div>
-                                <div className="text-[11px] font-mono text-slate-400 mt-0.5">{mapping.site_name}</div>
-                              </div>
-                            </div>
-                          </TableCell>
-                          
-                          {mapping.site_id === 'hr-requests' ? (
-                            <>
-                              <TableCell className="text-center">
-                                <div className="flex items-center justify-center gap-2">
-                                  <Switch 
-                                    checked={mapping.permissions?.view !== 'none' && mapping.permissions?.view !== false && mapping.permissions?.view !== undefined} 
-                                    onCheckedChange={(checked) => setScopeAccess(mapping, 'view', checked ? 'all' : 'none')} 
-                                    disabled={selectedRole === 'admin'} 
-                                    className="data-[state=checked]:bg-emerald-500" 
-                                  />
-                                  {(mapping.permissions?.view !== 'none' && mapping.permissions?.view !== false && mapping.permissions?.view !== undefined) && (
-                                    <Select disabled={selectedRole === 'admin'} value={typeof mapping.permissions?.view === 'string' ? mapping.permissions.view : 'all'} onValueChange={(val) => setScopeAccess(mapping, 'view', val)}>
-                                      <SelectTrigger className="w-[75px] h-6 text-[10px] px-2 py-0">
-                                        <SelectValue placeholder="Scope" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="own" className="text-[10px]">Own</SelectItem>
-                                        <SelectItem value="team" className="text-[10px]">Team</SelectItem>
-                                        <SelectItem value="all" className="text-[10px]">All</SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                  )}
-                                </div>
-                              </TableCell>
-                              <TableCell className="text-center">
-                                <div className="flex items-center justify-center gap-2">
-                                  <Switch 
-                                    checked={mapping.permissions?.create !== 'none' && mapping.permissions?.create !== false && mapping.permissions?.create !== undefined} 
-                                    onCheckedChange={(checked) => setScopeAccess(mapping, 'create', checked ? 'all' : 'none')} 
-                                    disabled={selectedRole === 'admin'} 
-                                    className="data-[state=checked]:bg-blue-500" 
-                                  />
-                                  {(mapping.permissions?.create !== 'none' && mapping.permissions?.create !== false && mapping.permissions?.create !== undefined) && (
-                                    <Select disabled={selectedRole === 'admin'} value={typeof mapping.permissions?.create === 'string' ? mapping.permissions.create : 'all'} onValueChange={(val) => setScopeAccess(mapping, 'create', val)}>
-                                      <SelectTrigger className="w-[75px] h-6 text-[10px] px-2 py-0">
-                                        <SelectValue placeholder="Scope" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="own" className="text-[10px]">Own</SelectItem>
-                                        <SelectItem value="team" className="text-[10px]">Team</SelectItem>
-                                        <SelectItem value="all" className="text-[10px]">All</SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                  )}
-                                </div>
-                              </TableCell>
-                              <TableCell className="text-center">
-                                <div className="flex items-center justify-center gap-2">
-                                  <Switch 
-                                    checked={mapping.permissions?.edit !== 'none' && mapping.permissions?.edit !== false && mapping.permissions?.edit !== undefined} 
-                                    onCheckedChange={(checked) => setScopeAccess(mapping, 'edit', checked ? 'all' : 'none')} 
-                                    disabled={selectedRole === 'admin'} 
-                                    className="data-[state=checked]:bg-amber-500" 
-                                  />
-                                  {(mapping.permissions?.edit !== 'none' && mapping.permissions?.edit !== false && mapping.permissions?.edit !== undefined) && (
-                                    <Select disabled={selectedRole === 'admin'} value={typeof mapping.permissions?.edit === 'string' ? mapping.permissions.edit : 'all'} onValueChange={(val) => setScopeAccess(mapping, 'edit', val)}>
-                                      <SelectTrigger className="w-[75px] h-6 text-[10px] px-2 py-0">
-                                        <SelectValue placeholder="Scope" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="own" className="text-[10px]">Own</SelectItem>
-                                        <SelectItem value="team" className="text-[10px]">Team</SelectItem>
-                                        <SelectItem value="all" className="text-[10px]">All</SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                  )}
-                                </div>
-                              </TableCell>
-                              <TableCell className="text-center">
-                                <div className="flex items-center justify-center gap-2">
-                                  <Switch 
-                                    checked={mapping.permissions?.delete !== 'none' && mapping.permissions?.delete !== false && mapping.permissions?.delete !== undefined} 
-                                    onCheckedChange={(checked) => setScopeAccess(mapping, 'delete', checked ? 'all' : 'none')} 
-                                    disabled={selectedRole === 'admin'} 
-                                    className="data-[state=checked]:bg-red-500" 
-                                  />
-                                  {(mapping.permissions?.delete !== 'none' && mapping.permissions?.delete !== false && mapping.permissions?.delete !== undefined) && (
-                                    <Select disabled={selectedRole === 'admin'} value={typeof mapping.permissions?.delete === 'string' ? mapping.permissions.delete : 'all'} onValueChange={(val) => setScopeAccess(mapping, 'delete', val)}>
-                                      <SelectTrigger className="w-[75px] h-6 text-[10px] px-2 py-0">
-                                        <SelectValue placeholder="Scope" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="own" className="text-[10px]">Own</SelectItem>
-                                        <SelectItem value="team" className="text-[10px]">Team</SelectItem>
-                                        <SelectItem value="all" className="text-[10px]">All</SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                  )}
-                                </div>
-                              </TableCell>
-                            </>
-                          ) : (
-                            <>
-                              <TableCell className="text-center">
-                                <div className="flex justify-center">
-                                  <Switch checked={mapping.permissions?.view === true} onCheckedChange={() => toggleAccess(mapping, 'view')} disabled={selectedRole === 'admin'} className="data-[state=checked]:bg-emerald-500" />
-                                </div>
-                              </TableCell>
-                              <TableCell className="text-center">
-                                <div className="flex justify-center">
-                                  <Switch checked={mapping.permissions?.create === true} onCheckedChange={() => toggleAccess(mapping, 'create')} disabled={selectedRole === 'admin'} className="data-[state=checked]:bg-blue-500" />
-                                </div>
-                              </TableCell>
-                              <TableCell className="text-center">
-                                <div className="flex justify-center">
-                                  <Switch checked={mapping.permissions?.edit === true} onCheckedChange={() => toggleAccess(mapping, 'edit')} disabled={selectedRole === 'admin'} className="data-[state=checked]:bg-amber-500" />
-                                </div>
-                              </TableCell>
-                              <TableCell className="text-center">
-                                <div className="flex justify-center">
-                                  <Switch checked={mapping.permissions?.delete === true} onCheckedChange={() => toggleAccess(mapping, 'delete')} disabled={selectedRole === 'admin'} className="data-[state=checked]:bg-red-500" />
-                                </div>
-                              </TableCell>
-                            </>
-                          )}
-                        </TableRow>
-                      );
-                    })}
-                  </React.Fragment>
-                ))}
-                {accessMappings.length === 0 && !isLoading && (
-                  <TableRow>
-                    <TableCell colSpan={6} className="h-32 text-center">
-                      <div className="flex flex-col items-center justify-center text-slate-400">
-                        <Settings2 className="h-8 w-8 mb-2 opacity-30" />
-                        <p className="font-medium">No mapping routes found</p>
-                        <p className="text-xs mt-1">Click "Sync App Routes" above to automatically generate them.</p>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )}
+                            </TableCell>
+
+                            {mapping.frontend_site_id === 'hr-requests' ? (
+                              <>
+                                <TableCell className="text-center">
+                                  <div className="flex items-center justify-center gap-2">
+                                    <Switch
+                                      checked={mapping.permissions?.view !== 'none' && mapping.permissions?.view !== false && mapping.permissions?.view !== undefined}
+                                      onCheckedChange={(checked) => setScopeAccess(mapping, 'view', checked ? 'all' : 'none')}
+                                      disabled={selectedRole === 'admin'}
+                                      className="data-[state=checked]:bg-emerald-500"
+                                    />
+                                    {(mapping.permissions?.view !== 'none' && mapping.permissions?.view !== false && mapping.permissions?.view !== undefined) && (
+                                      <Select disabled={selectedRole === 'admin'} value={typeof mapping.permissions?.view === 'string' ? mapping.permissions.view : 'all'} onValueChange={(val) => setScopeAccess(mapping, 'view', val)}>
+                                        <SelectTrigger className="w-[75px] h-6 text-[10px] px-2 py-0">
+                                          <SelectValue placeholder="Scope" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="own" className="text-[10px]">Own</SelectItem>
+                                          <SelectItem value="team" className="text-[10px]">Team</SelectItem>
+                                          <SelectItem value="all" className="text-[10px]">All</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    )}
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  <div className="flex items-center justify-center gap-2">
+                                    <Switch
+                                      checked={mapping.permissions?.create !== 'none' && mapping.permissions?.create !== false && mapping.permissions?.create !== undefined}
+                                      onCheckedChange={(checked) => setScopeAccess(mapping, 'create', checked ? 'all' : 'none')}
+                                      disabled={selectedRole === 'admin'}
+                                      className="data-[state=checked]:bg-blue-500"
+                                    />
+                                    {(mapping.permissions?.create !== 'none' && mapping.permissions?.create !== false && mapping.permissions?.create !== undefined) && (
+                                      <Select disabled={selectedRole === 'admin'} value={typeof mapping.permissions?.create === 'string' ? mapping.permissions.create : 'all'} onValueChange={(val) => setScopeAccess(mapping, 'create', val)}>
+                                        <SelectTrigger className="w-[75px] h-6 text-[10px] px-2 py-0">
+                                          <SelectValue placeholder="Scope" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="own" className="text-[10px]">Own</SelectItem>
+                                          <SelectItem value="team" className="text-[10px]">Team</SelectItem>
+                                          <SelectItem value="all" className="text-[10px]">All</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    )}
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  <div className="flex items-center justify-center gap-2">
+                                    <Switch
+                                      checked={mapping.permissions?.edit !== 'none' && mapping.permissions?.edit !== false && mapping.permissions?.edit !== undefined}
+                                      onCheckedChange={(checked) => setScopeAccess(mapping, 'edit', checked ? 'all' : 'none')}
+                                      disabled={selectedRole === 'admin'}
+                                      className="data-[state=checked]:bg-amber-500"
+                                    />
+                                    {(mapping.permissions?.edit !== 'none' && mapping.permissions?.edit !== false && mapping.permissions?.edit !== undefined) && (
+                                      <Select disabled={selectedRole === 'admin'} value={typeof mapping.permissions?.edit === 'string' ? mapping.permissions.edit : 'all'} onValueChange={(val) => setScopeAccess(mapping, 'edit', val)}>
+                                        <SelectTrigger className="w-[75px] h-6 text-[10px] px-2 py-0">
+                                          <SelectValue placeholder="Scope" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="own" className="text-[10px]">Own</SelectItem>
+                                          <SelectItem value="team" className="text-[10px]">Team</SelectItem>
+                                          <SelectItem value="all" className="text-[10px]">All</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    )}
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  <div className="flex items-center justify-center gap-2">
+                                    <Switch
+                                      checked={mapping.permissions?.delete !== 'none' && mapping.permissions?.delete !== false && mapping.permissions?.delete !== undefined}
+                                      onCheckedChange={(checked) => setScopeAccess(mapping, 'delete', checked ? 'all' : 'none')}
+                                      disabled={selectedRole === 'admin'}
+                                      className="data-[state=checked]:bg-red-500"
+                                    />
+                                    {(mapping.permissions?.delete !== 'none' && mapping.permissions?.delete !== false && mapping.permissions?.delete !== undefined) && (
+                                      <Select disabled={selectedRole === 'admin'} value={typeof mapping.permissions?.delete === 'string' ? mapping.permissions.delete : 'all'} onValueChange={(val) => setScopeAccess(mapping, 'delete', val)}>
+                                        <SelectTrigger className="w-[75px] h-6 text-[10px] px-2 py-0">
+                                          <SelectValue placeholder="Scope" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="own" className="text-[10px]">Own</SelectItem>
+                                          <SelectItem value="team" className="text-[10px]">Team</SelectItem>
+                                          <SelectItem value="all" className="text-[10px]">All</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    )}
+                                  </div>
+                                </TableCell>
+                              </>
+                            ) : (
+                              <>
+                                <TableCell className="text-center">
+                                  <div className="flex justify-center">
+                                    <Switch checked={mapping.permissions?.view === true} onCheckedChange={() => toggleAccess(mapping, 'view')} disabled={selectedRole === 'admin'} className="data-[state=checked]:bg-emerald-500" />
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  <div className="flex justify-center">
+                                    <Switch checked={mapping.permissions?.create === true} onCheckedChange={() => toggleAccess(mapping, 'create')} disabled={selectedRole === 'admin'} className="data-[state=checked]:bg-blue-500" />
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  <div className="flex justify-center">
+                                    <Switch checked={mapping.permissions?.edit === true} onCheckedChange={() => toggleAccess(mapping, 'edit')} disabled={selectedRole === 'admin'} className="data-[state=checked]:bg-amber-500" />
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  <div className="flex justify-center">
+                                    <Switch checked={mapping.permissions?.delete === true} onCheckedChange={() => toggleAccess(mapping, 'delete')} disabled={selectedRole === 'admin'} className="data-[state=checked]:bg-red-500" />
+                                  </div>
+                                </TableCell>
+                              </>
+                            )}
+                          </TableRow>
+                        );
+                      })}
+                    </React.Fragment>
+                  ));
+                })()}
               </TableBody>
             </Table>
           </div>

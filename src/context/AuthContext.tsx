@@ -74,6 +74,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.setItem('site_name', data.site_name);
       }
       setAccessRoutes(data.access);
+      if (data.warning) {
+        toast.error(data.warning, { duration: 10000 });
+      }
     } catch (error: any) {
       if (error?.status === 401) {
         logout();
@@ -172,15 +175,20 @@ export const usePageAccess = () => {
   const { role, accessRoutes, portalType } = useAuth();
   const location = useLocation();
 
-  if (portalType === 'super_user' || portalType === 'site_admin' || role === 'admin' || role?.toLowerCase().includes('admin')) {
+  if (portalType === 'super_user') {
+    return { canView: true, canCreate: true, canEdit: true };
+  }
+
+  const isAdminRole = portalType === 'site_admin' || role === 'admin' || role?.toLowerCase().includes('admin');
+  const currentPath = location.pathname;
+
+  if (isAdminRole && currentPath.startsWith('/admin')) {
     return { canView: true, canCreate: true, canEdit: true };
   }
 
   if (accessRoutes.length === 0) {
     return { canView: false, canCreate: false, canEdit: false };
   }
-
-  const currentPath = location.pathname;
   let accessObj = accessRoutes.find(r => r.site_name === currentPath);
   
   if (!accessObj) {

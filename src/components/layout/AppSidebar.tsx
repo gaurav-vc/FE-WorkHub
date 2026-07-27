@@ -130,8 +130,14 @@ export function AppSidebar() {
 
   const navGroups = rawNavGroups.map(group => {
     const filteredItems = group.items.filter(item => {
-      // Superadmin / Site admin / Admin roles bypass the restriction
-      if (portalType === 'super_user' || portalType === 'site_admin' || role === 'admin' || role?.toLowerCase().includes('admin')) {
+      // Superadmin bypasses the restriction entirely
+      if (portalType === 'super_user') {
+        return true;
+      }
+      
+      // Site admin / Admin roles bypass the restriction ONLY for admin routes
+      const isAdminRole = portalType === 'site_admin' || role === 'admin' || role?.toLowerCase().includes('admin');
+      if (isAdminRole && item.url.startsWith('/admin')) {
         return true;
       }
       
