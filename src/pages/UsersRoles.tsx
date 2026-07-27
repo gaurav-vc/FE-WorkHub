@@ -63,7 +63,7 @@ export default function UsersRoles() {
   // New User Form State
   const defaultUserState = {
     name: '', email: '', dept: '', role: '', status: true,
-    phone: '', location: '', dob: '', manager: '', skills: '', photo: null as File | null
+    phone: '', location: '', dob: '', manager: '', skills: '', photo: null as File | null, photo_url: '' as string
   };
   const [newUser, setNewUser] = useState(defaultUserState);
 
@@ -240,7 +240,7 @@ export default function UsersRoles() {
     setEditUserId(u.id);
     setNewUser({
       name: u.name || '', email: u.email || '', dept: u.dept || '', role: u.role || '', status: u.status === 'Active',
-      phone: u.phone || '', location: u.location || '', dob: u.dob || '', manager: u.manager_id || 'none', skills: u.skills || '', photo: null
+      phone: u.phone || '', location: u.location || '', dob: u.dob || '', manager: u.manager_id || 'none', skills: u.skills || '', photo: null, photo_url: u.photo_url || ''
     });
     setIsUserModalOpen(true);
   };
@@ -393,6 +393,12 @@ export default function UsersRoles() {
                     </div>
                     <div className="space-y-2">
                       <Label>Profile Photo</Label>
+                      {newUser.photo_url && !newUser.photo && (
+                        <div className="mb-2">
+                          <img src={newUser.photo_url} alt="Current Profile" className="h-16 w-16 rounded-full object-cover border" />
+                          <p className="text-xs text-muted-foreground mt-1">Current photo</p>
+                        </div>
+                      )}
                       <Input type="file" accept="image/*" onChange={e => { if (e.target.files && e.target.files.length > 0) setNewUser({ ...newUser, photo: e.target.files[0] }); }} className="cursor-pointer file:mr-4 file:py-1 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20" />
                     </div>
                   </div>
