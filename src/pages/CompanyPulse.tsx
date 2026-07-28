@@ -13,16 +13,23 @@ export function CompanyPulse() {
   const { token } = useAuth();
 
   useEffect(() => {
-    fetch(`${API_BASE}/hr/leaderboard/`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
-      .then((res) => res.json())
-      .then((data) => {
-        setLeaderboard(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Failed to load leaderboard", err);
-        setLoading(false);
-      });
+    const fetchLeaderboard = () => {
+      fetch(`${API_BASE}/hr/leaderboard/`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+        .then((res) => res.json())
+        .then((data) => {
+          setLeaderboard(data);
+          setLoading(false);
+        })
+        .catch((err) => {
+          console.error("Failed to load leaderboard", err);
+          setLoading(false);
+        });
+    };
+    
+    fetchLeaderboard();
+    
+    window.addEventListener('tasks-updated', fetchLeaderboard);
+    return () => window.removeEventListener('tasks-updated', fetchLeaderboard);
   }, [token]);
 
   if (loading) return <div className="p-8 text-center text-slate-500 animate-pulse">Syncing pulse...</div>;

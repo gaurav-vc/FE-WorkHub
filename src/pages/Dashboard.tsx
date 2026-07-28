@@ -6,12 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
-import { getMyDayDashboard, submitApprovalAction, addQuickLink } from "@/api/tasks";
+import { getMyDayDashboard, submitApprovalAction, addQuickLink, updateTask } from "@/api/tasks";
 import { toast } from "sonner";
 import { Plus, ExternalLink, Link2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const priorityColors: Record<string, string> = {
   P1: "bg-destructive/10 text-destructive border-destructive/20",
@@ -62,7 +63,12 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    if (token) fetchDashboardData();
+    if (token) {
+      fetchDashboardData();
+      const handleSync = () => fetchDashboardData();
+      window.addEventListener('tasks-updated', handleSync);
+      return () => window.removeEventListener('tasks-updated', handleSync);
+    }
   }, [token]);
 
   if (loading) {
@@ -109,6 +115,16 @@ export default function Dashboard() {
     if (diffDays === 0) return { border: "border-destructive/50 shadow-[0_0_10px_rgba(239,68,68,0.2)]", text: "text-destructive font-semibold", label: "Due Today" };
     if (diffDays <= 2) return { border: "border-warning/50 shadow-[0_0_10px_rgba(245,158,11,0.2)]", text: "text-warning font-medium", label: "Approaching" };
     return { border: "border-success/50 shadow-[0_0_10px_rgba(34,197,94,0.2)]", text: "text-success font-medium", label: "On Track" };
+  };
+
+  const handleStatusChange = async (taskId: string, newStatus: string) => {
+    try {
+      await updateTask(taskId, { status: newStatus as any });
+      toast.success("Task status updated");
+      fetchDashboardData();
+    } catch (e) {
+      toast.error("Failed to update status");
+    }
   };
 
   return (
@@ -183,9 +199,25 @@ export default function Dashboard() {
                     <Badge variant="outline" className={`text-[10px] ${priorityColors[task.priority] || priorityColors.P3}`}>
                       {task.priority || 'P3'}
                     </Badge>
-                    <Badge variant="outline" className={`text-[10px] ${task.status === 'done' ? 'bg-success/10 text-success border-success/20' : task.status === 'in-progress' ? 'bg-primary/10 text-primary border-primary/20' : 'bg-muted text-muted-foreground'}`}>
-                      {task.status === 'in-progress' ? 'In Progress' : task.status === 'done' ? 'Done' : task.status === 'blocked' ? 'Blocked' : 'To Do'}
-                    </Badge>
+                    <div className="shrink-0" onClick={e => e.stopPropagation()}>
+                      <Select value={task.status === "in_progress" ? "in-progress" : task.status === "pending" || task.status === "open" ? "todo" : task.status === "delayed" || task.status === "on_hold" ? "blocked" : task.status === "completed" ? "done" : task.status} onValueChange={v => {
+                        let backendStatus = v;
+                        if (v === "todo") backendStatus = "pending";
+                        if (v === "in-progress") backendStatus = "in_progress";
+                        if (v === "blocked") backendStatus = "delayed";
+                        handleStatusChange(task.id || task.task_id, backendStatus);
+                      }}>
+                        <SelectTrigger className={`w-[105px] h-7 text-[10px] font-semibold border-none ${task.status === 'done' || task.status === 'completed' ? 'bg-success/10 text-success' : task.status === 'in-progress' || task.status === 'in_progress' ? 'bg-primary/10 text-primary' : task.status === 'blocked' || task.status === 'delayed' ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground'}`}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent align="end">
+                          <SelectItem value="todo">To Do</SelectItem>
+                          <SelectItem value="in-progress">In Progress</SelectItem>
+                          <SelectItem value="done">Done</SelectItem>
+                          <SelectItem value="blocked">Blocked</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </div>
               );

@@ -34,8 +34,8 @@ export default function DocsNotes() {
   const [newFolderName, setNewFolderName] = useState('');
 
   const [isUploadOpen, setIsUploadOpen] = useState(false);
-  const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadTitle, setUploadTitle] = useState('');
+  const [uploadFiles, setUploadFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isShareOpen, setIsShareOpen] = useState(false);
@@ -119,36 +119,51 @@ export default function DocsNotes() {
 
   const handleUploadFile = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!uploadTitle.trim() || !uploadFile) return;
+    if (!uploadTitle.trim() || uploadFiles.length === 0) return;
 
-    const formData = new FormData();
-    formData.append('title', uploadTitle);
-    formData.append('file', uploadFile);
-    if (currentFolderId && currentFolderId !== null && currentFolderId !== undefined) {
-      formData.append('folder', currentFolderId.toString());
+    // Check for 10MB limit
+    const maxSize = 10 * 1024 * 1024; // 10 MB
+    const oversized = uploadFiles.filter(f => f.size > maxSize);
+    if (oversized.length > 0) {
+      toast({ title: 'Upload failed', description: 'One or more files exceed the 10MB limit.', variant: 'destructive' });
+      return;
     }
-    
-    // For Company folder upload at the root
-    if (activeTab === 'company') formData.append('is_common', 'true');
 
     try {
-      const res = await fetch(`${API_BASE}/docs/documents/`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: formData
+      const uploadPromises = uploadFiles.map(async (file, index) => {
+        const formData = new FormData();
+        const title = uploadFiles.length === 1 ? uploadTitle : `${uploadTitle} (${index + 1})`;
+        formData.append('title', title);
+        formData.append('file', file);
+        if (currentFolderId && currentFolderId !== null && currentFolderId !== undefined) {
+          formData.append('folder', currentFolderId.toString());
+        }
+        
+        // For Company folder upload at the root
+        if (activeTab === 'company') formData.append('is_common', 'true');
+
+        const res = await fetch(`${API_BASE}/docs/documents/`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: formData
+        });
+        
+        if (!res.ok) {
+          throw new Error(`Failed to upload ${file.name}`);
+        }
+        return res;
       });
-      if (res.ok) {
-        toast({ title: 'File uploaded' });
-        setIsUploadOpen(false);
-        setUploadFile(null);
-        setUploadTitle('');
-        if (fileInputRef.current) fileInputRef.current.value = '';
-        fetchData();
-      } else {
-        toast({ title: 'Upload failed', variant: 'destructive' });
-      }
+
+      await Promise.all(uploadPromises);
+      
+      toast({ title: 'Files uploaded successfully' });
+      setIsUploadOpen(false);
+      setUploadFiles([]);
+      setUploadTitle('');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      fetchData();
     } catch (e) {
-      toast({ title: 'Error uploading file', variant: 'destructive' });
+      toast({ title: 'Error uploading files', variant: 'destructive' });
     }
   };
 
@@ -283,8 +298,8 @@ export default function DocsNotes() {
                   <Input required value={uploadTitle} onChange={e => setUploadTitle(e.target.value)} placeholder="e.g. Budget 2026.xlsx" />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Select File</label>
-                  <Input required type="file" ref={fileInputRef} onChange={e => setUploadFile(e.target.files?.[0] || null)} />
+                  <label className="text-sm font-medium">Select Files</label>
+                  <Input required type="file" multiple ref={fileInputRef} onChange={e => setUploadFiles(Array.from(e.target.files || []))} />
                 </div>
                 <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">Upload</Button>
               </form>

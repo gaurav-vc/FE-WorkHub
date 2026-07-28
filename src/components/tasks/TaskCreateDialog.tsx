@@ -81,7 +81,7 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
       // In real scenario we match by id, for fallback match initials
       const found = teamMembers.find(m => m.initials === a.initials);
       return found?.id || a.initials;
-    }), dependencies: editTask.dependencies, tags: editTask.tags,
+    }), dependencies: editTask.dependencies || [], tags: editTask.tags || [],
   } : defaultForm);
 
   const [repeat, setRepeat] = useState<RepeatConfig>(editTask?.repeat || { enabled: false, type: "daily" });
@@ -532,7 +532,7 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
                   <div className="space-y-1">
                     {tasks.filter(t => t.id !== editTask?.id).map(t => (
                       <div key={t.id} className="flex items-center gap-2 p-1.5 rounded hover:bg-muted/50">
-                        <Checkbox checked={form.dependencies.includes(t.id)} onCheckedChange={() => toggleDep(t.id)} />
+                        <Checkbox checked={(form.dependencies || []).includes(t.id)} onCheckedChange={() => toggleDep(t.id)} />
                         <span className="text-xs flex-1 truncate">{t.title}</span>
                         <Badge variant="outline" className="text-[9px]">{t.status}</Badge>
                       </div>

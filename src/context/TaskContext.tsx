@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode, Context } from "react";
 import { Task, Notification } from "@/types/tasks";
 import { getTasks, createTask, updateTask as updateTaskApi, deleteTask as deleteTaskApi } from "@/api/tasks";
 import { useAuth } from "./AuthContext";
@@ -20,7 +20,10 @@ interface TaskContextType {
   setSelectedTask: (task: Task | null) => void;
 }
 
-const TaskContext = createContext<TaskContextType | null>(null);
+const TaskContext: Context<TaskContextType | null> = (window as any).__TaskContext || createContext<TaskContextType | null>(null);
+if (import.meta.env?.DEV) {
+  (window as any).__TaskContext = TaskContext;
+}
 
 export function TaskProvider({ children }: { children: ReactNode }) {
   const { token, isAuthenticated } = useAuth();
@@ -44,7 +47,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       dueDate: formatDate(t.due_date || t.dueDate),
       startDate: formatDate(t.start_date || t.created_at || t.startDate),
       createdDate: formatDate(t.created_at || t.createdDate),
-      dueTime: t.dueTime || t.due_time || "EOD",
+      dueTime: t.dueTime || t.due_time || "",
       assignees: t.assignees || (t.assignee_detail ? [{
         id: t.assignee_detail.id,
         name: t.assignee_detail.name,
@@ -60,8 +63,8 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       chat: Array.isArray(t.chat) ? t.chat : [],
       comments: Array.isArray(t.comments) ? t.comments : [],
       attachments: Array.isArray(t.attachments) ? t.attachments : [],
-      estimatedEffort: t.estimatedEffort || t.duration || 3,
-      effortUnit: t.effortUnit || "hours",
+      estimatedEffort: t.estimated_effort !== undefined ? t.estimated_effort : (t.estimatedEffort || t.duration || 3),
+      effortUnit: t.effort_unit || t.effortUnit || "hours",
       actualEffort: t.actual_effort || t.actualEffort || 0,
     };
     
@@ -120,9 +123,18 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       fetchTasks();
       fetchNotifications();
       
+      const handleSync = () => {
+        fetchTasks();
+      };
+      
+      window.addEventListener('tasks-updated', handleSync);
+      
       // Optional: Setup polling for notifications every 60 seconds
       const interval = setInterval(fetchNotifications, 60000);
-      return () => clearInterval(interval);
+      return () => {
+        clearInterval(interval);
+        window.removeEventListener('tasks-updated', handleSync);
+      };
     } else if (!isAuthenticated) {
       setTasks([]);
       setNotifications([]);

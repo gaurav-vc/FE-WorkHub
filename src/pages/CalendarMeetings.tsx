@@ -25,6 +25,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { useTaskContext } from "@/context/TaskContext";
+import { TaskWorkspacePanel } from "@/components/tasks/TaskWorkspacePanel";
 
 interface CalendarEvent {
   id: string;
@@ -47,6 +49,7 @@ const hours = Array.from({ length: 12 }, (_, i) => i + 7); // 7 AM to 6 PM
 
 export default function CalendarMeetings() {
   const { token } = useAuth();
+  const { tasks, setSelectedTask } = useTaskContext();
   const [view, setView] = useState<"month" | "week" | "day">("month");
   const today = new Date();
   const [currentDate, setCurrentDate] = useState(today);
@@ -57,6 +60,7 @@ export default function CalendarMeetings() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [attendeeInput, setAttendeeInput] = useState("");
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [employees, setEmployees] = useState<{ id: number, name: string, email: string }[]>([]);
   const [form, setForm] = useState({
     title: "",
@@ -96,7 +100,7 @@ export default function CalendarMeetings() {
                 title: ev.title || "Untitled",
                 time: ev.start_time ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "10:00 AM",
                 duration: ev.duration || "1h",
-                type: ev.type || "meeting",
+                type: ev.meeting_type || ev.type || "meeting",
                 attendees: ev.attendees || [],
                 location: ev.location,
                 recurring: ev.recurring,
@@ -130,6 +134,10 @@ export default function CalendarMeetings() {
           console.error(err);
           toast.error("Failed to load employees");
         });
+        
+      const handleSync = () => fetchEvents();
+      window.addEventListener('tasks-updated', handleSync);
+      return () => window.removeEventListener('tasks-updated', handleSync);
     }
   }, [token]);
 
@@ -173,8 +181,14 @@ export default function CalendarMeetings() {
     };
 
     try {
-      const res = await fetch(`${API_BASE}/calendar/events/create/`, {
-        method: "POST",
+      const isEditing = !!editingEventId;
+      const url = isEditing 
+        ? `${API_BASE}/calendar/events/${editingEventId}/update/` 
+        : `${API_BASE}/calendar/events/create/`;
+      const method = isEditing ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -182,12 +196,13 @@ export default function CalendarMeetings() {
         body: JSON.stringify(payload)
       });
       if (res.ok) {
-        toast.success(`${form.type.charAt(0).toUpperCase() + form.type.slice(1)} created successfully`);
+        toast.success(`${form.type.charAt(0).toUpperCase() + form.type.slice(1)} ${isEditing ? 'updated' : 'created'} successfully`);
         setShowAddEvent(false);
+        setEditingEventId(null);
         setForm({ title: "", type: "meeting", date: "", startTime: "10:00", endTime: "11:00", description: "", platform: "Zoom", meetingLink: "", recurring: false, recurrence_type: "daily", recurrence_end_date: "", internal_attendees: [], attendees: [] });
         fetchEvents();
       } else {
-        toast.error(`Failed to create ${form.type}`);
+        toast.error(`Failed to ${isEditing ? 'update' : 'create'} ${form.type}`);
       }
     } catch (err) {
       toast.error("An error occurred");
@@ -196,9 +211,81 @@ export default function CalendarMeetings() {
 
   const openAddEvent = (date: Date) => {
     setSelectedDate(date);
+    setEditingEventId(null);
     // Format date as yyyy-mm-dd in local timezone instead of UTC
     const dateStr = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
-    setForm({ ...form, type: "meeting", date: dateStr, startTime: "10:00", endTime: "11:00" });
+    setForm({ 
+      title: "", 
+      type: "meeting", 
+      date: dateStr, 
+      startTime: "10:00", 
+      endTime: "11:00",
+      description: "",
+      platform: "Zoom",
+      meetingLink: "",
+      recurring: false,
+      recurrence_type: "daily",
+      recurrence_end_date: "",
+      internal_attendees: [],
+      attendees: []
+    });
+    setShowAddEvent(true);
+  };
+
+  const openEditEvent = (ev: CalendarEvent) => {
+    const isTask = ev.type === "task" || (ev.id && ev.id.startsWith("task_"));
+    if (isTask) {
+      const realId = ev.id.startsWith("task_") ? ev.id.split("_")[1] : ev.id;
+      const fullTask = tasks.find(t => t.id.toString() === realId.toString());
+      if (fullTask) {
+        setSelectedTask(fullTask);
+        setSelectedEvent(null);
+        return;
+      }
+    }
+    setEditingEventId(ev.id);
+    setSelectedEvent(null);
+    const d = ev.start_time ? new Date(ev.start_time) : new Date();
+    const dateStr = `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
+    
+    // Parse duration string if possible, else default to 1 hr later
+    let endTimeStr = "11:00";
+    try {
+      if (ev.duration && ev.duration.includes('-')) {
+        const parts = ev.duration.split('-');
+        if (parts.length > 1) {
+            endTimeStr = parts[1].trim();
+        }
+      } else {
+          // If duration is like "30 mins" or "1 hour", we can parse it, but for simplicity:
+          const [h, m] = ev.time.split(':');
+          const isPm = ev.time.includes("PM");
+          let hour = parseInt(h);
+          if (isPm && hour !== 12) hour += 12;
+          if (!isPm && hour === 12) hour = 0;
+          endTimeStr = `${(hour + 1).toString().padStart(2, '0')}:${m.substring(0,2)}`;
+      }
+    } catch(e) {}
+
+    const [startH, startM] = ev.time.split(':');
+    const isPmStart = ev.time.includes("PM");
+    let sHour = parseInt(startH);
+    if (isPmStart && sHour !== 12) sHour += 12;
+    if (!isPmStart && sHour === 12) sHour = 0;
+    const startTimeStr = `${sHour.toString().padStart(2, '0')}:${startM.substring(0,2)}`;
+    
+    setForm({
+      ...form,
+      title: ev.title,
+      type: ev.type,
+      date: dateStr,
+      startTime: startTimeStr,
+      endTime: endTimeStr,
+      description: ev.description || "",
+      platform: ev.platform || "Zoom",
+      meetingLink: ev.meeting_link || "",
+      recurring: !!ev.recurring,
+    });
     setShowAddEvent(true);
   };
 
@@ -478,16 +565,16 @@ export default function CalendarMeetings() {
           {/* Header Segmented Control */}
           <div className="pt-6 pb-2 px-6 flex justify-between items-center bg-muted/50 border-b border-border">
             <div className="w-full flex justify-center mt-2 px-6">
-              <div className="bg-muted p-1.5 rounded-full flex items-center shadow-inner w-full border border-border">
-                {(["Task", "Event", "Meeting"] as const).map((t) => (
+              <div className="bg-muted p-2 md:p-2.5 rounded-full flex items-center shadow-inner w-full border border-border gap-2">
+                {(editingEventId ? ["Event", "Meeting"] : ["Task", "Event", "Meeting"]).map((t) => (
                   <button
                     key={t}
                     onClick={() => setForm({ ...form, type: t.toLowerCase() as any })}
                     className={cn(
-                      "flex-1 py-2 text-sm md:text-base font-semibold rounded-full transition-all text-center",
+                      "flex-1 py-3 text-base md:text-lg font-bold rounded-full transition-all text-center",
                       form.type === t.toLowerCase()
-                        ? "bg-primary text-primary-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
+                        ? "bg-primary text-primary-foreground shadow-md scale-[1.02]"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted-foreground/10"
                     )}
                   >
                     {t}
@@ -548,59 +635,61 @@ export default function CalendarMeetings() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-5">
-              <div className="space-y-1.5 relative">
-                <Label className="text-muted-foreground text-xs font-bold tracking-wide">Platform</Label>
-                <Select value={form.platform} onValueChange={(v) => setForm({ ...form, platform: v })}>
-                  <SelectTrigger className="bg-muted/50 text-foreground border-0 h-10 rounded-md">
-                    <SelectValue placeholder="Select platform" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Zoom">Zoom</SelectItem>
-                    <SelectItem value="Google Meet">Google Meet</SelectItem>
-                    <SelectItem value="Microsoft Teams">Microsoft Teams</SelectItem>
-                    <SelectItem value="Webex">Webex</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            {form.type !== 'task' && (
+              <div className="grid grid-cols-2 gap-5">
+                <div className="space-y-1.5 relative">
+                  <Label className="text-muted-foreground text-xs font-bold tracking-wide">Platform</Label>
+                  <Select value={form.platform} onValueChange={(v) => setForm({ ...form, platform: v })}>
+                    <SelectTrigger className="bg-muted/50 text-foreground border-0 h-10 rounded-md">
+                      <SelectValue placeholder="Select platform" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Zoom">Zoom</SelectItem>
+                      <SelectItem value="Google Meet">Google Meet</SelectItem>
+                      <SelectItem value="Microsoft Teams">Microsoft Teams</SelectItem>
+                      <SelectItem value="Webex">Webex</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <div className="space-y-1.5 relative">
-                <Label className="text-muted-foreground text-xs font-bold tracking-wide capitalize">{form.type} Link</Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    value={form.meetingLink}
-                    onChange={(e) => setForm({ ...form, meetingLink: e.target.value })}
-                    className="bg-muted/50 text-foreground border-0 h-10 rounded-md flex-1"
-                  />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-10 px-3 text-primary font-semibold hover:text-primary/80 hover:bg-primary/10"
-                    onClick={async () => {
-                      try {
-                        const res = await fetch(`${API_BASE}/calendar/generate-link/`, {
-                          method: "POST",
-                          headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                          },
-                          body: JSON.stringify({ platform: form.platform })
-                        });
-                        const data = await res.json();
-                        if (data.link) {
-                          setForm({ ...form, meetingLink: data.link });
+                <div className="space-y-1.5 relative">
+                  <Label className="text-muted-foreground text-xs font-bold tracking-wide capitalize">{form.type} Link</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={form.meetingLink}
+                      onChange={(e) => setForm({ ...form, meetingLink: e.target.value })}
+                      className="bg-muted/50 text-foreground border-0 h-10 rounded-md flex-1"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-10 px-3 text-primary font-semibold hover:text-primary/80 hover:bg-primary/10"
+                      onClick={async () => {
+                        try {
+                          const res = await fetch(`${API_BASE}/calendar/generate-link/`, {
+                            method: "POST",
+                            headers: {
+                              'Authorization': `Bearer ${token}`,
+                              'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ platform: form.platform })
+                          });
+                          const data = await res.json();
+                          if (data.link) {
+                            setForm({ ...form, meetingLink: data.link });
+                          }
+                        } catch (err) {
+                          toast.error("Failed to generate link");
                         }
-                      } catch (err) {
-                        toast.error("Failed to generate link");
-                      }
-                    }}
-                  >
-                    Generate
-                  </Button>
+                      }}
+                    >
+                      Generate
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             <div className="space-y-1.5">
               <Label className="text-muted-foreground text-xs font-bold tracking-wide">Internal Employees</Label>
@@ -706,7 +795,7 @@ export default function CalendarMeetings() {
               onClick={handleAddEvent}
               className="w-full mt-6 gradient-primary text-primary-foreground font-semibold h-10 shadow-md transition-colors"
             >
-              Create {form.type.charAt(0).toUpperCase() + form.type.slice(1)}
+              {editingEventId ? "Save Changes" : `Create ${form.type.charAt(0).toUpperCase() + form.type.slice(1)}`}
             </Button>
           </div>
         </DialogContent>
@@ -774,12 +863,16 @@ export default function CalendarMeetings() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setSelectedEvent(null)}>Close</Button>
+            {selectedEvent && (
+              <Button variant="secondary" onClick={() => openEditEvent(selectedEvent)}>Edit Event</Button>
+            )}
             {selectedEvent?.type === "meeting" && selectedEvent?.location?.startsWith('http') && (
               <Button onClick={() => window.open(selectedEvent.location, "_blank")}>Join Meeting</Button>
             )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <TaskWorkspacePanel />
     </div>
   );
 }

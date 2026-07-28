@@ -33,7 +33,7 @@ const statusIcon = (status: string) => {
 };
 
 export default function MyDay() {
-  const { token } = useAuth();
+  const { token, username } = useAuth();
   const { tasks, addTask, updateTask, deleteTask, setSelectedTask } = useTaskContext();
   const [newTask, setNewTask] = useState("");
   const [showCreate, setShowCreate] = useState(false);
@@ -79,11 +79,13 @@ export default function MyDay() {
 
   const handleQuickAdd = () => {
     if (!newTask.trim()) return;
+    const nameStr = username || "User";
+    const initialsStr = nameStr.substring(0, 2).toUpperCase();
     const task: Task = {
       id: `task-${Date.now()}`, title: newTask.trim(), description: "", taskType: "self",
       priority: "P3", status: "todo", project: "Personal",
-      assignees: [{ name: "Sarah Johnson", initials: "SJ" }],
-      createdBy: { name: "Sarah Johnson", initials: "SJ" },
+      assignees: [{ name: nameStr, initials: initialsStr }],
+      createdBy: { name: nameStr, initials: initialsStr },
       createdDate: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
       dueDate: "", dueTime: "", startDate: "",
       estimatedEffort: 0, effortUnit: "hours", actualEffort: 0,

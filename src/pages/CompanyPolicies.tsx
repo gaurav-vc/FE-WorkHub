@@ -51,6 +51,7 @@ interface Policy {
   version: string;
   content: string;
   attachment?: string;
+  created_at_formatted?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -74,6 +75,7 @@ export default function CompanyPolicies() {
   const [editPolicy, setEditPolicy] = useState<Policy | null>(null);
   const [form, setForm] = useState({ title: "", category: "General", content: "", version: "1.0" });
   const [attachment, setAttachment] = useState<File | null>(null);
+  const [attachmentText, setAttachmentText] = useState<string | null>(null);
 
   const fetchPolicies = async () => {
     try {
@@ -87,6 +89,17 @@ export default function CompanyPolicies() {
   useEffect(() => {
     if (token) fetchPolicies();
   }, [token]);
+
+  useEffect(() => {
+    if (selectedPolicy?.attachment && selectedPolicy.attachment.match(/\.(txt|md|csv|json|log)$/i)) {
+      fetch(selectedPolicy.attachment)
+        .then(res => res.text())
+        .then(text => setAttachmentText(text))
+        .catch(() => setAttachmentText("Failed to load text content."));
+    } else {
+      setAttachmentText(null);
+    }
+  }, [selectedPolicy]);
 
   const filtered = policies.filter((p) => {
     const matchCat = category === "All" || p.category === category;
@@ -151,7 +164,7 @@ export default function CompanyPolicies() {
               <Badge variant="outline" className="text-[10px]">v{selectedPolicy.version}</Badge>
             </div>
             <h1 className="text-2xl font-display font-bold text-foreground">{selectedPolicy.title}</h1>
-            <p className="text-sm text-muted-foreground mt-1">Created: {formatDate(selectedPolicy.created_at)} · Last updated: {formatDate(selectedPolicy.updated_at)}</p>
+            <p className="text-sm text-muted-foreground mt-1">Created: {formatDate(selectedPolicy.created_at_formatted || selectedPolicy.created_at)} · Last updated: {formatDate(selectedPolicy.lastUpdated || selectedPolicy.updated_at)}</p>
           </div>
           {selectedPolicy.attachment ? (
             <Button size="sm" variant="outline" className="gap-1.5" asChild>
@@ -165,13 +178,35 @@ export default function CompanyPolicies() {
         </div>
         <Card className="shadow-card">
           <CardContent className="p-6">
-            {selectedPolicy.content.split("\n").map((line, i) => {
-              if (line.startsWith("# ")) return <h1 key={i} className="text-xl font-display font-bold text-foreground mt-4 mb-2">{line.slice(2)}</h1>;
-              if (line.startsWith("## ")) return <h2 key={i} className="text-lg font-display font-semibold text-foreground mt-4 mb-2">{line.slice(3)}</h2>;
-              if (line.startsWith("- ")) return <li key={i} className="text-sm text-foreground ml-4 py-0.5">{line.slice(2)}</li>;
-              if (line.trim() === "") return <br key={i} />;
-              return <p key={i} className="text-sm text-foreground leading-relaxed">{line}</p>;
-            })}
+            {/* Render text content if it exists and is not just the auto-placeholder */}
+            {selectedPolicy.content.trim() && !selectedPolicy.content.trim().startsWith("[Attached Policy Document:") && (
+              <div className={selectedPolicy.attachment ? "mb-8 pb-6 border-b" : ""}>
+                {selectedPolicy.content.split("\n").map((line, i) => {
+                  if (line.startsWith("# ")) return <h1 key={i} className="text-xl font-display font-bold text-foreground mt-4 mb-2">{line.slice(2)}</h1>;
+                  if (line.startsWith("## ")) return <h2 key={i} className="text-lg font-display font-semibold text-foreground mt-4 mb-2">{line.slice(3)}</h2>;
+                  if (line.startsWith("- ")) return <li key={i} className="text-sm text-foreground ml-4 py-0.5">{line.slice(2)}</li>;
+                  if (line.trim() === "") return <br key={i} />;
+                  return <p key={i} className="text-sm text-foreground leading-relaxed">{line}</p>;
+                })}
+              </div>
+            )}
+
+            {/* Always render file preview if there is an attachment */}
+            {selectedPolicy.attachment ? (
+              <div className="w-full rounded-md overflow-hidden border bg-muted/5">
+                {attachmentText !== null ? (
+                  <pre className="p-6 whitespace-pre-wrap text-sm text-foreground bg-background max-h-[700px] overflow-auto font-sans leading-relaxed">
+                    {attachmentText}
+                  </pre>
+                ) : selectedPolicy.attachment.match(/\.(jpeg|jpg|gif|png)$/i) ? (
+                  <img src={selectedPolicy.attachment} alt="Policy Attachment" className="w-full max-h-[700px] object-contain" />
+                ) : (
+                  <iframe src={selectedPolicy.attachment} className="w-full h-[700px] bg-white" title="Policy Attachment Preview" />
+                )}
+              </div>
+            ) : !selectedPolicy.content.trim() ? (
+              <p className="text-sm text-muted-foreground italic text-center py-6">No content available.</p>
+            ) : null}
           </CardContent>
         </Card>
       </div>
@@ -218,7 +253,7 @@ export default function CompanyPolicies() {
                 <h3 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">{policy.title}</h3>
                 <div className="flex items-center gap-2 mt-0.5">
                   <Badge variant="secondary" className="text-[10px]">{policy.category}</Badge>
-                  <span className="text-[11px] text-muted-foreground">v{policy.version} · Created {formatDate(policy.created_at)} · Updated {formatDate(policy.updated_at)}</span>
+                  <span className="text-[11px] text-muted-foreground">v{policy.version} · Created {formatDate(policy.created_at_formatted || policy.created_at)} · Updated {formatDate(policy.lastUpdated || policy.updated_at)}</span>
                 </div>
               </div>
               <DropdownMenu>
@@ -255,7 +290,17 @@ export default function CompanyPolicies() {
             </div>
             <div className="space-y-1.5">
               <Label className="text-sm font-semibold">File Attachment</Label>
-              <Input type="file" onChange={(e) => setAttachment(e.target.files ? e.target.files[0] : null)} className="cursor-pointer" />
+              <Input 
+                type="file" 
+                onChange={(e) => {
+                  const file = e.target.files ? e.target.files[0] : null;
+                  setAttachment(file);
+                  if (file && !form.content.trim()) {
+                    setForm({ ...form, content: `[Attached Policy Document: ${file.name}]` });
+                  }
+                }} 
+                className="cursor-pointer" 
+              />
               {editPolicy?.attachment && !attachment && <p className="text-xs text-muted-foreground mt-1">Currently attached: <a href={editPolicy.attachment} target="_blank" rel="noreferrer" className="text-primary hover:underline">View file</a></p>}
             </div>
             <div className="space-y-1.5"><Label className="text-sm font-semibold">Content</Label><Textarea value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} rows={10} placeholder="Policy content (markdown supported)" className="resize-y" /></div>

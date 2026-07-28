@@ -64,7 +64,7 @@ export default function ResourcePlanning() {
   const resourceData = useMemo(() => {
     return teamMembers.map(member => {
       const assignedTasks = tasks.filter(t =>
-        t.assignees.some(a => (a.id === member.id || a.initials === member.initials)) && t.status !== "done"
+        t.assignees.some(a => (a.name === member.name || a.initials === member.initials)) && t.status !== "done"
       );
       const totalEffortHours = assignedTasks.reduce((sum, t) => {
         const hours = t.effortUnit === "days" ? t.estimatedEffort * 8 : t.estimatedEffort;

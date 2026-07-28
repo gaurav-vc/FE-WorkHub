@@ -60,10 +60,22 @@ export default function KnowledgeBase() {
   const [newContent, setNewContent] = useState("");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [attachmentText, setAttachmentText] = useState<string | null>(null);
 
   useEffect(() => {
     fetchArticles();
   }, [token]);
+
+  useEffect(() => {
+    if (selectedArticle?.file_url && selectedArticle.file_url.match(/\.(txt|md|csv|json|log)$/i)) {
+      fetch(selectedArticle.file_url)
+        .then(res => res.text())
+        .then(text => setAttachmentText(text))
+        .catch(() => setAttachmentText("Failed to load text content."));
+    } else {
+      setAttachmentText(null);
+    }
+  }, [selectedArticle]);
 
   const fetchArticles = async () => {
     setLoading(true);
@@ -214,22 +226,40 @@ export default function KnowledgeBase() {
         <Card className="shadow-none border border-slate-200 bg-white flex-1 overflow-y-auto custom-scrollbar p-6 rounded-xl">
           <CardContent className="p-0 prose prose-sm max-w-none text-slate-600">
             {selectedArticle.excerpt && <p className="text-lg font-medium text-slate-700 mb-6">{selectedArticle.excerpt}</p>}
-            
-            {selectedArticle.content ? selectedArticle.content.split("\n").map((line, i) => {
-              if (line.startsWith("# ")) return <h1 key={i} className="text-xl font-display font-bold text-slate-800 mt-6 mb-3">{line.slice(2)}</h1>;
-              if (line.startsWith("## ")) return <h2 key={i} className="text-lg font-display font-semibold text-slate-800 mt-5 mb-2">{line.slice(3)}</h2>;
-              if (line.startsWith("### ")) return <h3 key={i} className="text-base font-semibold text-slate-800 mt-4 mb-1">{line.slice(4)}</h3>;
-              if (line.startsWith("- [ ] ")) return <label key={i} className="flex items-center gap-2 text-sm py-0.5"><input type="checkbox" className="rounded border-slate-300" />{line.slice(6)}</label>;
-              if (line.startsWith("- ")) return <li key={i} className="text-sm ml-4 list-disc marker:text-slate-300">{line.slice(2)}</li>;
-              if (line.trim() === "") return <br key={i} />;
-              return <p key={i} className="text-sm leading-relaxed">{line}</p>;
-            }) : (
+            {/* Render Text Content if meaningful */}
+            {selectedArticle.content && !selectedArticle.content.trim().startsWith("[Attached Article Document:") && (
+              <div className={selectedArticle.file_url ? "mb-8 pb-6 border-b border-slate-100" : ""}>
+                {selectedArticle.content.split("\n").map((line, i) => {
+                  if (line.startsWith("# ")) return <h1 key={i} className="text-xl font-display font-bold text-slate-800 mt-6 mb-3">{line.slice(2)}</h1>;
+                  if (line.startsWith("## ")) return <h2 key={i} className="text-lg font-display font-semibold text-slate-800 mt-5 mb-2">{line.slice(3)}</h2>;
+                  if (line.startsWith("### ")) return <h3 key={i} className="text-base font-semibold text-slate-800 mt-4 mb-1">{line.slice(4)}</h3>;
+                  if (line.startsWith("- [ ] ")) return <label key={i} className="flex items-center gap-2 text-sm py-0.5"><input type="checkbox" className="rounded border-slate-300" />{line.slice(6)}</label>;
+                  if (line.startsWith("- ")) return <li key={i} className="text-sm ml-4 list-disc marker:text-slate-300">{line.slice(2)}</li>;
+                  if (line.trim() === "") return <br key={i} />;
+                  return <p key={i} className="text-sm leading-relaxed">{line}</p>;
+                })}
+              </div>
+            )}
+
+            {/* Always render file preview if there is an attachment */}
+            {selectedArticle.file_url ? (
+              <div className="w-full rounded-xl overflow-hidden border border-slate-200 bg-slate-50">
+                {attachmentText !== null ? (
+                  <pre className="p-6 whitespace-pre-wrap text-sm text-slate-700 bg-white max-h-[700px] overflow-auto font-sans leading-relaxed">
+                    {attachmentText}
+                  </pre>
+                ) : selectedArticle.file_url.match(/\.(jpeg|jpg|gif|png)$/i) ? (
+                  <img src={selectedArticle.file_url} alt="Article Attachment" className="w-full max-h-[700px] object-contain bg-white" />
+                ) : (
+                  <iframe src={selectedArticle.file_url} className="w-full h-[700px] bg-white" title="Article Attachment Preview" />
+                )}
+              </div>
+            ) : !selectedArticle.content?.trim() ? (
               <div className="text-center py-10 bg-slate-50 rounded-xl border border-dashed border-slate-200">
                 <FileText className="h-8 w-8 text-slate-300 mx-auto mb-2" />
                 <p className="text-slate-500">No text content available.</p>
-                {selectedArticle.file_url && <p className="text-sm text-slate-400 mt-1">Please download the attachment above to view the details.</p>}
               </div>
-            )}
+            ) : null}
           </CardContent>
         </Card>
       </div>
@@ -287,7 +317,13 @@ export default function KnowledgeBase() {
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-700">Upload File (Optional)</label>
-                <Input type="file" ref={fileInputRef} onChange={e => setUploadFile(e.target.files?.[0] || null)} />
+                <Input type="file" ref={fileInputRef} onChange={e => {
+                  const file = e.target.files?.[0] || null;
+                  setUploadFile(file);
+                  if (file && !newContent.trim()) {
+                    setNewContent(`[Attached Article Document: ${file.name}]`);
+                  }
+                }} />
               </div>
               <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700">Submit Knowledge</Button>
             </form>

@@ -5,7 +5,11 @@ export const getTasks = () => {
   return apiClient("/tasks/");
 };
 
-export const createTask = (task: any) => {
+const triggerSync = () => {
+  window.dispatchEvent(new Event('tasks-updated'));
+};
+
+export const createTask = async (task: any) => {
   let data: any = task;
   
   if (task.file) {
@@ -24,23 +28,34 @@ export const createTask = (task: any) => {
     data = formData;
   }
   
-  return apiClient("/tasks/", {
+  const res = await apiClient("/tasks/", {
     method: "POST",
     data,
   });
+  triggerSync();
+  return res;
 };
 
-export const updateTask = (id: string, updates: Partial<Task>) => {
-  return apiClient(`/tasks/${id}/`, {
-    method: "PATCH",
-    data: updates,
+export const updateTask = async (id: string, updates: Partial<Task>) => {
+  const isBoardCard = id.toString().startsWith("board_card_");
+  const endpoint = isBoardCard ? `/myday/tasks/${id.replace('board_card_', '')}/toggle/` : `/tasks/${id}/`;
+  const method = isBoardCard ? "POST" : "PATCH";
+  const data = isBoardCard ? { status: updates.status } : updates;
+
+  const res = await apiClient(endpoint, {
+    method,
+    data,
   });
+  triggerSync();
+  return res;
 };
 
-export const deleteTask = (id: string) => {
-  return apiClient(`/tasks/${id}/`, {
+export const deleteTask = async (id: string) => {
+  const res = await apiClient(`/tasks/${id}/`, {
     method: "DELETE",
   });
+  triggerSync();
+  return res;
 };
 
 export const getMyDayDashboard = () => {

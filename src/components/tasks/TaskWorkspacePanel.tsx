@@ -19,6 +19,7 @@ import { useTaskContext } from "@/context/TaskContext";
 import { Task } from "@/types/tasks";
 import { useAuth } from "@/context/AuthContext";
 import { addTaskComment, addTaskChat } from "@/api/tasks";
+import { TaskCreateDialog } from "./TaskCreateDialog";
 
 const priorityConfig: Record<string, { color: string; label: string }> = {
   P1: { color: "bg-destructive text-destructive-foreground", label: "Critical" },
@@ -39,6 +40,7 @@ export function TaskWorkspacePanel() {
   const { token, username } = useAuth();
   const [chatInput, setChatInput] = useState("");
   const [commentInput, setCommentInput] = useState("");
+  const [showEdit, setShowEdit] = useState(false);
 
   const meName = username || "Me";
   const meInitials = meName.substring(0, 2).toUpperCase();
@@ -114,18 +116,24 @@ export function TaskWorkspacePanel() {
                 {blockedByIncomplete && <Badge variant="destructive" className="text-[10px]">⛔ Blocked</Badge>}
               </div>
             </div>
-            {/* Status change */}
-            <Select value={task.status} onValueChange={v => updateTask(task.id, { status: v as Task["status"] })}>
-              <SelectTrigger className="w-[120px] h-8 text-xs"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todo">To Do</SelectItem>
-                <SelectItem value="in-progress">In Progress</SelectItem>
-                <SelectItem value="done">Done</SelectItem>
-                <SelectItem value="blocked">Blocked</SelectItem>
-              </SelectContent>
-            </Select>
+            {/* Status change and Edit */}
+            <div className="mr-8 flex items-center gap-2">
+              <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => setShowEdit(true)}>
+                <Edit className="h-4 w-4 text-muted-foreground" />
+              </Button>
+              <Select value={task.status} onValueChange={v => updateTask(task.id, { status: v as Task["status"] })}>
+                <SelectTrigger className="w-[120px] h-8 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todo">To Do</SelectItem>
+                  <SelectItem value="in-progress">In Progress</SelectItem>
+                  <SelectItem value="done">Done</SelectItem>
+                  <SelectItem value="blocked">Blocked</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </SheetHeader>
+        <TaskCreateDialog open={showEdit} onOpenChange={setShowEdit} editTask={task} />
 
         {/* Tabs */}
         <Tabs defaultValue="info" className="flex-1 flex flex-col min-h-0">
