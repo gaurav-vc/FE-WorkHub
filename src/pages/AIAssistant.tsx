@@ -5,8 +5,10 @@ import {
   Sparkles,
   User,
   Loader2,
-  Trash2
+  Trash2,
+  ArrowLeft
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,6 +25,7 @@ interface ChatMessage {
 }
 
 export default function AIAssistant() {
+  const navigate = useNavigate();
   const [prompt, setPrompt] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -98,12 +101,17 @@ export default function AIAssistant() {
     <div className="h-[calc(100vh-8rem)] flex flex-col animate-fade-in max-w-4xl mx-auto w-full">
       {/* Header */}
       <div className="mb-4 flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-display font-bold text-foreground flex items-center gap-2">
-            <Sparkles className="h-6 w-6 text-indigo-500" />
-            WorkHub AI
-          </h1>
-          <p className="text-muted-foreground mt-1 text-sm">Powered by Gemini. Your intelligent workspace assistant.</p>
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="shrink-0 hover:bg-slate-100">
+            <ArrowLeft className="h-5 w-5 text-slate-600" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-display font-bold text-foreground flex items-center gap-2">
+              <Sparkles className="h-6 w-6 text-indigo-500" />
+              WorkHub AI
+            </h1>
+            <p className="text-muted-foreground mt-1 text-sm">Powered by Gemini. Your intelligent workspace assistant.</p>
+          </div>
         </div>
         {messages.length > 0 && (
           <Button variant="ghost" size="sm" onClick={clearChat} className="text-muted-foreground hover:text-destructive">
@@ -133,27 +141,13 @@ export default function AIAssistant() {
               {/* Welcome */}
               {messages.length === 0 && (
                 <div className="text-center py-12 flex flex-col items-center justify-center h-full">
-                  <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-white shadow-xl shadow-indigo-500/10 mb-6 border border-indigo-50">
+                  <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-white shadow-xl shadow-indigo-500/10 mb-6 border border-indigo-50 animate-pulse">
                     <Sparkles className="h-10 w-10 text-indigo-500" />
                   </div>
-                  <h3 className="text-2xl font-display font-bold text-slate-800 mb-2">How can I help you today?</h3>
-                  <p className="text-slate-500 max-w-md mx-auto text-sm">
-                    I can help you draft emails, summarize long documents, brainstorm ideas, and navigate your workspace.
+                  <h3 className="text-3xl font-display font-bold text-slate-800 mb-3 bg-gradient-to-r from-indigo-500 to-purple-600 bg-clip-text text-transparent">Coming Soon !!</h3>
+                  <p className="text-slate-500 max-w-md mx-auto text-sm leading-relaxed">
+                    We're working on something amazing! Your intelligent AI assistant is being fine-tuned to help you draft emails, summarize documents, and navigate your workspace effortlessly. Stay tuned!
                   </p>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-10 w-full max-w-lg">
-                    {suggestions.map((s, i) => (
-                      <Card 
-                        key={i} 
-                        className="cursor-pointer hover:border-indigo-300 hover:bg-indigo-50/50 transition-colors shadow-sm"
-                        onClick={() => handleSend(s)}
-                      >
-                        <CardContent className="p-3 text-sm text-slate-600 font-medium text-center">
-                          {s}
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
                 </div>
               )}
 
@@ -196,18 +190,18 @@ export default function AIAssistant() {
           <div className="p-4 bg-white border-t border-border">
             <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 p-2 rounded-xl focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all shadow-sm">
               <Input
-                placeholder="Ask WorkHub AI anything..."
+                placeholder="AI features are coming soon..."
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
-                className="flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0 text-slate-700"
-                disabled={isLoading}
+                className="flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0 text-slate-700 disabled:opacity-50"
+                disabled={true}
               />
               <Button
                 size="icon"
                 onClick={() => handleSend()}
-                disabled={isLoading || !prompt.trim()}
-                className="h-10 w-10 shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-sm"
+                disabled={true}
+                className="h-10 w-10 shrink-0 bg-indigo-600 text-white rounded-lg shadow-sm opacity-50"
               >
                 <Send className="h-4 w-4" />
               </Button>

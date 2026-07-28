@@ -6,8 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
-import { getMyDayDashboard, submitApprovalAction } from "@/api/tasks";
+import { getMyDayDashboard, submitApprovalAction, addQuickLink } from "@/api/tasks";
 import { toast } from "sonner";
+import { Plus, ExternalLink, Link2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const priorityColors: Record<string, string> = {
   P1: "bg-destructive/10 text-destructive border-destructive/20",
@@ -20,6 +24,29 @@ export default function Dashboard() {
   const { token } = useAuth();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isAddLinkOpen, setIsAddLinkOpen] = useState(false);
+  const [newLinkLabel, setNewLinkLabel] = useState("");
+  const [newLinkUrl, setNewLinkUrl] = useState("");
+  const [isAddingLink, setIsAddingLink] = useState(false);
+
+  const handleAddLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newLinkLabel || !newLinkUrl) return toast.error("Please fill in both fields");
+    
+    setIsAddingLink(true);
+    try {
+      await addQuickLink({ label: newLinkLabel, url: newLinkUrl });
+      toast.success("Quick link added successfully");
+      setIsAddLinkOpen(false);
+      setNewLinkLabel("");
+      setNewLinkUrl("");
+      fetchDashboardData();
+    } catch (err) {
+      toast.error("Failed to add quick link");
+    } finally {
+      setIsAddingLink(false);
+    }
+  };
 
   const fetchDashboardData = async () => {
     try {
@@ -52,9 +79,7 @@ export default function Dashboard() {
 
   const statCards = [
     { label: "Tasks Due Today", value: summaryStats.tasksDue, icon: CheckSquare, color: "text-primary", bg: "bg-primary/10" },
-    { label: "Leave Balance", value: `${summaryStats.leaveBalance} days`, icon: CalendarDays, color: "text-success", bg: "bg-success/10" },
     { label: "Unread Messages", value: summaryStats.unreadMessages, icon: MessageSquare, color: "text-accent", bg: "bg-accent/10" },
-    { label: "Pending Approvals", value: summaryStats.pendingApprovals, icon: Clock, color: "text-warning", bg: "bg-warning/10" },
   ];
 
   const now = new Date();
@@ -101,7 +126,7 @@ export default function Dashboard() {
       </div>
 
       {/* Summary Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4">
         {statCards.map((stat) => (
           <Card key={stat.label} className="shadow-card border-0 hover:shadow-md transition-shadow">
             <CardContent className="p-4">
@@ -232,50 +257,59 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Pending Approvals */}
-        <Card className="shadow-card border-0">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-display font-semibold flex items-center gap-2">
-              <Clock className="h-4 w-4 text-warning" />
-              Pending Approvals
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {pendingApprovals?.length > 0 ? pendingApprovals.map((approval: any) => (
-              <div key={approval.id} className="rounded-lg border p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <Badge variant="outline" className="text-[10px]">{approval.approval_type || approval.type}</Badge>
-                  <span className="text-xs text-muted-foreground">{approval.requester_name || approval.requester}</span>
-                </div>
-                <p className="text-sm">{approval.details || approval.detail}</p>
-                <div className="flex gap-2">
-                  <Button size="sm" className="h-7 text-xs flex-1" onClick={() => handleApprovalAction(approval.id, 'approve')}>Approve</Button>
-                  <Button size="sm" variant="outline" className="h-7 text-xs flex-1" onClick={() => handleApprovalAction(approval.id, 'decline')}>Decline</Button>
-                </div>
-              </div>
-            )) : (
-              <p className="text-sm text-muted-foreground">No pending approvals.</p>
-            )}
-          </CardContent>
-        </Card>
 
         {/* Quick Links */}
         <Card className="shadow-card border-0">
-          <CardHeader className="pb-3">
+          <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
             <CardTitle className="text-base font-display font-semibold">Quick Links</CardTitle>
+            <Dialog open={isAddLinkOpen} onOpenChange={setIsAddLinkOpen}>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add Quick Link</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleAddLink} className="space-y-4 pt-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="label">Link Title</Label>
+                    <Input id="label" placeholder="e.g. Timesheet Portal" value={newLinkLabel} onChange={(e) => setNewLinkLabel(e.target.value)} required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="url">URL</Label>
+                    <Input id="url" type="url" placeholder="https://..." value={newLinkUrl} onChange={(e) => setNewLinkUrl(e.target.value)} required />
+                  </div>
+                  <Button type="submit" className="w-full" disabled={isAddingLink}>
+                    {isAddingLink ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                    Add Link
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
           </CardHeader>
           <CardContent>
             {quickLinks?.length > 0 ? (
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-3">
                 {quickLinks.map((link: any) => (
-                  <Button
+                  <a
                     key={link.id || link.label}
-                    variant="outline"
-                    className="h-auto flex-col gap-1.5 py-4 text-xs font-medium hover:bg-primary/5 hover:border-primary/20 transition-colors"
-                    onClick={() => link.url && (window.location.href = link.url)}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group relative flex flex-col items-start justify-between overflow-hidden rounded-xl border border-border/60 bg-gradient-to-br from-background to-secondary/30 p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/5 hover:border-primary/40"
                   >
-                    {link.label}
-                  </Button>
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary mb-3 transition-transform duration-300 group-hover:scale-110 group-hover:bg-primary/20">
+                      <Link2 className="h-5 w-5" />
+                    </div>
+                    <div className="flex w-full items-center justify-between">
+                      <span className="font-semibold font-display text-sm text-foreground truncate pr-2">{link.label}</span>
+                      <ExternalLink className="h-4 w-4 text-muted-foreground opacity-0 -translate-x-2 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0 group-hover:text-primary" />
+                    </div>
+                    {/* Decorative Background Orb */}
+                    <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-primary/5 blur-2xl transition-all duration-500 group-hover:bg-primary/20 group-hover:blur-xl" />
+                  </a>
                 ))}
               </div>
             ) : (

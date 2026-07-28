@@ -54,6 +54,13 @@ export const submitApprovalAction = (id: string, action: string) => {
   });
 };
 
+export const addQuickLink = (data: { label: string; url: string }) => {
+  return apiClient("/myday/quicklinks/create/", {
+    method: "POST",
+    data,
+  });
+};
+
 export const addTaskComment = (taskId: string, text: string) => {
   return apiClient(`/projects/tasks/${taskId}/add_comment/`, {
     method: "POST",
