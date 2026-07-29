@@ -135,9 +135,7 @@ export default function TeamChat() {
       await sendChatMessage(activeChannel.toString(), message.trim(), fileAttachment);
       setMessage("");
       setFileAttachment(null);
-      // Optimistically fetch messages immediately
-      const msgs = await getChatMessages(activeChannel.toString());
-      setChatMessages(prev => ({ ...prev, [activeChannel]: msgs.results || msgs }));
+      // Removed optimistic fetch: WebSocket will instantly push the new message
     } catch (e) {
       console.error(e);
     }
