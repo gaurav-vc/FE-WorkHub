@@ -154,11 +154,20 @@ export function ProfileModal({ open, onOpenChange }: ProfileModalProps) {
                         <h3 className="text-sm font-semibold text-foreground/80 mb-2 uppercase tracking-wider">Organization</h3>
                         <div className="flex items-center gap-3 text-sm">
                           <Building className="h-4 w-4 text-muted-foreground shrink-0" />
-                          <span className="truncate">{profile.organization || "No Organization"} &bull; {profile.department}</span>
+                          <span className="truncate">
+                            {profile.organization || "No Organization"}
+                            {profile.site ? ` • ${profile.site}` : ""}
+                          </span>
                         </div>
-                        {profile.reporting_to && (
+                        {profile.department && profile.department !== "General" && (
                           <div className="flex items-center gap-3 text-sm">
                             <Briefcase className="h-4 w-4 text-muted-foreground shrink-0" />
+                            <span className="truncate">Department: {profile.department}</span>
+                          </div>
+                        )}
+                        {profile.reporting_to && (
+                          <div className="flex items-center gap-3 text-sm">
+                            <UserIcon className="h-4 w-4 text-muted-foreground shrink-0" />
                             <span className="truncate">Reports to: {profile.reporting_to}</span>
                           </div>
                         )}

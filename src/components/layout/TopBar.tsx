@@ -119,11 +119,11 @@ export function TopBar() {
                   {initials}
                 </AvatarFallback>
               </Avatar>
-              <div className="hidden md:flex flex-col">
-                <span className="text-sm font-medium leading-tight">{username || "User"}</span>
-                <span className="text-[11px] text-muted-foreground leading-tight">{role || "Member"}</span>
+              <div className="hidden md:flex flex-col max-w-[120px]">
+                <span className="text-sm font-medium leading-tight truncate">{username || "User"}</span>
+                <span className="text-[11px] text-muted-foreground leading-tight truncate">{role || "Member"}</span>
               </div>
-              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground hidden md:block" />
+              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground hidden md:block shrink-0" />
             </div>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-64 p-2">
