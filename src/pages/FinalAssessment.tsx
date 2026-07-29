@@ -18,7 +18,7 @@ interface FinalAssessmentProps {
 }
 
 export default function FinalAssessment({ courseId, employeeName, onClose, onPassed, maxWarnings }: FinalAssessmentProps) {
-  const maxWarningsLimit = maxWarnings !== undefined ? maxWarnings : 3;
+  const maxWarningsLimit = 2; // Hardcode to 2 for strict 3-strike rule
   const { token } = useAuth();
   const [loading, setLoading] = useState(true);
   
@@ -211,6 +211,8 @@ export default function FinalAssessment({ courseId, employeeName, onClose, onPas
 
     return () => clearInterval(timerId);
   }, [sessionId, isFinished, showWarningModal, selectedOption, submittingAnswer, loading]);
+
+
 
   const triggerWarning = (msg: string) => {
     if (isFinished || isWarningActiveRef.current) return;
@@ -431,37 +433,34 @@ export default function FinalAssessment({ courseId, employeeName, onClose, onPas
   return createPortal(
     <div className="fixed inset-0 bg-slate-50 z-[99999] flex flex-col select-none overflow-y-auto">
       
-      <Dialog open={showWarningModal} onOpenChange={() => {}}>
-        <DialogContent 
-          className="sm:max-w-md [&>button]:hidden" 
-          onInteractOutside={(e) => e.preventDefault()}
-          onEscapeKeyDown={(e) => e.preventDefault()}
-        >
-          <DialogHeader>
-            <DialogTitle className="flex items-center text-red-600">
-              <AlertTriangle className="mr-2 h-6 w-6" /> Anti-Cheat Warning
-            </DialogTitle>
-            <DialogDescription className="text-base text-slate-700 pt-3 font-medium">
-              {warningMessage}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="sm:justify-end mt-4">
-            {warnings <= maxWarningsLimit && (
-              <Button 
-                type="button" 
-                onClick={() => {
-                  setShowWarningModal(false);
-                  setTimeout(() => { isWarningActiveRef.current = false; }, 500);
-                  enterFullscreen();
-                }} 
-                className="bg-indigo-600 text-white"
-              >
-                I Understand, Return to Assessment
-              </Button>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {showWarningModal && (
+        <div className="fixed inset-0 z-[100000] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden border border-red-100">
+            <div className="p-6">
+              <h2 className="flex items-center text-xl font-bold text-red-600 mb-4">
+                <AlertTriangle className="mr-2 h-6 w-6" /> Anti-Cheat Warning
+              </h2>
+              <p className="text-slate-700 font-medium mb-6 leading-relaxed">
+                {warningMessage}
+              </p>
+              <div className="flex justify-end">
+                {warnings <= maxWarningsLimit && (
+                  <Button 
+                    onClick={() => {
+                      setShowWarningModal(false);
+                      isWarningActiveRef.current = false;
+                      enterFullscreen();
+                    }}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-6"
+                  >
+                    I Understand
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="bg-white border-b border-slate-200 p-4 md:p-6 flex justify-between items-center shadow-sm">
         <div className="flex flex-col">

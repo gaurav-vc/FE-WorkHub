@@ -9,6 +9,7 @@ import {
   Plus,
   Users,
   Image as ImageIcon,
+  CheckCheck
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -75,6 +76,45 @@ export default function TeamChat() {
   }, [token]);
 
   useEffect(() => {
+    if (!token) return;
+
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    let wsHost = window.location.host;
+    if (API_BASE.startsWith('http')) {
+       const url = new URL(API_BASE);
+       wsHost = url.host;
+    }
+    const wsUrl = `${wsProtocol}//${wsHost}/ws/chat/?token=${token}`;
+    
+    const ws = new WebSocket(wsUrl);
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'new_message') {
+          const msg = data.message;
+          const channelId = String(data.channel_id);
+          
+          setChatMessages(prev => {
+            const prevMsgs = prev[channelId] || [];
+            if (prevMsgs.find(m => m.id === msg.id)) return prev;
+            return { ...prev, [channelId]: [...prevMsgs, msg] };
+          });
+        } else if (data.type === 'new_channel') {
+           fetchChannels();
+        }
+      } catch (e) {
+        console.error("WS Message Error:", e);
+      }
+    };
+
+    return () => {
+      ws.close();
+    };
+  }, [token]);
+
+  // Initial fetch for active channel
+  useEffect(() => {
     if (!token || !activeChannel) return;
     
     const fetchMessages = async () => {
@@ -87,8 +127,6 @@ export default function TeamChat() {
     };
 
     fetchMessages();
-    const interval = setInterval(fetchMessages, 3000); // Poll every 3 seconds for real-time feel
-    return () => clearInterval(interval);
   }, [token, activeChannel]);
 
   const handleSendMessage = async () => {
@@ -294,7 +332,10 @@ export default function TeamChat() {
                 <div className={cn("flex flex-col", isCurrentUser ? "items-end" : "items-start")}>
                   <div className="flex items-baseline gap-2">
                     <span className="text-sm font-semibold text-foreground">{msg.user}</span>
-                    <span className="text-[11px] text-muted-foreground">{msg.time}</span>
+                    <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                      {msg.time}
+                      {isCurrentUser && <CheckCheck className="h-3 w-3 text-blue-500" />}
+                    </span>
                   </div>
                   <div className={`p-3 rounded-lg max-w-[85%] ${isCurrentUser ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"}`}>
                     <p className="text-sm">{msg.content || msg.message}</p>
