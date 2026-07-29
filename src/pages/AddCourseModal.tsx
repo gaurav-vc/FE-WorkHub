@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Trash, Plus, UploadCloud, Loader2, Video } from "lucide-react";
+import { Trash, Plus, UploadCloud, Loader2, Video, Download } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 
@@ -77,7 +77,9 @@ export default function AddCourseModal({ isOpen, onClose, onSuccess, initialData
         updatePoint(topicId, pointId, "videoLink", data.file);
         toast.success("Video uploaded successfully!", { id: `upload-${pointId}` });
       } else {
-        toast.error("Failed to upload video.", { id: `upload-${pointId}` });
+        let errMessage = "Failed to upload video.";
+        if (res.status === 413) errMessage = "Video is too large (413). Please compress it.";
+        toast.error(errMessage, { id: `upload-${pointId}` });
       }
     } catch (err) {
       toast.error("An error occurred during upload.", { id: `upload-${pointId}` });
@@ -197,8 +199,15 @@ export default function AddCourseModal({ isOpen, onClose, onSuccess, initialData
       });
 
       if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        const errMsg = errData.detail || errData.message || JSON.stringify(errData) || "Failed to save course";
+        const errData = await response.json().catch(() => null);
+        let errMsg = "Failed to save course";
+        if (errData) {
+            if (errData.detail) errMsg = errData.detail;
+            else if (errData.message) errMsg = errData.message;
+            else if (Object.keys(errData).length > 0) errMsg = JSON.stringify(errData);
+        } else if (response.status === 413) {
+            errMsg = "File is too large (413). Please upload a smaller file.";
+        }
         throw new Error(errMsg);
       }
 
@@ -567,20 +576,21 @@ export default function AddCourseModal({ isOpen, onClose, onSuccess, initialData
             The system will randomly select questions from this bank for each employee's exam.
           </p>
           
+          <a 
+            href={`data:text/csv;charset=utf-8,Question,Option A,Option B,Option C,Option D,Correct Option%0A`} 
+            download="question_bank_template.csv"
+            className="text-sm text-indigo-600 font-semibold hover:underline inline-flex items-center gap-1.5 mb-4"
+          >
+            <Download className="h-4 w-4" />
+            Download Assessment CSV Template
+          </a>
+          
           {!initialData ? (
             <div className="p-4 bg-amber-50 border border-amber-200 rounded-md text-amber-800 text-sm font-medium">
               You must save this course first before you can upload the Question Bank. Click "Submit Course" below, then edit it to upload questions.
             </div>
           ) : (
             <div className="space-y-4">
-              <a 
-                href={`data:text/csv;charset=utf-8,question_text,option_a,option_b,option_c,option_d,correct_option%0A"What is 2+2?","1","2","3","4","D"`} 
-                download="question_bank_template.csv"
-                className="text-sm text-indigo-600 font-semibold hover:underline"
-              >
-                Download CSV Template
-              </a>
-              
               <div className="relative">
                 <input 
                   type="file"

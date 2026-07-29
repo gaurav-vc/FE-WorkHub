@@ -124,7 +124,8 @@ export default function CoursePreview() {
     }
   };
     const { canEdit } = usePageAccess();
-  const hasAccess = portalType === 'site_admin' || portalType === 'super_user' || canEdit || accessStatus === 'Approved';
+  const isAdmin = portalType === 'site_admin' || portalType === 'super_user' || canEdit;
+  const hasAccess = isAdmin || accessStatus === 'Approved';
 
   if (loading) {
     return (
@@ -381,11 +382,11 @@ export default function CoursePreview() {
                     )}
 
                     <Button 
-                      disabled={(videoSettings?.require_video_completion ?? true) ? !isAllCompleted : false}
+                      disabled={!isAdmin && (videoSettings?.require_video_completion ?? true) && !isAllCompleted}
                       onClick={() => setShowFinalAssessment(true)}
-                      className={`px-8 py-6 text-lg font-bold rounded-xl transition-all ${(!(videoSettings?.require_video_completion ?? true) || isAllCompleted) ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg' : 'bg-slate-100 text-slate-400 border border-slate-200'}`}
+                      className={`px-8 py-6 text-lg font-bold rounded-xl transition-all ${(isAdmin || !(videoSettings?.require_video_completion ?? true) || isAllCompleted) ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg' : 'bg-slate-100 text-slate-400 border border-slate-200'}`}
                     >
-                      {(!(videoSettings?.require_video_completion ?? true) || isAllCompleted) ? 'Start Final Assessment' : 'Locked (Finish Curriculum First)'}
+                      {(isAdmin || !(videoSettings?.require_video_completion ?? true) || isAllCompleted) ? 'Start Final Assessment' : 'Locked (Finish Curriculum First)'}
                     </Button>
                   </div>
                 </TabsContent>
