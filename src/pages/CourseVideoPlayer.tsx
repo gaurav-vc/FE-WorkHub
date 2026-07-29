@@ -146,7 +146,7 @@ export default function CourseVideoPlayer({ videoUrl, coursePointId, employeeNam
 
     const idleInterval = setInterval(() => {
       const idleTime = (Date.now() - lastActivity) / 1000;
-      if (idleTime > settings.idle_timeout_seconds) {
+      if (idleTime > 30) {
         if (videoRef.current && !videoRef.current.paused) {
           videoRef.current.pause();
           setShowIdleWarning(true);
@@ -171,11 +171,11 @@ export default function CourseVideoPlayer({ videoUrl, coursePointId, employeeNam
     const duration = videoRef.current.duration;
 
     // Fast-Forward Block
-    if (settings.disable_fast_forward && !isCompleted) {
+    if (!isCompleted) {
       // Allow a 2 second buffer for seeking lag
       if (currentTime > maxWatched + 2) {
         videoRef.current.currentTime = maxWatched;
-        toast.error("Fast-forwarding is disabled for this course.");
+        toast.error("Fast-forwarding is not allowed.");
       }
     }
 
@@ -227,7 +227,7 @@ export default function CourseVideoPlayer({ videoUrl, coursePointId, employeeNam
   const handleSeeked = () => {
     // If they seeked too far, the timeUpdate will catch them, but we handle Seeked to enforce it immediately
     if (!videoRef.current || !settings) return;
-    if (settings.disable_fast_forward && !isCompleted) {
+    if (!isCompleted) {
       if (videoRef.current.currentTime > maxWatched + 2) {
         videoRef.current.currentTime = maxWatched;
       }
@@ -323,7 +323,8 @@ export default function CourseVideoPlayer({ videoUrl, coursePointId, employeeNam
             ref={videoRef}
             src={videoUrl}
             controls
-            controlsList={settings?.disable_fast_forward && !isCompleted ? "nodownload" : "nodownload"}
+            controlsList="nodownload noplaybackrate"
+            disablePictureInPicture
             className="w-full max-h-full object-contain"
             onTimeUpdate={handleTimeUpdate}
             onSeeked={handleSeeked}
