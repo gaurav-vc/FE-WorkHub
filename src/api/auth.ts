@@ -38,3 +38,11 @@ export const resetPassword = (data: any) => {
     data,
   });
 };
+
+export const changePassword = (data: any) => {
+  return apiClient("/auth/change-password/", {
+    method: "POST",
+    data,
+  });
+};
+

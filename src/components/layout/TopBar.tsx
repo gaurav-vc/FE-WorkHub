@@ -26,6 +26,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { CreateTaskModal } from "@/components/tasks/CreateTaskModal";
 import { useTaskContext } from "@/context/TaskContext";
+import { ProfileModal } from "@/components/profile/ProfileModal";
 
 export function TopBar() {
   const { username, role, email, logout, portalType, siteName } = useAuth();
@@ -34,6 +35,7 @@ export function TopBar() {
   
   const [showSearch, setShowSearch] = useState(false);
   const [showCreateTask, setShowCreateTask] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   
   // Get initials from username
   const initials = username ? username.substring(0, 2).toUpperCase() : "U";
@@ -131,7 +133,7 @@ export function TopBar() {
               <p className="text-xs text-indigo-500 font-medium capitalize mt-1">{role || "Member"}</p>
             </div>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer py-2">
+            <DropdownMenuItem className="cursor-pointer py-2" onClick={() => setShowProfile(true)}>
               <User className="mr-2 h-4 w-4" />
               <span>Profile</span>
             </DropdownMenuItem>
@@ -184,6 +186,11 @@ export function TopBar() {
           setShowCreateTask(false); 
         }}
         tasks={tasks}
+      />
+      
+      <ProfileModal 
+        open={showProfile}
+        onOpenChange={setShowProfile}
       />
     </header>
   );

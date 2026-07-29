@@ -21,7 +21,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
-import { getChatChannels, getAllUsersChannels, getChatMessages, sendChatMessage, createChannel, addMemberToChannel } from "@/api/collaboration";
+import { getChatChannels, getAllUsersChannels, getChatMessages, sendChatMessage, createChannel, addMemberToChannel, getOrCreateDM } from "@/api/collaboration";
 import { toast } from "sonner";
 import { API_BASE } from "@/config";
 import { Download } from "lucide-react";
@@ -43,6 +43,9 @@ export default function TeamChat() {
   const [globalUsers, setGlobalUsers] = useState<any[]>([]);
   const [selectedUsersToAdd, setSelectedUsersToAdd] = useState<string[]>([]);
   const [fileAttachment, setFileAttachment] = useState<File | null>(null);
+
+  const [showStartDM, setShowStartDM] = useState(false);
+  const [selectedUserForDM, setSelectedUserForDM] = useState<string>("");
 
   const EMOJIS = ["😀","😂","😍","🙌","👍","🔥","🎉","💡"];
 
@@ -128,8 +131,27 @@ export default function TeamChat() {
     }
   };
 
-  const channel = chatChannels.find((c) => c.id === activeChannel) || { name: "Loading...", description: "" };
+  const handleStartDM = async () => {
+    if (!selectedUserForDM) return;
+    try {
+      const data = await getOrCreateDM(selectedUserForDM);
+      setShowStartDM(false);
+      setSelectedUserForDM("");
+      await fetchChannels();
+      setActiveChannel(data.id);
+      setShowChannels(false);
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to start direct message");
+    }
+  };
+
+  const channel = chatChannels.find((c) => c.id === activeChannel) || { name: "Loading...", display_name: "Loading...", description: "", is_group: false };
   const messages = activeChannel ? (chatMessages[activeChannel] || []) : [];
+  
+  const filteredChannels = chatChannels.filter(c => (c?.display_name || c?.name || "").toLowerCase().includes(channelSearch.toLowerCase()));
+  const groupChannels = filteredChannels.filter(c => c.is_group);
+  const dmChannels = filteredChannels.filter(c => !c.is_group);
 
   return (
     <div className="h-[calc(100vh-8rem)] flex animate-fade-in">
@@ -140,15 +162,12 @@ export default function TeamChat() {
       )}>
         <div className="p-3 border-b border-border">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="font-display font-bold text-sm text-foreground">Channels</h2>
-            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setShowCreateChannel(true)}>
-              <Plus className="h-4 w-4" />
-            </Button>
+            <h2 className="font-display font-bold text-sm text-foreground">Chat</h2>
           </div>
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
             <Input 
-              placeholder="Search channels..." 
+              placeholder="Search chats..." 
               className="pl-8 h-8 text-xs" 
               value={channelSearch}
               onChange={(e) => setChannelSearch(e.target.value)}
@@ -156,27 +175,78 @@ export default function TeamChat() {
           </div>
         </div>
         <ScrollArea className="flex-1">
-          <div className="p-2 space-y-0.5">
-            {chatChannels.filter(c => (c?.name || "").toLowerCase().includes(channelSearch.toLowerCase())).map((ch) => (
-              <button
-                key={ch.id}
-                onClick={() => { setActiveChannel(ch.id); setShowChannels(false); }}
-                className={cn(
-                  "w-full flex items-center gap-2 px-2.5 py-2 rounded-md text-sm transition-colors text-left",
-                  activeChannel === ch.id
-                    ? "bg-primary/10 text-primary font-medium"
-                    : "text-foreground hover:bg-muted"
-                )}
-              >
-                <Hash className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                <span className="flex-1 truncate">{ch.name}</span>
-                {ch.unread > 0 && (
-                  <Badge className="h-5 min-w-5 px-1.5 text-[10px] gradient-primary text-primary-foreground border-0">
-                    {ch.unread}
-                  </Badge>
-                )}
-              </button>
-            ))}
+          <div className="p-2 space-y-4">
+            
+            {/* Direct Messages */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                <span>Direct Messages</span>
+                <Button size="icon" variant="ghost" className="h-5 w-5 hover:text-foreground" onClick={() => setShowStartDM(true)}>
+                  <Plus className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+              {dmChannels.map((ch) => (
+                <button
+                  key={ch.id}
+                  onClick={() => { setActiveChannel(ch.id); setShowChannels(false); }}
+                  className={cn(
+                    "w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-sm transition-colors text-left",
+                    activeChannel === ch.id
+                      ? "bg-primary/10 text-primary font-medium"
+                      : "text-foreground hover:bg-muted"
+                  )}
+                >
+                  <Avatar className="h-5 w-5">
+                    <AvatarFallback className="text-[9px] bg-primary/10 text-primary">
+                      {ch.display_name?.substring(0,2).toUpperCase() || "DM"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="flex-1 truncate">{ch.display_name || ch.name}</span>
+                  {ch.unread > 0 && (
+                    <Badge className="h-4 min-w-4 px-1 text-[9px] gradient-primary text-primary-foreground border-0">
+                      {ch.unread}
+                    </Badge>
+                  )}
+                </button>
+              ))}
+              {dmChannels.length === 0 && (
+                <p className="text-xs text-muted-foreground px-2 py-1">No direct messages</p>
+              )}
+            </div>
+
+            {/* Groups */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                <span>Groups</span>
+                <Button size="icon" variant="ghost" className="h-5 w-5 hover:text-foreground" onClick={() => setShowCreateChannel(true)}>
+                  <Plus className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+              {groupChannels.map((ch) => (
+                <button
+                  key={ch.id}
+                  onClick={() => { setActiveChannel(ch.id); setShowChannels(false); }}
+                  className={cn(
+                    "w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-sm transition-colors text-left",
+                    activeChannel === ch.id
+                      ? "bg-primary/10 text-primary font-medium"
+                      : "text-foreground hover:bg-muted"
+                  )}
+                >
+                  <Hash className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  <span className="flex-1 truncate">{ch.name}</span>
+                  {ch.unread > 0 && (
+                    <Badge className="h-4 min-w-4 px-1 text-[9px] gradient-primary text-primary-foreground border-0">
+                      {ch.unread}
+                    </Badge>
+                  )}
+                </button>
+              ))}
+              {groupChannels.length === 0 && (
+                <p className="text-xs text-muted-foreground px-2 py-1">No groups</p>
+              )}
+            </div>
+
           </div>
         </ScrollArea>
       </div>
@@ -188,15 +258,25 @@ export default function TeamChat() {
           <button className="md:hidden" onClick={() => setShowChannels(true)}>
             <MessageCircle className="h-5 w-5 text-muted-foreground" />
           </button>
-          <Hash className="h-4 w-4 text-muted-foreground" />
+          {channel.is_group ? (
+            <Hash className="h-4 w-4 text-muted-foreground" />
+          ) : (
+            <Avatar className="h-6 w-6">
+              <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                {channel.display_name?.substring(0,2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+          )}
           <div className="flex-1">
-            <h3 className="text-sm font-semibold text-foreground">{channel.name}</h3>
-            <p className="text-[11px] text-muted-foreground">{channel.description}</p>
+            <h3 className="text-sm font-semibold text-foreground">{channel.display_name || channel.name}</h3>
+            <p className="text-[11px] text-muted-foreground">{channel.description || (channel.is_group ? "" : "Direct Message")}</p>
           </div>
-          <Button variant="ghost" size="sm" className="flex items-center gap-1 text-xs text-muted-foreground h-7" onClick={() => setShowAddMember(true)}>
-            <Users className="h-3.5 w-3.5" />
-            <span>Add Member</span>
-          </Button>
+          {channel.is_group && (
+            <Button variant="ghost" size="sm" className="flex items-center gap-1 text-xs text-muted-foreground h-7" onClick={() => setShowAddMember(true)}>
+              <Users className="h-3.5 w-3.5" />
+              <span>Add Member</span>
+            </Button>
+          )}
         </div>
 
         {/* Messages */}
@@ -281,7 +361,7 @@ export default function TeamChat() {
               <input type="file" className="hidden" onChange={(e) => setFileAttachment(e.target.files?.[0] || null)} />
             </label>
             <Input 
-              placeholder={fileAttachment ? `File: ${fileAttachment.name}` : `Message #${channel.name}...`}
+              placeholder={fileAttachment ? `File: ${fileAttachment.name}` : `Message ${channel.is_group ? '#' : ''}${channel.display_name || channel.name}...`}
               className="h-9 text-sm" 
               value={message}
               onChange={(e) => setMessage(e.target.value)}
@@ -367,6 +447,38 @@ export default function TeamChat() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddMember(false)}>Cancel</Button>
             <Button onClick={handleAddMember} disabled={selectedUsersToAdd.length === 0}>Add Members</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Start DM Modal */}
+      <Dialog open={showStartDM} onOpenChange={setShowStartDM}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>New Direct Message</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Select User</label>
+              <ScrollArea className="h-[200px] border border-border rounded-md p-2">
+                {globalUsers.filter(u => u.name !== username).map(u => (
+                  <button 
+                    key={u.id} 
+                    className={cn(
+                      "w-full flex items-center justify-between p-2 rounded-md hover:bg-muted transition-colors text-left",
+                      selectedUserForDM === u.id.toString() && "bg-primary/10 text-primary font-medium"
+                    )}
+                    onClick={() => setSelectedUserForDM(u.id.toString())}
+                  >
+                    <span>{u.name}</span>
+                  </button>
+                ))}
+              </ScrollArea>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowStartDM(false)}>Cancel</Button>
+            <Button onClick={handleStartDM} disabled={!selectedUserForDM}>Start Chat</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -65,3 +65,15 @@ export const toggleKbSave = (articleId: string | number) => {
     method: "POST",
   });
 };
+
+export const getOrCreateDM = (userId: string | number) => {
+  return apiClient("/chat/channels/get_or_create_dm/", {
+    method: "POST",
+    data: { user_id: userId },
+  });
+};
+
+export const getCurrentProfile = () => {
+  return apiClient("/auth/me/");
+};
+
