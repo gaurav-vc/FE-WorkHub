@@ -140,7 +140,10 @@ export default function TeamChat() {
       await sendChatMessage(activeChannel.toString(), message.trim(), fileAttachment);
       setMessage("");
       setFileAttachment(null);
-      // Removed optimistic fetch: WebSocket will instantly push the new message
+      
+      // Fallback fetch in case WebSocket is disconnected or delayed
+      const data = await getChatMessages(activeChannel.toString());
+      setChatMessages(prev => ({ ...prev, [activeChannel]: data.results || data }));
     } catch (e) {
       console.error(e);
     }
@@ -336,8 +339,10 @@ export default function TeamChat() {
         {/* Messages */}
         <ScrollArea className="flex-1 p-4">
           <div className="space-y-4">
-            {messages.map((msg) => {
+            {messages.map((msg, i) => {
+              if (!msg) return null;
               const isCurrentUser = msg.user === username;
+              
               return (
               <div key={msg.id} className={cn("flex items-start gap-3 group", isCurrentUser ? "flex-row-reverse" : "")}>
                 <Avatar className="h-8 w-8 shrink-0">
