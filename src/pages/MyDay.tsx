@@ -33,13 +33,15 @@ const statusIcon = (status: string) => {
 };
 
 export default function MyDay() {
-  const { token, username, fullName } = useAuth();
+  const { token, username, fullName, portalType, role } = useAuth();
+  const isAdmin = portalType === 'site_admin' || portalType === 'super_user' || role === 'admin' || role?.toLowerCase().includes('admin');
   const { tasks, addTask, updateTask, deleteTask, setSelectedTask } = useTaskContext();
   const [newTask, setNewTask] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [editTask, setEditTask] = useState<Task | null>(null);
   const [filterPriority, setFilterPriority] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [viewMode, setViewMode] = useState<"my_tasks" | "team_tasks">("my_tasks");
   const [meetings, setMeetings] = useState<any[]>([]);
   const [birthdays, setBirthdays] = useState<any[]>([]);
 
@@ -55,13 +57,15 @@ export default function MyDay() {
   }, [token]);
 
   const filteredTasks = tasks.filter(t => {
-    // Only show tasks assigned to me, created by me, or self-tasks
-    const isAssignedToMe = 
-      (t.assignees || []).some(a => a.name === username || a.name === fullName) || 
-      t.createdBy?.name === username || 
-      t.createdBy?.name === fullName || 
-      t.taskType === "self";
-    if (!isAssignedToMe) return false;
+    if (viewMode === "my_tasks") {
+      // Only show tasks assigned to me, created by me, or self-tasks
+      const isAssignedToMe = 
+        (t.assignees || []).some(a => a.name === username || a.name === fullName) || 
+        t.createdBy?.name === username || 
+        t.createdBy?.name === fullName || 
+        t.taskType === "self";
+      if (!isAssignedToMe) return false;
+    }
 
     if (filterPriority !== "all" && t.priority !== filterPriority) return false;
     if (filterStatus !== "all" && t.status !== filterStatus) return false;
@@ -122,9 +126,11 @@ export default function MyDay() {
           <h1 className="text-2xl font-display font-bold text-foreground">My Day</h1>
           <p className="text-muted-foreground mt-1">{dayName}, {dateStr}</p>
         </div>
-        <Button className="gradient-primary text-primary-foreground gap-1.5" onClick={() => { setEditTask(null); setShowCreate(true); }}>
-          <Plus className="h-4 w-4" /> Create Task
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button className="gradient-primary text-primary-foreground gap-1.5 rounded-full px-5" onClick={() => { setEditTask(null); setShowCreate(true); }}>
+            <Plus className="h-4 w-4" /> Create Task
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -132,10 +138,28 @@ export default function MyDay() {
           {/* Quick Add */}
           <Card className="shadow-card">
             <CardContent className="p-3">
-              <div className="flex gap-2">
+              <div className="flex gap-2 items-center">
                 <Input placeholder="Quick add a task..." value={newTask} onChange={e => setNewTask(e.target.value)}
                   onKeyDown={e => e.key === "Enter" && handleQuickAdd()} className="flex-1" />
-                <Button size="sm" onClick={handleQuickAdd} className="gradient-primary text-primary-foreground gap-1.5">
+                
+                {isAdmin && (
+                  <div className="flex bg-slate-100 p-1 rounded-full border border-slate-200 shadow-sm shrink-0">
+                    <button 
+                      onClick={() => setViewMode("my_tasks")}
+                      className={`px-3 py-1.5 text-xs font-semibold rounded-full transition-all ${viewMode === "my_tasks" ? "bg-white text-slate-800 shadow" : "text-slate-500 hover:text-slate-700"}`}
+                    >
+                      My Tasks
+                    </button>
+                    <button 
+                      onClick={() => setViewMode("team_tasks")}
+                      className={`px-3 py-1.5 text-xs font-semibold rounded-full transition-all ${viewMode === "team_tasks" ? "bg-white text-slate-800 shadow" : "text-slate-500 hover:text-slate-700"}`}
+                    >
+                      Team Tasks
+                    </button>
+                  </div>
+                )}
+                
+                <Button size="sm" onClick={handleQuickAdd} className="gradient-primary text-primary-foreground gap-1.5 shrink-0">
                   <Plus className="h-4 w-4" /> Add
                 </Button>
               </div>
@@ -171,12 +195,18 @@ export default function MyDay() {
           <Card className="shadow-card">
             <CardHeader className="pb-3">
               <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <CheckSquare className="h-4 w-4 text-primary" /> Tasks
+                <CheckSquare className="h-4 w-4 text-primary" /> {viewMode === 'team_tasks' ? 'Team Tasks' : 'Tasks'}
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="divide-y divide-border">
-                {sortedTasks.map(task => {
+              <div className="divide-y divide-border max-h-[650px] overflow-y-auto custom-scrollbar">
+                {sortedTasks.length === 0 ? (
+                  <div className="p-8 text-center text-muted-foreground flex flex-col items-center justify-center">
+                    <CheckSquare className="h-10 w-10 text-slate-200 mb-3" />
+                    <p className="text-sm font-medium">{viewMode === 'team_tasks' ? 'No team task' : 'No task'}</p>
+                  </div>
+                ) : (
+                  sortedTasks.map(task => {
                   const done = task.status === "done";
                   const pConfig = priorityConfig[task.priority] || priorityConfig.P4;
                   const checklistDone = (task.checklist || []).filter(c => c.completed).length;
@@ -260,10 +290,7 @@ export default function MyDay() {
                       </DropdownMenu>
                     </div>
                   );
-                })}
-                {sortedTasks.length === 0 && (
-                  <div className="p-8 text-center text-sm text-muted-foreground">No tasks match your filters</div>
-                )}
+                }))}
               </div>
             </CardContent>
           </Card>

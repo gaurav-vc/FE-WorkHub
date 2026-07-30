@@ -137,13 +137,19 @@ export default function TeamChat() {
   const handleSendMessage = async () => {
     if ((!message.trim() && !fileAttachment) || !activeChannel) return;
     try {
-      await sendChatMessage(activeChannel.toString(), message.trim(), fileAttachment);
+      const newMessage = await sendChatMessage(activeChannel.toString(), message.trim(), fileAttachment);
       setMessage("");
       setFileAttachment(null);
       
-      // Fallback fetch in case WebSocket is disconnected or delayed
-      const data = await getChatMessages(activeChannel.toString());
-      setChatMessages(prev => ({ ...prev, [activeChannel]: data.results || data }));
+      // Optimistically push the message to avoid flash and delay
+      if (newMessage) {
+        setChatMessages(prev => {
+          const channelMsgs = prev[activeChannel] || [];
+          // Avoid duplicates if websocket already pushed it
+          if (channelMsgs.some((m: any) => m.id === newMessage.id)) return prev;
+          return { ...prev, [activeChannel]: [...channelMsgs, newMessage] };
+        });
+      }
     } catch (e) {
       console.error(e);
     }

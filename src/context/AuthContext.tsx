@@ -11,6 +11,7 @@ interface AuthContextType {
   fullName: string | null;
   email: string | null;
   userType: string | null;
+  crossDepartmentAccess: boolean;
   orgName: string | null;
   siteName: string | null;
   portalType: PortalType;
@@ -30,6 +31,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [fullName, setFullName] = useState<string | null>(localStorage.getItem('fullName'));
   const [email, setEmail] = useState<string | null>(localStorage.getItem('email'));
   const [userType, setUserType] = useState<string | null>(localStorage.getItem('user_type'));
+  const [crossDepartmentAccess, setCrossDepartmentAccess] = useState<boolean>(localStorage.getItem('cross_department_access') === 'true');
   const [orgName, setOrgName] = useState<string | null>(localStorage.getItem('org_name'));
   const [siteName, setSiteName] = useState<string | null>(localStorage.getItem('site_name'));
   const [accessRoutes, setAccessRoutes] = useState<any[]>([]);
@@ -148,14 +150,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setToken(null);
     setRole(null);
     setUsername(null);
+    setFullName(null);
     setEmail(null);
     setUserType(null);
+    setCrossDepartmentAccess(false);
     setAccessRoutes([]);
     localStorage.removeItem('token');
     localStorage.removeItem('role');
     localStorage.removeItem('username');
+    localStorage.removeItem('fullName');
     localStorage.removeItem('email');
     localStorage.removeItem('user_type');
+    localStorage.removeItem('cross_department_access');
     localStorage.removeItem('org_name');
     localStorage.removeItem('site_name');
     navigate('/login');
@@ -170,6 +176,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       fullName,
       email,
       userType,
+      crossDepartmentAccess,
       orgName,
       siteName,
       portalType,

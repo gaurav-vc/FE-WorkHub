@@ -102,7 +102,11 @@ export default function Dashboard() {
       toast.error("An error occurred");
     }
   };
-  const getTimelineStatus = (dueDateStr: string | null) => {
+  const getTimelineStatus = (task: any) => {
+    if (task.status === 'done' || task.status === 'completed') {
+      return { border: "border-success/50 shadow-[0_0_10px_rgba(34,197,94,0.2)]", text: "text-success font-semibold", label: "Completed" };
+    }
+    const dueDateStr = task.due_date;
     if (!dueDateStr) return { border: "border-transparent", text: "text-muted-foreground", label: "" };
     const due = new Date(dueDateStr);
     due.setHours(0,0,0,0);
@@ -119,11 +123,19 @@ export default function Dashboard() {
 
   const handleStatusChange = async (taskId: string, newStatus: string) => {
     try {
+      // Optimistic update
+      setData((prev: any) => {
+        if (!prev) return prev;
+        const updatedMyTasks = prev.todayTasks.map((t: any) => t.id === taskId ? { ...t, status: newStatus } : t);
+        return { ...prev, todayTasks: updatedMyTasks };
+      });
       await updateTask(taskId, { status: newStatus as any });
       toast.success("Task status updated");
-      fetchDashboardData();
+      // Fire a custom event so company pulse can sync
+      window.dispatchEvent(new Event('tasks-updated'));
     } catch (e) {
       toast.error("Failed to update status");
+      fetchDashboardData(); // revert
     }
   };
 
@@ -177,7 +189,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent className="space-y-2">
             {todayTasks?.length > 0 ? todayTasks.map((task: any) => {
-              const timeline = getTimelineStatus(task.due_date);
+              const timeline = getTimelineStatus(task);
               return (
                 <div
                   key={task.id}

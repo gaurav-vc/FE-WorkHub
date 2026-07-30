@@ -382,11 +382,11 @@ export default function CoursePreview() {
                     )}
 
                     <Button 
-                      disabled={!isAdmin && (videoSettings?.require_video_completion ?? true) && !isAllCompleted}
+                      disabled={!hasAccess || (!isAdmin && !isAllCompleted)}
                       onClick={() => setShowFinalAssessment(true)}
-                      className={`px-8 py-6 text-lg font-bold rounded-xl transition-all ${(isAdmin || !(videoSettings?.require_video_completion ?? true) || isAllCompleted) ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg' : 'bg-slate-100 text-slate-400 border border-slate-200'}`}
+                      className={`px-8 py-6 text-lg font-bold rounded-xl transition-all ${hasAccess && (isAdmin || isAllCompleted) ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg' : 'bg-slate-100 text-slate-400 border border-slate-200'}`}
                     >
-                      {(isAdmin || !(videoSettings?.require_video_completion ?? true) || isAllCompleted) ? 'Start Final Assessment' : 'Locked (Finish Curriculum First)'}
+                      {!hasAccess ? 'Locked (Request Access First)' : (isAdmin || isAllCompleted) ? 'Start Final Assessment' : 'Locked (Finish Curriculum First)'}
                     </Button>
                   </div>
                 </TabsContent>

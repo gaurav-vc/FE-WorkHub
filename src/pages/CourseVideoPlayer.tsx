@@ -329,6 +329,13 @@ export default function CourseVideoPlayer({ videoUrl, coursePointId, employeeNam
             onTimeUpdate={handleTimeUpdate}
             onSeeked={handleSeeked}
             onPlay={() => setShowIdleWarning(false)}
+            onLoadedMetadata={() => {
+              if (progress && progress.last_position_seconds > 0 && !progress.is_completed) {
+                if (videoRef.current) {
+                  videoRef.current.currentTime = progress.last_position_seconds;
+                }
+              }
+            }}
           />
         )}
       </div>
