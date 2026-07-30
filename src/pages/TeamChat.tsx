@@ -22,7 +22,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
-import { getChatChannels, getAllUsersChannels, getChatMessages, sendChatMessage, createChannel, addMemberToChannel, getOrCreateDM } from "@/api/collaboration";
+import { getChatChannels, getAllUsersChannels, getChatMessages, sendChatMessage, createChannel, addMemberToChannel, getOrCreateDM, markChannelRead } from "@/api/collaboration";
 import { toast } from "sonner";
 import { API_BASE } from "@/config";
 import { Download } from "lucide-react";
@@ -127,6 +127,11 @@ export default function TeamChat() {
     };
 
     fetchMessages();
+    
+    // Mark channel as read
+    markChannelRead(activeChannel.toString()).then(() => {
+      setChatChannels(prev => prev.map(c => c.id === activeChannel ? { ...c, unread: 0 } : c));
+    }).catch(console.error);
   }, [token, activeChannel]);
 
   const handleSendMessage = async () => {
@@ -138,6 +143,19 @@ export default function TeamChat() {
       // Removed optimistic fetch: WebSocket will instantly push the new message
     } catch (e) {
       console.error(e);
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const items = e.clipboardData.items;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf("image") !== -1) {
+        const file = items[i].getAsFile();
+        if (file) {
+          setFileAttachment(file);
+          e.preventDefault();
+        }
+      }
     }
   };
 
@@ -405,6 +423,7 @@ export default function TeamChat() {
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+              onPaste={handlePaste}
             />
             <Popover>
               <PopoverTrigger asChild>

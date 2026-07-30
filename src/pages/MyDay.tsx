@@ -55,6 +55,10 @@ export default function MyDay() {
   }, [token]);
 
   const filteredTasks = tasks.filter(t => {
+    // Only show tasks assigned to me or self-tasks
+    const isAssignedToMe = (t.assignees || []).some(a => a.name === username) || t.taskType === "self";
+    if (!isAssignedToMe) return false;
+
     if (filterPriority !== "all" && t.priority !== filterPriority) return false;
     if (filterStatus !== "all" && t.status !== filterStatus) return false;
     return true;

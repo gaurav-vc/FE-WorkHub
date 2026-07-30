@@ -10,7 +10,13 @@ export const getAllUsersChannels = () => {
 
 export const getChatMessages = (channelId: string) => {
   return apiClient("/chat/messages/", {
-    params: { channel_id: channelId },
+    params: { channel_id: channelId, _t: Date.now().toString() },
+  });
+};
+
+export const markChannelRead = (channelId: string) => {
+  return apiClient(`/chat/channels/${channelId}/mark_read/`, {
+    method: "POST",
   });
 };
 

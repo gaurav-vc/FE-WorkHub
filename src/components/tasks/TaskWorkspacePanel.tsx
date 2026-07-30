@@ -118,8 +118,8 @@ export function TaskWorkspacePanel() {
             </div>
             {/* Status change and Edit */}
             <div className="mr-8 flex items-center gap-2">
-              <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => setShowEdit(true)}>
-                <Edit className="h-4 w-4 text-muted-foreground" />
+              <Button size="sm" variant="outline" className="h-9 w-9 p-0" onClick={() => setShowEdit(true)}>
+                <Edit className="h-5 w-5 text-muted-foreground" />
               </Button>
               <Select value={task.status} onValueChange={v => updateTask(task.id, { status: v as Task["status"] })}>
                 <SelectTrigger className="w-[120px] h-8 text-xs"><SelectValue /></SelectTrigger>

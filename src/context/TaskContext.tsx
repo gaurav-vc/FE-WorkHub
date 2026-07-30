@@ -25,6 +25,8 @@ if (import.meta.env?.DEV) {
   (window as any).__TaskContext = TaskContext;
 }
 
+let fetchTimeout: ReturnType<typeof setTimeout> | null = null;
+
 export function TaskProvider({ children }: { children: ReactNode }) {
   const { token, isAuthenticated } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -124,7 +126,10 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       fetchNotifications();
       
       const handleSync = () => {
-        fetchTasks();
+        if (fetchTimeout) clearTimeout(fetchTimeout);
+        fetchTimeout = setTimeout(() => {
+          fetchTasks();
+        }, 800);
       };
       
       window.addEventListener('tasks-updated', handleSync);
@@ -175,9 +180,28 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     }
 
     const apiPayload: any = { ...updates };
+    
+    // Clean up frontend-only fields
+    delete apiPayload.assignees;
+    delete apiPayload.subtasks;
+    delete apiPayload.checklists;
+    delete apiPayload.checklist;
+    delete apiPayload.comments;
+    delete apiPayload.chat;
+    delete apiPayload.dependent_tasks_legacy;
+    
     if (updates.dueDate !== undefined) apiPayload.due_date = updates.dueDate;
     if (updates.startDate !== undefined) apiPayload.start_date = updates.startDate;
     if (updates.estimatedEffort !== undefined) apiPayload.duration = updates.estimatedEffort;
+    
+    const anyUpdates: any = updates;
+    if (anyUpdates.assigneeIds !== undefined) {
+        if (anyUpdates.assigneeIds.length > 0) {
+            apiPayload.assigned_to = anyUpdates.assigneeIds[0];
+        } else {
+            apiPayload.assigned_to = null;
+        }
+    }
     
     if (updates.status === "todo") apiPayload.status = "pending";
     else if (updates.status === "in-progress") apiPayload.status = "in_progress";
@@ -189,12 +213,13 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     // Pass snake_case payload
     try {
       await updateTaskApi(id, apiPayload);
-      console.log("Update successful, refetching tasks...");
-      fetchTasks();
+      console.log("Update successful, refetch scheduled...");
+      // Re-fetch is handled by tasks-updated event which is already debounced
     } catch (err: any) {
       toast.error(`Failed to update task: ${err.message || 'Unknown error'}`);
       console.error("Update task failed:", err);
-      fetchTasks();
+      if (fetchTimeout) clearTimeout(fetchTimeout);
+      fetchTimeout = setTimeout(() => fetchTasks(), 500);
     }
   };
 
