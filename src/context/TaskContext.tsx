@@ -49,6 +49,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       dueDate: formatDate(t.due_date || t.dueDate),
       startDate: formatDate(t.start_date || t.created_at || t.startDate),
       createdDate: formatDate(t.created_at || t.createdDate),
+      createdTime: t.created_at ? new Date(t.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "",
       dueTime: t.dueTime || t.due_time || "",
       assignees: t.assignees || (t.assignee_detail ? [{
         id: t.assignee_detail.id,

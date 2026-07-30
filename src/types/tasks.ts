@@ -67,6 +67,7 @@ export interface Task {
   assignees: Array<{ id?: string | number; name: string; initials: string }>;
   createdBy: { name: string; initials: string };
   createdDate: string;
+  createdTime?: string;
   dueDate: string;
   dueTime: string;
   startDate: string;

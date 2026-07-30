@@ -8,6 +8,7 @@ interface AuthContextType {
   token: string | null;
   role: string | null;
   username: string | null;
+  fullName: string | null;
   email: string | null;
   userType: string | null;
   orgName: string | null;
@@ -26,6 +27,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
   const [role, setRole] = useState<string | null>(localStorage.getItem('role'));
   const [username, setUsername] = useState<string | null>(localStorage.getItem('username'));
+  const [fullName, setFullName] = useState<string | null>(localStorage.getItem('fullName'));
   const [email, setEmail] = useState<string | null>(localStorage.getItem('email'));
   const [userType, setUserType] = useState<string | null>(localStorage.getItem('user_type'));
   const [orgName, setOrgName] = useState<string | null>(localStorage.getItem('org_name'));
@@ -56,6 +58,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (data.username) {
         setUsername(data.username);
         localStorage.setItem('username', data.username);
+      }
+      if (data.full_name) {
+        setFullName(data.full_name);
+        localStorage.setItem('fullName', data.full_name);
       }
       if (data.email) {
         setEmail(data.email);
@@ -157,7 +163,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ token, role, username, email, userType, orgName, siteName, portalType, accessRoutes, login, logout, isAuthenticated: !!token, isLoading }}>
+    <AuthContext.Provider value={{
+      token,
+      role,
+      username,
+      fullName,
+      email,
+      userType,
+      orgName,
+      siteName,
+      portalType,
+      accessRoutes,
+      login,
+      logout,
+      isAuthenticated: !!token,
+      isLoading
+    }}>
       {children}
     </AuthContext.Provider>
   );

@@ -306,7 +306,7 @@ export function TaskDetailsModal({ taskId, open, onOpenChange, onTaskUpdate, pro
             {/* Details List */}
             <div className="space-y-2 text-sm mb-10 text-slate-700">
               <div className="flex"><span className="w-32 text-slate-500 font-medium">Created By :</span> <span>{task.created_by_name || "System"}</span></div>
-              <div className="flex"><span className="w-32 text-slate-500 font-medium">Created Date :</span> <span>{task.created_at ? `${format(new Date(task.created_at), "MMM d, yyyy h:mm a")} (${formatDistanceToNow(new Date(task.created_at), { addSuffix: true })})` : ""}</span></div>
+              <div className="flex"><span className="w-32 text-slate-500 font-medium">Created Date :</span> <span>{task.created_at ? `${new Date(task.created_at).toLocaleDateString()} at ${new Date(task.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} (${formatDistanceToNow(new Date(task.created_at), { addSuffix: true })})` : ""}</span></div>
               <div className="flex"><span className="w-32 text-slate-500 font-medium">Due Date :</span> <span>{task.due_date ? format(new Date(task.due_date), "MMM d, yyyy") : ""}</span></div>
               <div className="flex"><span className="w-32 text-slate-500 font-medium">Assign To :</span> <span>{task.assignee_detail?.name || "Unassigned"}</span></div>
             </div>

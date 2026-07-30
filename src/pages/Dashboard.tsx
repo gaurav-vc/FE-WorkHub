@@ -279,7 +279,7 @@ export default function Dashboard() {
                     <span className="font-medium">{activity.target}</span>
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {(activity.created_at || activity.time) ? formatDistanceToNow(new Date(activity.created_at || activity.time), { addSuffix: true }) : "just now"}
+                    {(activity.created_at || activity.time) ? `${new Date(activity.created_at || activity.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} (${formatDistanceToNow(new Date(activity.created_at || activity.time), { addSuffix: true })})` : "just now"}
                   </p>
                 </div>
               </div>

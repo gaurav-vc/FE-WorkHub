@@ -165,7 +165,7 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
                             <div className="font-bold text-slate-900 text-sm">{act.user_name}</div>
                             <time className="font-caveat font-medium text-blue-500 text-xs flex items-center gap-1">
                               <Clock className="h-3 w-3" />
-                              {act.created_at ? formatDistanceToNow(new Date(act.created_at), { addSuffix: true }) : "just now"}
+                              {act.created_at ? `${new Date(act.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} (${formatDistanceToNow(new Date(act.created_at), { addSuffix: true })})` : "just now"}
                             </time>
                           </div>
                           <div className="text-slate-600 text-xs font-medium mb-1">

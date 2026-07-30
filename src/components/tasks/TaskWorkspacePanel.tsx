@@ -155,7 +155,7 @@ export function TaskWorkspacePanel() {
                 <InfoRow icon={Calendar} label="Start Date" value={task.startDate || "—"} />
                 <InfoRow icon={Calendar} label="Due Date" value={task.dueDate || "—"} />
                 <InfoRow icon={Clock} label="Due Time" value={task.dueTime || "—"} />
-                <InfoRow icon={Calendar} label="Created" value={task.createdDate} />
+                <InfoRow icon={Calendar} label="Created" value={`${task.createdDate}${task.createdTime ? ` at ${task.createdTime}` : ''}`} />
                 <InfoRow icon={Flag} label="Effort (Est.)" value={`${task.estimatedEffort} ${task.effortUnit}`} />
                 <InfoRow icon={Flag} label="Effort (Actual)" value={`${task.actualEffort} ${task.effortUnit}`} />
               </div>

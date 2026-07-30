@@ -27,7 +27,7 @@ import { toast } from "sonner";
 import { API_BASE } from "@/config";
 import { Download } from "lucide-react";
 export default function TeamChat() {
-  const { token, username } = useAuth();
+  const { token, username, fullName } = useAuth();
   const [activeChannel, setActiveChannel] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [showChannels, setShowChannels] = useState(true);
@@ -341,7 +341,7 @@ export default function TeamChat() {
           <div className="space-y-4">
             {messages.map((msg, i) => {
               if (!msg) return null;
-              const isCurrentUser = msg.user === username;
+              const isCurrentUser = msg.user === username || msg.user === fullName;
               
               return (
               <div key={msg.id} className={cn("flex items-start gap-3 group", isCurrentUser ? "flex-row-reverse" : "")}>
@@ -354,7 +354,7 @@ export default function TeamChat() {
                   <div className="flex items-baseline gap-2">
                     <span className="text-sm font-semibold text-foreground">{msg.user}</span>
                     <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-                      {msg.time}
+                      {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : msg.time}
                       {isCurrentUser && <CheckCheck className="h-3 w-3 text-blue-500" />}
                     </span>
                   </div>

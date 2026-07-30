@@ -69,7 +69,7 @@ export function NotificationPanel() {
                     <p className={`text-xs font-medium ${!n.read ? "text-foreground" : "text-muted-foreground"}`}>{n.title}</p>
                     <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{n.message}</p>
                     <p className="text-[10px] text-muted-foreground mt-1">
-                      {n.time ? formatDistanceToNow(new Date(n.time), { addSuffix: true }) : "just now"}
+                      {n.time ? `${new Date(n.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} (${formatDistanceToNow(new Date(n.time), { addSuffix: true })})` : "just now"}
                     </p>
                   </div>
                   {!n.read && (

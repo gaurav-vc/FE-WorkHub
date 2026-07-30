@@ -33,7 +33,7 @@ const statusIcon = (status: string) => {
 };
 
 export default function MyDay() {
-  const { token, username } = useAuth();
+  const { token, username, fullName } = useAuth();
   const { tasks, addTask, updateTask, deleteTask, setSelectedTask } = useTaskContext();
   const [newTask, setNewTask] = useState("");
   const [showCreate, setShowCreate] = useState(false);
@@ -56,7 +56,11 @@ export default function MyDay() {
 
   const filteredTasks = tasks.filter(t => {
     // Only show tasks assigned to me, created by me, or self-tasks
-    const isAssignedToMe = (t.assignees || []).some(a => a.name === username) || t.createdBy?.name === username || t.taskType === "self";
+    const isAssignedToMe = 
+      (t.assignees || []).some(a => a.name === username || a.name === fullName) || 
+      t.createdBy?.name === username || 
+      t.createdBy?.name === fullName || 
+      t.taskType === "self";
     if (!isAssignedToMe) return false;
 
     if (filterPriority !== "all" && t.priority !== filterPriority) return false;
