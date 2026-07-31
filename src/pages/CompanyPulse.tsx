@@ -38,7 +38,7 @@ export function CompanyPulse() {
   const rest = leaderboard.slice(3);
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto pb-12 bg-[#f8fafc] min-h-screen px-4 pt-8">
+    <div className="space-y-6 w-full max-w-full mx-auto pb-12 bg-[#f8fafc] min-h-screen px-4 sm:px-8 lg:px-12 pt-8">
       {/* HEADER SECTION */}
       <div className="flex flex-col items-center justify-center text-center space-y-2">
         <div className="inline-flex items-center justify-center p-4 bg-blue-50 text-blue-500 rounded-full mb-1">

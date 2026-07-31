@@ -103,7 +103,7 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
             </DialogTitle>
           </DialogHeader>
 
-          <ScrollArea className="flex-1 px-6 py-4">
+          <div className="flex-1 overflow-y-auto px-6 py-4">
             <Tabs value={taskType} onValueChange={(v) => setTaskType(v as "self" | "assign")} className="w-full mb-6">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="self">Self Task</TabsTrigger>
@@ -242,7 +242,7 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
               </div>
 
             </div>
-          </ScrollArea>
+          </div>
 
           <DialogFooter className="px-6 py-4 border-t border-border/50 bg-muted/20">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>

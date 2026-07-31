@@ -166,7 +166,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       else if (task.status === "blocked") apiPayload.status = "delayed";
       
       const newTask = await createTask(apiPayload);
-      setTasks((prev) => [...prev, mapTaskFromApi(newTask)]);
+      setTasks((prev) => [...prev, { ...task, ...mapTaskFromApi(newTask), id: newTask.id || task.id }]);
       toast.success("Task created");
     } catch (err) {
       toast.error("Failed to create task");

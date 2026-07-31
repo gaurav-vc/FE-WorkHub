@@ -188,8 +188,8 @@ END:VCARD`;
   };
 
   const filtered = employees.filter((e) => {
-    const matchDept = department === "All" || e.department === department;
-    const matchSearch = !search || e.name.toLowerCase().includes(search.toLowerCase()) || e.role.toLowerCase().includes(search.toLowerCase()) || e.department.toLowerCase().includes(search.toLowerCase());
+    const matchDept = department === "All" || (e.department || "").toLowerCase() === department.toLowerCase();
+    const matchSearch = !search || (e.name || "").toLowerCase().includes(search.toLowerCase()) || (e.role || "").toLowerCase().includes(search.toLowerCase()) || (e.department || "").toLowerCase().includes(search.toLowerCase());
     return matchDept && matchSearch;
   });
 

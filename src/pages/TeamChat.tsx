@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Hash,
   Send,
@@ -47,6 +47,14 @@ export default function TeamChat() {
 
   const [showStartDM, setShowStartDM] = useState(false);
   const [selectedUserForDM, setSelectedUserForDM] = useState<string>("");
+  const [dmSearch, setDmSearch] = useState("");
+
+  const [typingUsers, setTypingUsers] = useState<Record<string, Record<string, {user: string, timeout: NodeJS.Timeout}>>>({});
+  const wsRef = useRef<WebSocket | null>(null);
+
+  const [showGroupInfo, setShowGroupInfo] = useState(false);
+  const [groupMembers, setGroupMembers] = useState<any[]>([]);
+  const [editingGroupName, setEditingGroupName] = useState("");
 
   const EMOJIS = ["😀","😂","😍","🙌","👍","🔥","🎉","💡"];
 
@@ -87,6 +95,7 @@ export default function TeamChat() {
     const wsUrl = `${wsProtocol}//${wsHost}/ws/chat/?token=${token}`;
     
     const ws = new WebSocket(wsUrl);
+    wsRef.current = ws;
 
     ws.onmessage = (event) => {
       try {
@@ -102,6 +111,23 @@ export default function TeamChat() {
           });
         } else if (data.type === 'new_channel') {
            fetchChannels();
+        } else if (data.type === 'typing') {
+          const cId = String(data.channel_id);
+          const u = data.user;
+          if (u !== username && u !== fullName) {
+            setTypingUsers(prev => {
+              const current = prev[cId] || {};
+              if (current[u]) clearTimeout(current[u].timeout);
+              const timeout = setTimeout(() => {
+                setTypingUsers(p => {
+                  const newCurrent = { ...p[cId] };
+                  delete newCurrent[u];
+                  return { ...p, [cId]: newCurrent };
+                });
+              }, 3000);
+              return { ...prev, [cId]: { ...current, [u]: { user: u, timeout } } };
+            });
+          }
         }
       } catch (e) {
         console.error("WS Message Error:", e);
@@ -110,6 +136,7 @@ export default function TeamChat() {
 
     return () => {
       ws.close();
+      wsRef.current = null;
     };
   }, [token]);
 
@@ -200,12 +227,32 @@ export default function TeamChat() {
       const data = await getOrCreateDM(selectedUserForDM);
       setShowStartDM(false);
       setSelectedUserForDM("");
+      setDmSearch("");
       await fetchChannels();
       setActiveChannel(data.id);
       setShowChannels(false);
     } catch (e) {
       console.error(e);
       toast.error("Failed to start direct message");
+    }
+  };
+
+  const handleRenameGroup = async () => {
+    if (!editingGroupName.trim() || !activeChannel) return;
+    try {
+      const res = await fetch(`${API_BASE}/chat/channels/${activeChannel}/`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify({ name: editingGroupName.trim() })
+      });
+      if (res.ok) {
+        toast.success("Group renamed");
+        fetchChannels();
+      } else {
+        toast.error("Failed to rename group");
+      }
+    } catch (e) {
+      toast.error("Error renaming group");
     }
   };
 
@@ -331,7 +378,19 @@ export default function TeamChat() {
             </Avatar>
           )}
           <div className="flex-1">
-            <h3 className="text-sm font-semibold text-foreground">{channel.display_name || channel.name}</h3>
+            <h3 className="text-sm font-semibold text-foreground cursor-pointer hover:underline" onClick={() => {
+              if (channel.is_group) {
+                setEditingGroupName(channel.name);
+                fetch(`${API_BASE}/chat/channels/${activeChannel}/`).then(r=>r.json()).then(data=>{
+                  if (data.members) setGroupMembers(data.members);
+                  else if (data.member_details) setGroupMembers(data.member_details);
+                  else setGroupMembers(globalUsers.filter((u:any) => channel.members?.includes(u.id) || channel.members?.includes(u.id.toString())));
+                }).catch(() => {
+                  setGroupMembers(globalUsers.filter((u:any) => channel.members?.includes(u.id) || channel.members?.includes(u.id.toString())));
+                });
+                setShowGroupInfo(true);
+              }
+            }}>{channel.display_name || channel.name}</h3>
             <p className="text-[11px] text-muted-foreground">{channel.description || (channel.is_group ? "" : "Direct Message")}</p>
           </div>
           {channel.is_group && (
@@ -432,7 +491,12 @@ export default function TeamChat() {
               placeholder={fileAttachment ? `File: ${fileAttachment.name}` : `Message ${channel.is_group ? '#' : ''}${channel.display_name || channel.name}...`}
               className="h-9 text-sm" 
               value={message}
-              onChange={(e) => setMessage(e.target.value)}
+              onChange={(e) => {
+                setMessage(e.target.value);
+                if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && activeChannel) {
+                  wsRef.current.send(JSON.stringify({ type: 'typing', channel_id: activeChannel, user: username || fullName || "Someone" }));
+                }
+              }}
               onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
               onPaste={handlePaste}
             />
@@ -454,10 +518,22 @@ export default function TeamChat() {
             </Popover>
             <Button onClick={handleSendMessage} size="icon" className="h-8 w-8 shrink-0 gradient-primary text-primary-foreground">
               <Send className="h-4 w-4" />
-            </Button>
+              </Button>
+            </div>
           </div>
+          
+          {/* Typing Indicator */}
+          {activeChannel && typingUsers[activeChannel] && Object.keys(typingUsers[activeChannel]).length > 0 && (
+            <div className="px-4 pb-2 text-[10px] text-muted-foreground italic flex items-center gap-1 border-t border-border bg-muted/20 pt-1">
+              <span className="flex gap-0.5">
+                <span className="w-1 h-1 bg-muted-foreground rounded-full animate-bounce"></span>
+                <span className="w-1 h-1 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></span>
+                <span className="w-1 h-1 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: "0.4s" }}></span>
+              </span>
+              {Object.keys(typingUsers[activeChannel]).join(", ")} {Object.keys(typingUsers[activeChannel]).length > 1 ? "are" : "is"} typing...
+            </div>
+          )}
         </div>
-      </div>
       
       {/* Create Channel Modal */}
       <Dialog open={showCreateChannel} onOpenChange={setShowCreateChannel}>
@@ -529,17 +605,26 @@ export default function TeamChat() {
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <label className="text-sm font-medium">Select User</label>
-              <ScrollArea className="h-[200px] border border-border rounded-md p-2">
-                {globalUsers.filter(u => u.name !== username).map(u => (
+              <Input 
+                placeholder="Search user..." 
+                className="h-9 text-sm mb-2" 
+                value={dmSearch}
+                onChange={(e) => setDmSearch(e.target.value)}
+              />
+              <ScrollArea className="h-[250px] border border-border rounded-md p-2">
+                {globalUsers.filter(u => u.name !== username && u.name.toLowerCase().includes(dmSearch.toLowerCase())).map(u => (
                   <button 
                     key={u.id} 
                     className={cn(
-                      "w-full flex items-center justify-between p-2 rounded-md hover:bg-muted transition-colors text-left",
-                      selectedUserForDM === u.id.toString() && "bg-primary/10 text-primary font-medium"
+                      "w-full flex items-center gap-3 p-3 mb-2 rounded-lg hover:bg-muted transition-colors text-left border",
+                      selectedUserForDM === u.id.toString() ? "bg-primary/10 border-primary text-primary font-medium" : "border-transparent text-foreground"
                     )}
                     onClick={() => setSelectedUserForDM(u.id.toString())}
                   >
-                    <span>{u.name}</span>
+                    <div className={cn("h-4 w-4 rounded-full border flex items-center justify-center shrink-0", selectedUserForDM === u.id.toString() ? "border-primary bg-primary" : "border-slate-300")}>
+                      {selectedUserForDM === u.id.toString() && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+                    </div>
+                    <span className="text-base">{u.name}</span>
                   </button>
                 ))}
               </ScrollArea>
@@ -549,6 +634,37 @@ export default function TeamChat() {
             <Button variant="outline" onClick={() => setShowStartDM(false)}>Cancel</Button>
             <Button onClick={handleStartDM} disabled={!selectedUserForDM}>Start Chat</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Group Info Modal */}
+      <Dialog open={showGroupInfo} onOpenChange={setShowGroupInfo}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Group Info</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Group Name</label>
+              <div className="flex gap-2">
+                <Input value={editingGroupName} onChange={e => setEditingGroupName(e.target.value)} />
+                <Button onClick={handleRenameGroup} disabled={editingGroupName === channel.name}>Rename</Button>
+              </div>
+            </div>
+            <div className="grid gap-2 mt-2">
+              <label className="text-sm font-medium">Members</label>
+              <ScrollArea className="h-[200px] border border-border rounded-md p-2 bg-muted/20">
+                {groupMembers.length > 0 ? groupMembers.map(m => (
+                  <div key={m.id} className="flex items-center justify-between p-2 hover:bg-muted rounded-md text-sm">
+                    <span className="font-medium text-foreground">{m.name || m.username}</span>
+                    <span className="text-[10px] text-muted-foreground">{m.date_joined ? new Date(m.date_joined).toLocaleDateString() : 'N/A'}</span>
+                  </div>
+                )) : (
+                  <div className="p-4 text-center text-sm text-muted-foreground">Loading members...</div>
+                )}
+              </ScrollArea>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

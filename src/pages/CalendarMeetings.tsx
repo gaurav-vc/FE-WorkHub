@@ -94,12 +94,14 @@ export default function CalendarMeetings() {
               const d = ev.start_time ? new Date(ev.start_time) : new Date();
               const dateKey = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`; // proper date grouping
 
+              const isTask = ev.meeting_type === 'task' || ev.type === 'task' || (ev.id && String(ev.id).startsWith("task_"));
+              
               if (!grouped[dateKey]) grouped[dateKey] = [];
               grouped[dateKey].push({
                 id: ev.id?.toString() || `e${Math.random()}`,
                 title: ev.title || "Untitled",
-                time: ev.start_time ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "10:00 AM",
-                duration: ev.duration || "1h",
+                time: isTask ? "10:00 AM" : (ev.start_time ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "10:00 AM"),
+                duration: isTask ? "" : (ev.duration || "1h"),
                 type: ev.meeting_type || ev.type || "meeting",
                 attendees: ev.attendees || [],
                 location: ev.location,
@@ -813,7 +815,7 @@ export default function CalendarMeetings() {
           <div className="space-y-4 py-4">
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
               <Clock className="h-4 w-4 text-primary" />
-              <span>{selectedEvent?.duration?.includes('-') ? selectedEvent?.duration : `${selectedEvent?.time} · ${selectedEvent?.duration}`}</span>
+              <span>{selectedEvent?.duration?.includes('-') ? selectedEvent?.duration : (selectedEvent?.duration ? `${selectedEvent?.time} · ${selectedEvent?.duration}` : selectedEvent?.time)}</span>
             </div>
             {selectedEvent?.location && (
               <div className="flex items-center gap-3 text-sm text-muted-foreground">

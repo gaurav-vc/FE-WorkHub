@@ -277,7 +277,15 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {teamActivity?.length > 0 ? teamActivity.map((activity: any) => (
+            {teamActivity?.length > 0 ? teamActivity.map((activity: any) => {
+              const getTimeString = (dateStr: string) => {
+                if (!dateStr) return "just now";
+                const date = new Date(dateStr);
+                if (isNaN(date.getTime())) return "just now";
+                return `${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} (${formatDistanceToNow(date, { addSuffix: true })})`;
+              };
+              
+              return (
               <div key={activity.id} className="flex items-start gap-3">
                 <Avatar className="h-7 w-7 mt-0.5">
                   <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-medium">
@@ -291,11 +299,11 @@ export default function Dashboard() {
                     <span className="font-medium">{activity.target}</span>
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {(activity.created_at || activity.time) ? `${new Date(activity.created_at || activity.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} (${formatDistanceToNow(new Date(activity.created_at || activity.time), { addSuffix: true })})` : "just now"}
+                    {getTimeString(activity.created_at || activity.time)}
                   </p>
                 </div>
               </div>
-            )) : (
+            )}) : (
               <p className="text-sm text-muted-foreground">No recent activity.</p>
             )}
           </CardContent>
