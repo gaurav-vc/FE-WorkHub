@@ -378,7 +378,7 @@ export default function TeamChat() {
                       : "text-foreground hover:bg-muted"
                   )}
                 >
-                  <Hash className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  <Users className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                   <span className="flex-1 truncate">{ch.name}</span>
                   {ch.unread > 0 && (
                     <Badge className="h-4 min-w-4 px-1 text-[9px] gradient-primary text-primary-foreground border-0">
@@ -404,7 +404,7 @@ export default function TeamChat() {
             <MessageCircle className="h-5 w-5 text-muted-foreground" />
           </button>
           {channel.is_group ? (
-            <Hash className="h-4 w-4 text-muted-foreground" />
+            <Users className="h-4 w-4 text-muted-foreground" />
           ) : (
             <Avatar className="h-6 w-6">
               <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
@@ -526,7 +526,7 @@ export default function TeamChat() {
               <input type="file" className="hidden" onChange={(e) => setFileAttachment(e.target.files?.[0] || null)} />
             </label>
             <Input 
-              placeholder={fileAttachment ? `File: ${fileAttachment.name}` : `Message ${channel.is_group ? '#' : ''}${channel.display_name || channel.name}...`}
+              placeholder={fileAttachment ? `File: ${fileAttachment.name}` : `Message ${channel.display_name || channel.name}...`}
               className="h-9 text-sm" 
               value={message}
               onChange={(e) => {
@@ -600,7 +600,7 @@ export default function TeamChat() {
       <Dialog open={showAddMember} onOpenChange={setShowAddMember}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Add Member to #{channel.name}</DialogTitle>
+            <DialogTitle>Add Member to {channel.name}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
