@@ -55,6 +55,7 @@ export default function TeamChat() {
   const [showGroupInfo, setShowGroupInfo] = useState(false);
   const [groupMembers, setGroupMembers] = useState<any[]>([]);
   const [editingGroupName, setEditingGroupName] = useState("");
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -147,11 +148,17 @@ export default function TeamChat() {
     if (!token || !activeChannel) return;
     
     const fetchMessages = async () => {
+      // Only show loading if we don't have these messages yet
+      if (!chatMessages[activeChannel]) {
+        setIsLoadingMessages(true);
+      }
       try {
         const data = await getChatMessages(activeChannel.toString());
         setChatMessages(prev => ({ ...prev, [activeChannel]: data.results || data }));
       } catch (err) {
         console.error(err);
+      } finally {
+        setIsLoadingMessages(false);
       }
     };
 
@@ -441,7 +448,33 @@ export default function TeamChat() {
         {/* Messages */}
         <ScrollArea className="flex-1 p-4">
           <div className="space-y-4">
-            {messages.map((msg, i) => {
+            {isLoadingMessages ? (
+              <div className="flex flex-col gap-4 animate-pulse pt-4 px-2">
+                <div className="flex items-start gap-3">
+                  <div className="h-8 w-8 rounded-full bg-muted"></div>
+                  <div className="flex flex-col gap-2">
+                    <div className="h-4 w-24 bg-muted rounded"></div>
+                    <div className="h-10 w-48 bg-muted rounded-lg"></div>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 flex-row-reverse">
+                  <div className="h-8 w-8 rounded-full bg-muted"></div>
+                  <div className="flex flex-col gap-2 items-end">
+                    <div className="h-4 w-24 bg-muted rounded"></div>
+                    <div className="h-10 w-64 bg-primary/20 rounded-lg"></div>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="h-8 w-8 rounded-full bg-muted"></div>
+                  <div className="flex flex-col gap-2">
+                    <div className="h-4 w-24 bg-muted rounded"></div>
+                    <div className="h-10 w-32 bg-muted rounded-lg"></div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <>
+                {messages.map((msg, i) => {
               if (!msg) return null;
               const isCurrentUser = msg.user === username || msg.user === fullName;
               
@@ -513,6 +546,8 @@ export default function TeamChat() {
               </div>
             )})}
             <div ref={messagesEndRef} />
+            </>
+          )}
           </div>
         </ScrollArea>
 
