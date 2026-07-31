@@ -56,6 +56,8 @@ export default function TeamChat() {
   const [groupMembers, setGroupMembers] = useState<any[]>([]);
   const [editingGroupName, setEditingGroupName] = useState("");
 
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
   const EMOJIS = ["😀","😂","😍","🙌","👍","🔥","🎉","💡"];
 
   const fetchChannels = async () => {
@@ -161,24 +163,57 @@ export default function TeamChat() {
     }).catch(console.error);
   }, [token, activeChannel]);
 
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatMessages, activeChannel]);
+
   const handleSendMessage = async () => {
     if ((!message.trim() && !fileAttachment) || !activeChannel) return;
+    
+    const msgText = message.trim();
+    const attachedFile = fileAttachment;
+    const tempId = `temp-${Date.now()}`;
+    
+    // Optimistic UI update
+    const optimisticMsg = {
+      id: tempId,
+      content: msgText,
+      user: username || fullName || "You",
+      initials: (username || fullName || "Y")?.substring(0, 2).toUpperCase(),
+      timestamp: new Date().toISOString(),
+      isOptimistic: true,
+      file: attachedFile ? URL.createObjectURL(attachedFile) : null,
+      file_name: attachedFile ? attachedFile.name : null
+    };
+
+    setMessage("");
+    setFileAttachment(null);
+    
+    setChatMessages(prev => {
+      const channelMsgs = prev[activeChannel] || [];
+      return { ...prev, [activeChannel]: [...channelMsgs, optimisticMsg] };
+    });
+
     try {
-      const newMessage = await sendChatMessage(activeChannel.toString(), message.trim(), fileAttachment);
-      setMessage("");
-      setFileAttachment(null);
+      const newMessage = await sendChatMessage(activeChannel.toString(), msgText, attachedFile);
       
-      // Optimistically push the message to avoid flash and delay
       if (newMessage) {
         setChatMessages(prev => {
           const channelMsgs = prev[activeChannel] || [];
-          // Avoid duplicates if websocket already pushed it
-          if (channelMsgs.some((m: any) => m.id === newMessage.id)) return prev;
-          return { ...prev, [activeChannel]: [...channelMsgs, newMessage] };
+          // Replace temp message with actual message
+          const filtered = channelMsgs.filter(m => m.id !== tempId);
+          if (filtered.some((m: any) => m.id === newMessage.id)) return prev;
+          return { ...prev, [activeChannel]: [...filtered, newMessage] };
         });
       }
     } catch (e) {
       console.error(e);
+      // Revert optimistic message on failure
+      setChatMessages(prev => {
+        const channelMsgs = prev[activeChannel] || [];
+        return { ...prev, [activeChannel]: channelMsgs.filter(m => m.id !== tempId) };
+      });
+      toast.error("Failed to send message");
     }
   };
 
@@ -381,7 +416,9 @@ export default function TeamChat() {
             <h3 className="text-sm font-semibold text-foreground cursor-pointer hover:underline" onClick={() => {
               if (channel.is_group) {
                 setEditingGroupName(channel.name);
-                fetch(`${API_BASE}/chat/channels/${activeChannel}/`).then(r=>r.json()).then(data=>{
+                fetch(`${API_BASE}/chat/channels/${activeChannel}/`, {
+                  headers: { "Authorization": `Bearer ${token}` }
+                }).then(r=>r.json()).then(data=>{
                   if (data.members) setGroupMembers(data.members);
                   else if (data.member_details) setGroupMembers(data.member_details);
                   else setGroupMembers(globalUsers.filter((u:any) => channel.members?.includes(u.id) || channel.members?.includes(u.id.toString())));
@@ -475,6 +512,7 @@ export default function TeamChat() {
                 </div>
               </div>
             )})}
+            <div ref={messagesEndRef} />
           </div>
         </ScrollArea>
 
