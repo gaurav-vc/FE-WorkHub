@@ -160,7 +160,7 @@ export default function KnowledgeBase() {
 
   if (selectedArticle) {
     return (
-      <div className="w-full flex flex-col h-[calc(100vh-6rem)] animate-fade-in gap-6 pb-4">
+      <div className="w-full max-w-4xl mx-auto flex flex-col h-[calc(100vh-6rem)] animate-fade-in gap-6 pb-4">
         <div className="shrink-0">
           <Button variant="ghost" onClick={() => setSelectedArticle(null)} className="gap-1.5 text-slate-500 -ml-2 mb-4">
             <ArrowLeft className="h-4 w-4" /> Back to articles
@@ -223,20 +223,20 @@ export default function KnowledgeBase() {
           )}
         </div>
 
-        <Card className="shadow-none border border-slate-200 bg-white flex-1 overflow-y-auto custom-scrollbar p-6 rounded-xl">
-          <CardContent className="p-0 prose prose-sm max-w-none text-slate-600">
-            {selectedArticle.excerpt && <p className="text-lg font-medium text-slate-700 mb-6">{selectedArticle.excerpt}</p>}
+        <Card className="shadow-none border border-border bg-card flex-1 overflow-y-auto custom-scrollbar p-6 md:p-8 rounded-xl">
+          <CardContent className="p-0">
+            {selectedArticle.excerpt && <p className="text-lg md:text-xl font-medium text-foreground/90 mb-8 pb-6 border-b border-border/50">{selectedArticle.excerpt}</p>}
             {/* Render Text Content if meaningful */}
             {selectedArticle.content && !selectedArticle.content.trim().startsWith("[Attached Article Document:") && (
-              <div className={selectedArticle.file_url ? "mb-8 pb-6 border-b border-slate-100" : ""}>
+              <div className={selectedArticle.file_url ? "mb-10 pb-8 border-b border-border/50 space-y-3" : "space-y-3"}>
                 {selectedArticle.content.split("\n").map((line, i) => {
-                  if (line.startsWith("# ")) return <h1 key={i} className="text-xl font-display font-bold text-slate-800 mt-6 mb-3">{line.slice(2)}</h1>;
-                  if (line.startsWith("## ")) return <h2 key={i} className="text-lg font-display font-semibold text-slate-800 mt-5 mb-2">{line.slice(3)}</h2>;
-                  if (line.startsWith("### ")) return <h3 key={i} className="text-base font-semibold text-slate-800 mt-4 mb-1">{line.slice(4)}</h3>;
-                  if (line.startsWith("- [ ] ")) return <label key={i} className="flex items-center gap-2 text-sm py-0.5"><input type="checkbox" className="rounded border-slate-300" />{line.slice(6)}</label>;
-                  if (line.startsWith("- ")) return <li key={i} className="text-sm ml-4 list-disc marker:text-slate-300">{line.slice(2)}</li>;
-                  if (line.trim() === "") return <br key={i} />;
-                  return <p key={i} className="text-sm leading-relaxed">{line}</p>;
+                  if (line.startsWith("# ")) return <h1 key={i} className="text-2xl font-display font-bold text-foreground mt-8 mb-4">{line.slice(2)}</h1>;
+                  if (line.startsWith("## ")) return <h2 key={i} className="text-xl font-display font-semibold text-foreground mt-6 mb-3">{line.slice(3)}</h2>;
+                  if (line.startsWith("### ")) return <h3 key={i} className="text-lg font-semibold text-foreground mt-5 mb-2">{line.slice(4)}</h3>;
+                  if (line.startsWith("- [ ] ")) return <label key={i} className="flex items-center gap-3 text-base py-1 text-foreground/90"><input type="checkbox" className="rounded border-input h-4 w-4" />{line.slice(6)}</label>;
+                  if (line.startsWith("- ")) return <li key={i} className="text-base ml-6 list-disc marker:text-muted-foreground text-foreground/90">{line.slice(2)}</li>;
+                  if (line.trim() === "") return <div key={i} className="h-2"></div>;
+                  return <p key={i} className="text-base leading-7 text-foreground/90">{line}</p>;
                 })}
               </div>
             )}

@@ -153,7 +153,7 @@ export default function CompanyPolicies() {
 
   if (selectedPolicy) {
     return (
-      <div className="max-w-3xl mx-auto space-y-6 animate-fade-in">
+      <div className="max-w-4xl mx-auto w-full space-y-6 animate-fade-in">
         <Button variant="ghost" onClick={() => setSelectedPolicy(null)} className="gap-1.5 text-muted-foreground -ml-2">
           <ArrowLeft className="h-4 w-4" /> Back to policies
         </Button>
@@ -182,11 +182,11 @@ export default function CompanyPolicies() {
             {selectedPolicy.content.trim() && !selectedPolicy.content.trim().startsWith("[Attached Policy Document:") && (
               <div className={selectedPolicy.attachment ? "mb-8 pb-6 border-b" : ""}>
                 {selectedPolicy.content.split("\n").map((line, i) => {
-                  if (line.startsWith("# ")) return <h1 key={i} className="text-xl font-display font-bold text-foreground mt-4 mb-2">{line.slice(2)}</h1>;
-                  if (line.startsWith("## ")) return <h2 key={i} className="text-lg font-display font-semibold text-foreground mt-4 mb-2">{line.slice(3)}</h2>;
-                  if (line.startsWith("- ")) return <li key={i} className="text-sm text-foreground ml-4 py-0.5">{line.slice(2)}</li>;
-                  if (line.trim() === "") return <br key={i} />;
-                  return <p key={i} className="text-sm text-foreground leading-relaxed">{line}</p>;
+                  if (line.startsWith("# ")) return <h1 key={i} className="text-2xl font-display font-bold text-foreground mt-6 mb-4">{line.slice(2)}</h1>;
+                  if (line.startsWith("## ")) return <h2 key={i} className="text-xl font-display font-semibold text-foreground mt-5 mb-3">{line.slice(3)}</h2>;
+                  if (line.startsWith("- ")) return <li key={i} className="text-base text-foreground/90 ml-6 py-1 list-disc marker:text-muted-foreground">{line.slice(2)}</li>;
+                  if (line.trim() === "") return <div key={i} className="h-4"></div>;
+                  return <p key={i} className="text-base text-foreground/90 leading-7">{line}</p>;
                 })}
               </div>
             )}
