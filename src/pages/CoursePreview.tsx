@@ -124,7 +124,8 @@ export default function CoursePreview() {
     }
   };
     const { canEdit } = usePageAccess();
-  const isAdmin = portalType === 'site_admin' || portalType === 'super_user' || canEdit;
+  // Ensure that page edit permissions don't accidentally bypass course locks. Only true site admins bypass.
+  const isAdmin = portalType === 'site_admin' || portalType === 'super_user';
   const hasAccess = isAdmin || accessStatus === 'Approved';
 
   if (loading) {
@@ -155,7 +156,7 @@ export default function CoursePreview() {
   const flatPoints = course.topics ? course.topics.flatMap((t: any) => t.points) : [];
   const getIsLocked = (pointId: number) => {
     // Admin bypass
-    if (portalType === 'site_admin' || portalType === 'super_user' || canEdit) return false;
+    if (portalType === 'site_admin' || portalType === 'super_user') return false;
     // Settings override
     if (videoSettings?.enforce_linear_progression === false) return false;
     

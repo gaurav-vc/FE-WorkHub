@@ -563,7 +563,7 @@ export default function CalendarMeetings() {
 
       {/* Add Event Toggle/Dialog */}
       <Dialog open={showAddEvent} onOpenChange={setShowAddEvent}>
-        <DialogContent className="sm:max-w-[450px] p-0 overflow-hidden border-border bg-card shadow-2xl">
+        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto p-0 border-border bg-card shadow-2xl">
           {/* Header Segmented Control */}
           <div className="pt-6 pb-2 px-6 flex justify-between items-center bg-muted/50 border-b border-border">
             <div className="w-full flex justify-center mt-2 px-6">

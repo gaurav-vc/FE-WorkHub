@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { API_BASE } from "@/config";
 import { ErrorBoundary } from "../ErrorBoundary";
@@ -21,31 +20,62 @@ interface CreateTaskModalProps {
 }
 
 export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tasks }: CreateTaskModalProps) {
+  const [activeTab, setActiveTab] = useState("details");
   const [taskType, setTaskType] = useState<"self" | "assign">("self");
+  
   const [title, setTitle] = useState("");
-  const [dueDate, setDueDate] = useState("");
   const [description, setDescription] = useState("");
-  const [file, setFile] = useState<File | null>(null);
-  const [dependentTask, setDependentTask] = useState<string>("none");
-  const [estimatedEffort, setEstimatedEffort] = useState(1);
-  const [effortUnit, setEffortUnit] = useState<"hours" | "days">("hours");
+  
+  const [priority, setPriority] = useState("P3 Medium");
+  const [projectId, setProjectId] = useState("general");
+  const [projects, setProjects] = useState<any[]>([]);
+  
+  const [startDate, setStartDate] = useState("");
+  const [dueDate, setDueDate] = useState("");
+  const [dueTime, setDueTime] = useState("");
+  
+  const [estimatedEffort, setEstimatedEffort] = useState<number>(0);
+  const [effortUnit, setEffortUnit] = useState<"Hours" | "Days">("Hours");
+  
+  const [isUrgent, setIsUrgent] = useState(false);
+  
+  const [tagsInput, setTagsInput] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [assignedTo, setAssignedTo] = useState("unassigned");
   const [globalUsers, setGlobalUsers] = useState<any[]>([]);
-  const [isUrgent, setIsUrgent] = useState(false);
-  const [isRepeat, setIsRepeat] = useState(false);
 
   useEffect(() => {
     if (open) {
       const token = localStorage.getItem("token") || sessionStorage.getItem("token");
-      fetch(`${API_BASE}/calendar/employees/`, {
-        headers: token ? { "Authorization": `Bearer ${token}` } : {}
-      })
+      const headers = token ? { "Authorization": `Bearer ${token}` } : {};
+      
+      fetch(`${API_BASE}/calendar/employees/`, { headers })
         .then(res => res.json())
         .then(data => setGlobalUsers(Array.isArray(data) ? data : data.results || []))
         .catch(console.error);
+        
+      fetch(`${API_BASE}/projects/`, { headers })
+        .then(res => res.json())
+        .then(data => setProjects(Array.isArray(data) ? data : data.results || []))
+        .catch(console.error);
     }
   }, [open]);
+
+  const handleAddTag = (e: React.KeyboardEvent | React.MouseEvent) => {
+    if (('key' in e && e.key === 'Enter') || e.type === 'click') {
+      e.preventDefault();
+      if (tagsInput.trim() && !tags.includes(tagsInput.trim())) {
+        setTags([...tags, tagsInput.trim()]);
+        setTagsInput("");
+      }
+    }
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    setTags(tags.filter(tag => tag !== tagToRemove));
+  };
 
   const handleSubmit = async () => {
     if (!title.trim() || !dueDate) {
@@ -56,33 +86,39 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
     setIsSubmitting(true);
     try {
       const timeIntervalMinutes = estimatedEffort > 0 
-        ? estimatedEffort * (effortUnit === "hours" ? 60 : 480) 
+        ? estimatedEffort * (effortUnit === "Hours" ? 60 : 480) 
         : 60;
 
       await onSubmit({
         title,
-        dueDate,
         description,
         taskType,
         assignedTo: taskType === "assign" && assignedTo !== "unassigned" ? parseInt(assignedTo.split('-')[0]) : null,
-        file,
-        dependentTask: dependentTask !== "none" ? parseInt(dependentTask.split('-')[0]) : null,
+        priority,
+        projectId: projectId === "general" ? null : parseInt(projectId),
+        startDate,
+        dueDate,
+        dueTime,
         timeIntervalMinutes,
+        estimatedEffort,
+        effortUnit,
         isUrgent,
-        isRepeat
+        tags
       });
       // Reset form
       setTitle("");
-      setDueDate("");
       setDescription("");
-      setFile(null);
+      setPriority("P3 Medium");
+      setProjectId("general");
+      setStartDate("");
+      setDueDate("");
+      setDueTime("");
+      setEstimatedEffort(0);
+      setEffortUnit("Hours");
+      setIsUrgent(false);
+      setTags([]);
       setTaskType("self");
       setAssignedTo("unassigned");
-      setDependentTask("none");
-      setEstimatedEffort(1);
-      setEffortUnit("hours");
-      setIsUrgent(false);
-      setIsRepeat(false);
       onOpenChange(false);
     } catch (e) {
       console.error(e);
@@ -94,160 +130,196 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
+      <DialogContent className="sm:max-w-2xl max-h-[95vh] flex flex-col p-0 overflow-hidden bg-background">
         <ErrorBoundary>
-          <DialogHeader className="px-6 py-4 border-b border-border/50">
-            <DialogTitle className="flex items-center gap-2 text-lg">
+          <DialogHeader className="px-6 pt-6 pb-2 border-b border-border/50">
+            <DialogTitle className="flex items-center gap-2 text-xl font-semibold mb-4">
               <Plus className="h-5 w-5 text-primary" />
               Create Task
             </DialogTitle>
+            
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="w-full bg-transparent border-b border-border p-0 h-auto grid grid-cols-4 justify-start">
+                <TabsTrigger value="details" className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:bg-transparent rounded-none px-4 py-2 text-muted-foreground font-semibold">Details</TabsTrigger>
+                <TabsTrigger value="checklist" className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:bg-transparent rounded-none px-4 py-2 text-muted-foreground font-semibold">Checklist</TabsTrigger>
+                <TabsTrigger value="subtasks" className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:bg-transparent rounded-none px-4 py-2 text-muted-foreground font-semibold">Subtasks</TabsTrigger>
+                <TabsTrigger value="advanced" className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:bg-transparent rounded-none px-4 py-2 text-muted-foreground font-semibold">Advanced</TabsTrigger>
+              </TabsList>
+            </Tabs>
           </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto px-6 py-4">
-            <Tabs value={taskType} onValueChange={(v) => setTaskType(v as "self" | "assign")} className="w-full mb-6">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="self">Self Task</TabsTrigger>
-                <TabsTrigger value="assign">Assign to others</TabsTrigger>
-              </TabsList>
-              <TabsContent value="self" className="hidden" />
-              <TabsContent value="assign" className="hidden" />
-            </Tabs>
+          <div className="flex-1 overflow-y-auto px-6 py-5">
+            <Tabs value={activeTab} className="w-full">
+              <TabsContent value="details" className="space-y-6 mt-0">
+                {/* Task Type */}
+                <div className="flex items-center gap-6 border-b border-border/50 pb-4">
+                  <span className="font-semibold text-sm">Task Type</span>
+                  <div className="flex items-center bg-muted/50 rounded-lg p-1">
+                    <button 
+                      onClick={() => setTaskType("self")}
+                      className={`px-6 py-1.5 rounded-md text-sm font-semibold transition-colors ${taskType === 'self' ? 'bg-[#2563eb] text-white shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                    >
+                      Self Task
+                    </button>
+                    <button 
+                      onClick={() => setTaskType("assign")}
+                      className={`px-6 py-1.5 rounded-md text-sm font-semibold transition-colors ${taskType === 'assign' ? 'bg-[#2563eb] text-white shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                    >
+                      Assign to Others
+                    </button>
+                  </div>
+                </div>
 
-            <div className="space-y-6">
-              {taskType === "assign" && (
-                <div className="bg-muted/20 p-4 rounded-lg border border-border/60 grid grid-cols-1 sm:grid-cols-2 gap-4 mb-2">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold">Assign To <span className="text-destructive">*</span></Label>
+                {/* Topic & Description */}
+                <div className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-semibold">Task Topic <span className="text-destructive">*</span></Label>
+                    <Input 
+                      value={title} onChange={(e) => setTitle(e.target.value)} 
+                      placeholder="Enter task title..." className="h-10 bg-muted/30"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-semibold">Description</Label>
+                    <Textarea 
+                      value={description} onChange={(e) => setDescription(e.target.value)}
+                      placeholder="Add task details..." className="h-24 resize-none bg-muted/30"
+                    />
+                  </div>
+                </div>
+                
+                {/* Assign To (If applicable) */}
+                {taskType === "assign" && (
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-semibold">Assign To</Label>
                     <Select value={assignedTo} onValueChange={setAssignedTo}>
-                      <SelectTrigger className="bg-background">
-                        <SelectValue placeholder="Select a team member..." />
+                      <SelectTrigger className="bg-muted/30 h-10">
+                        <SelectValue placeholder="Select employees to assign..." />
                       </SelectTrigger>
                       <SelectContent>
-                      <SelectItem value="unassigned">Unassigned</SelectItem>
-                      {(Array.isArray(teamMembers) && teamMembers.length ? teamMembers : (Array.isArray(globalUsers) ? globalUsers : [])).map((m: any, idx) => {
-                        const uniqueVal = m?.id ? `${m.id}-${idx}` : (m?.email ? `${m.email}-${idx}` : `user-${idx}`);
-                        const displayName = m?.name || m?.username || m?.email || "Unknown User";
-                        return (
-                          <SelectItem key={uniqueVal} value={uniqueVal}>
-                            {displayName}
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="flex items-center gap-6 sm:mt-2">
-                    <div className="flex items-center gap-2">
-                      <Switch checked={isUrgent} onCheckedChange={setIsUrgent} id="urgent" />
-                      <Label htmlFor="urgent" className="text-sm font-medium cursor-pointer">Urgent Priority</Label>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Switch checked={isRepeat} onCheckedChange={setIsRepeat} id="repeat" />
-                      <Label htmlFor="repeat" className="text-sm font-medium cursor-pointer">Recurring Task</Label>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 mt-4 col-span-1 sm:col-span-2">
-                    <Label className="text-sm font-semibold">Attachment</Label>
-                    <div className="border-2 border-dashed border-border/60 rounded-lg h-20 flex flex-col items-center justify-center relative hover:bg-muted/50 transition-colors bg-background group cursor-pointer">
-                      <Input 
-                        type="file" 
-                        onChange={(e) => setFile(e.target.files?.[0] || null)}
-                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10" 
-                      />
-                      <div className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                        <span className="text-primary">{file ? file.name : "Click to select a file"}</span>
-                        {!file && <span className="font-normal text-xs">(or drag and drop)</span>}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 col-span-1 sm:col-span-2">
-                    <Label className="text-sm font-semibold">Select Dependent Tasks (Optional)</Label>
-                    <Select value={dependentTask} onValueChange={setDependentTask}>
-                      <SelectTrigger className="bg-background">
-                        <SelectValue placeholder="Select tasks..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">None</SelectItem>
-                        {Array.isArray(tasks) && tasks.map((t: any, idx) => {
-                          const uniqueVal = t?.id ? `${t.id}-${idx}` : `task-${idx}`;
-                          const displayTitle = t?.title || "Untitled Task";
-                          return (
-                            <SelectItem key={uniqueVal} value={uniqueVal}>
-                              {displayTitle}
-                            </SelectItem>
-                          );
+                        <SelectItem value="unassigned">Unassigned</SelectItem>
+                        {(Array.isArray(teamMembers) && teamMembers.length ? teamMembers : globalUsers).map((m: any, idx) => {
+                          const uniqueVal = m?.id ? `${m.id}-${idx}` : (m?.email ? `${m.email}-${idx}` : `user-${idx}`);
+                          const displayName = m?.name || m?.username || m?.email || "Unknown User";
+                          return <SelectItem key={uniqueVal} value={uniqueVal}>{displayName}</SelectItem>;
                         })}
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
-              )}
+                )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-sm font-semibold">Task Topic <span className="text-destructive">*</span></Label>
-                  <Input 
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="What needs to be done?"
-                    className="bg-background"
-                  />
+                {/* Priority & Project */}
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-semibold">Priority</Label>
+                    <Select value={priority} onValueChange={setPriority}>
+                      <SelectTrigger className="bg-muted/30 h-10">
+                        <div className="flex items-center gap-2">
+                          <div className={`h-2 w-2 rounded-full ${priority.includes('1') ? 'bg-red-500' : priority.includes('2') ? 'bg-orange-500' : priority.includes('3') ? 'bg-[#3b82f6]' : 'bg-green-500'}`} />
+                          <SelectValue />
+                        </div>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="P1 Critical">P1 Critical</SelectItem>
+                        <SelectItem value="P2 High">P2 High</SelectItem>
+                        <SelectItem value="P3 Medium">P3 Medium</SelectItem>
+                        <SelectItem value="P4 Low">P4 Low</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-semibold">Project</Label>
+                    <Select value={projectId} onValueChange={setProjectId}>
+                      <SelectTrigger className="bg-muted/30 h-10">
+                        <SelectValue placeholder="No Project / General" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="general">No Project / General</SelectItem>
+                        {projects.map((p: any) => (
+                          <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-semibold">Due Date <span className="text-destructive">*</span></Label>
-                  <Input 
-                    type="date"
-                    value={dueDate}
-                    onChange={(e) => setDueDate(e.target.value)}
-                    className="bg-background"
-                  />
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label className="text-sm font-semibold">Estimated Effort</Label>
-                  <Input 
-                    type="number"
-                    min={1}
-                    value={estimatedEffort}
-                    onChange={(e) => setEstimatedEffort(parseInt(e.target.value) || 1)}
-                    className="bg-background"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-semibold">Unit</Label>
-                  <Select value={effortUnit} onValueChange={v => setEffortUnit(v as "hours" | "days")}>
-                    <SelectTrigger className="bg-background"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="hours">Hours</SelectItem>
-                      <SelectItem value="days">Days</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <span className="text-xs text-muted-foreground col-span-2">This dictates the allowed time before this task is marked overdue.</span>
-              </div>
 
-              <div className="space-y-2">
-                <Label className="text-sm font-semibold">Task Description</Label>
-                <Textarea 
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Add more details about this task..."
-                  className="resize-none h-24 bg-background" 
-                />
-              </div>
+                {/* Dates & Times */}
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-semibold">Start Date</Label>
+                    <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-muted/30 h-10 dark:[color-scheme:dark]" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-semibold">Due Date <span className="text-destructive">*</span></Label>
+                    <Input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className="bg-muted/30 h-10 dark:[color-scheme:dark]" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-semibold">Due Time</Label>
+                    <Input type="time" value={dueTime} onChange={e => setDueTime(e.target.value)} className="bg-muted/30 h-10 dark:[color-scheme:dark]" />
+                  </div>
+                </div>
 
-            </div>
+                {/* Estimated Effort */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-semibold">Estimated Effort</Label>
+                    <Input type="number" min={0} value={estimatedEffort} onChange={e => setEstimatedEffort(parseFloat(e.target.value) || 0)} className="bg-muted/30 h-10" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-semibold">Unit</Label>
+                    <Select value={effortUnit} onValueChange={v => setEffortUnit(v as "Hours" | "Days")}>
+                      <SelectTrigger className="bg-muted/30 h-10"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Hours">Hours</SelectItem>
+                        <SelectItem value="Days">Days</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <span className="col-span-2 text-xs text-muted-foreground -mt-2">This dictates the allowed time before this task is marked overdue.</span>
+                </div>
+
+                {/* Mark as Urgent */}
+                <div className={`p-4 rounded-lg border flex items-center justify-between transition-colors ${isUrgent ? 'bg-red-50/50 border-red-200 dark:bg-red-950/20 dark:border-red-900/50' : 'bg-muted/20 border-border'}`}>
+                  <div className="flex items-center gap-2 text-sm font-semibold text-red-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>
+                    Mark as Urgent
+                  </div>
+                  <Switch checked={isUrgent} onCheckedChange={setIsUrgent} />
+                </div>
+
+                {/* Tags */}
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-semibold">Tags</Label>
+                  <div className="flex items-center gap-2">
+                    <Input 
+                      value={tagsInput} onChange={e => setTagsInput(e.target.value)} onKeyDown={handleAddTag}
+                      placeholder="Add tag..." className="bg-muted/30 h-10"
+                    />
+                    <Button variant="outline" size="icon" onClick={handleAddTag} className="h-10 w-10 shrink-0 bg-muted/30"><Plus className="h-4 w-4" /></Button>
+                  </div>
+                  {tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {tags.map((tag, i) => (
+                        <div key={i} className="bg-secondary text-secondary-foreground text-xs px-2 py-1 rounded-md flex items-center gap-1 font-medium">
+                          {tag}
+                          <button onClick={() => removeTag(tag)} className="text-muted-foreground hover:text-foreground">×</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+              </TabsContent>
+              <TabsContent value="checklist" className="mt-0 py-8 text-center text-muted-foreground">Checklist functionality coming soon.</TabsContent>
+              <TabsContent value="subtasks" className="mt-0 py-8 text-center text-muted-foreground">Subtasks functionality coming soon.</TabsContent>
+              <TabsContent value="advanced" className="mt-0 py-8 text-center text-muted-foreground">Advanced settings coming soon.</TabsContent>
+            </Tabs>
           </div>
 
-          <DialogFooter className="px-6 py-4 border-t border-border/50 bg-muted/20">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <DialogFooter className="px-6 py-4 border-t border-border/50 bg-card">
+            <Button variant="outline" onClick={() => onOpenChange(false)} className="rounded-md font-semibold px-6">Cancel</Button>
             <Button 
-              className="w-full sm:w-auto"
+              className="rounded-md font-semibold px-6 bg-[#4f46e5] hover:bg-[#4338ca] text-white"
               onClick={handleSubmit}
               disabled={isSubmitting}
             >

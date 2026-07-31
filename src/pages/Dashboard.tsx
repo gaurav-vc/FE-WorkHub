@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { CheckSquare, CalendarDays, MessageSquare, Clock, ArrowRight, Users, TrendingUp, Sparkles, Loader2 } from "lucide-react";
+import { Check, CheckSquare, CalendarDays, MessageSquare, Clock, ArrowRight, Users, TrendingUp, Sparkles, Loader2 } from "lucide-react";
 import { safeFormatDistanceToNow as formatDistanceToNow } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const priorityColors: Record<string, string> = {
   P1: "bg-destructive/10 text-destructive border-destructive/20",
@@ -81,7 +82,7 @@ export default function Dashboard() {
 
   if (!data) return null;
 
-  const { currentUser, summaryStats, todayTasks, upcomingMeetings, teamActivity, pendingApprovals, quickLinks } = data;
+  const { currentUser, summaryStats, todayTasks, delegatedTasks, upcomingMeetings, teamActivity, pendingApprovals, quickLinks } = data;
 
   const statCards = [
     { label: "Tasks Due Today", value: summaryStats.tasksDue, icon: CheckSquare, color: "text-primary", bg: "bg-primary/10" },
@@ -174,69 +175,131 @@ export default function Dashboard() {
 
       {/* Main Grid */}
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* My Tasks Today */}
+        {/* Tasks Widget with Tabs */}
         <Card className="lg:col-span-2 shadow-card border-0">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base font-display font-semibold flex items-center gap-2">
-                <CheckSquare className="h-4 w-4 text-primary" />
-                My Tasks Today
-              </CardTitle>
-              <Button variant="ghost" size="sm" className="text-xs text-muted-foreground gap-1">
-                View All <ArrowRight className="h-3 w-3" />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {todayTasks?.length > 0 ? todayTasks.map((task: any) => {
-              const timeline = getTimelineStatus(task);
-              return (
-                <div
-                  key={task.id}
-                  className={`flex items-center gap-3 rounded-lg border-2 p-3 hover:bg-secondary/50 transition-colors group ${timeline.border}`}
-                >
-                  <div className="h-4 w-4 rounded border-2 border-muted-foreground/30 group-hover:border-primary transition-colors" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{task.title}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {task.project || 'General'}
-                      {task.due_date && (
-                        <span className={`ml-2 ${timeline.text}`}>
-                          · {timeline.label} ({new Date(task.due_date).toLocaleDateString()})
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className={`text-[10px] ${priorityColors[task.priority] || priorityColors.P3}`}>
-                      {task.priority || 'P3'}
-                    </Badge>
-                    <div className="shrink-0" onClick={e => e.stopPropagation()}>
-                      <Select value={task.status === "in_progress" ? "in-progress" : task.status === "pending" || task.status === "open" ? "todo" : task.status === "delayed" || task.status === "on_hold" ? "blocked" : task.status === "completed" ? "done" : task.status} onValueChange={v => {
-                        let backendStatus = v;
-                        if (v === "todo") backendStatus = "pending";
-                        if (v === "in-progress") backendStatus = "in_progress";
-                        if (v === "blocked") backendStatus = "delayed";
-                        handleStatusChange(task.id || task.task_id, backendStatus);
-                      }}>
-                        <SelectTrigger className={`w-[105px] h-7 text-[10px] font-semibold border-none ${task.status === 'done' || task.status === 'completed' ? 'bg-success/10 text-success' : task.status === 'in-progress' || task.status === 'in_progress' ? 'bg-primary/10 text-primary' : task.status === 'blocked' || task.status === 'delayed' ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground'}`}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent align="end">
-                          <SelectItem value="todo">To Do</SelectItem>
-                          <SelectItem value="in-progress">In Progress</SelectItem>
-                          <SelectItem value="done">Done</SelectItem>
-                          <SelectItem value="blocked">Blocked</SelectItem>
-                        </SelectContent>
-                      </Select>
+          <Tabs defaultValue="my_tasks" className="w-full">
+            <CardHeader className="pb-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <TabsList className="h-9 bg-slate-100">
+                  <TabsTrigger value="my_tasks" className="text-xs font-semibold px-4">
+                    <CheckSquare className="h-3.5 w-3.5 mr-1.5 text-primary" />
+                    My Tasks
+                  </TabsTrigger>
+                  <TabsTrigger value="assigned_tasks" className="text-xs font-semibold px-4">
+                    <Users className="h-3.5 w-3.5 mr-1.5 text-info" />
+                    My Assigned Task to Others
+                  </TabsTrigger>
+                </TabsList>
+                <Button variant="ghost" size="sm" className="text-xs text-muted-foreground gap-1 hidden sm:flex shrink-0">
+                  View All <ArrowRight className="h-3 w-3" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-2 min-h-[300px]">
+              
+              {/* My Tasks Tab */}
+              <TabsContent value="my_tasks" className="m-0 space-y-2">
+                {todayTasks?.length > 0 ? todayTasks.map((task: any) => {
+                  const timeline = getTimelineStatus(task);
+                  return (
+                    <div
+                      key={task.id}
+                      className={`flex items-center gap-3 rounded-lg border-2 p-3 hover:bg-secondary/50 transition-colors group ${timeline.border}`}
+                    >
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const isDone = task.status === 'done' || task.status === 'completed';
+                          handleStatusChange(task.id || task.task_id, isDone ? 'pending' : 'completed');
+                        }}
+                        className={`h-4 w-4 rounded border-2 flex items-center justify-center transition-colors shrink-0 
+                          ${task.status === 'done' || task.status === 'completed' 
+                            ? 'bg-success border-success text-white' 
+                            : 'border-muted-foreground/30 hover:border-primary'}`}
+                      >
+                        {(task.status === 'done' || task.status === 'completed') && <Check className="h-3 w-3" />}
+                      </button>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{task.title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {task.project || 'General'}
+                          {task.due_date && (
+                            <span className={`ml-2 ${timeline.text}`}>
+                              · {timeline.label} ({new Date(task.due_date).toLocaleDateString()})
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className={`text-[10px] ${priorityColors[task.priority] || priorityColors.P3}`}>
+                          {task.priority || 'P3'}
+                        </Badge>
+                        <div className="shrink-0" onClick={e => e.stopPropagation()}>
+                          <Select value={task.status === "in_progress" ? "in-progress" : task.status === "pending" || task.status === "open" ? "todo" : task.status === "delayed" || task.status === "on_hold" ? "blocked" : task.status === "completed" ? "done" : task.status} onValueChange={v => {
+                            let backendStatus = v;
+                            if (v === "todo") backendStatus = "pending";
+                            if (v === "in-progress") backendStatus = "in_progress";
+                            if (v === "blocked") backendStatus = "delayed";
+                            handleStatusChange(task.id || task.task_id, backendStatus);
+                          }}>
+                            <SelectTrigger className={`w-[105px] h-7 text-[10px] font-semibold border-none ${task.status === 'done' || task.status === 'completed' ? 'bg-success/10 text-success' : task.status === 'in-progress' || task.status === 'in_progress' ? 'bg-primary/10 text-primary' : task.status === 'blocked' || task.status === 'delayed' ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground'}`}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent align="end">
+                              <SelectItem value="todo">To Do</SelectItem>
+                              <SelectItem value="in-progress">In Progress</SelectItem>
+                              <SelectItem value="done">Done</SelectItem>
+                              <SelectItem value="blocked">Blocked</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              );
-            }) : (
-              <p className="text-sm text-muted-foreground">No pending tasks for today.</p>
-            )}
-          </CardContent>
+                  );
+                }) : (
+                  <p className="text-sm text-muted-foreground p-4 text-center border-2 border-dashed rounded-lg">No pending tasks for today.</p>
+                )}
+              </TabsContent>
+
+              {/* Delegated Tasks Tab */}
+              <TabsContent value="assigned_tasks" className="m-0 space-y-2">
+                {delegatedTasks?.length > 0 ? delegatedTasks.map((task: any) => {
+                  const isDone = task.status === 'done' || task.status === 'completed';
+                  const isDelayed = task.status === 'delayed' || task.status === 'blocked';
+                  
+                  const statusColor = isDone 
+                    ? 'text-success bg-success/10 border-success/30' 
+                    : isDelayed 
+                      ? 'text-destructive bg-destructive/10 border-destructive/30' 
+                      : 'text-muted-foreground bg-muted border-border';
+
+                  return (
+                    <div
+                      key={task.id}
+                      className="flex items-center gap-3 rounded-lg border-2 p-3 hover:bg-secondary/50 transition-colors group shadow-sm"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{task.title}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2">
+                          <span className="flex items-center gap-1"><Users className="h-3 w-3" /> {task.assignee}</span>
+                          {task.due_date && (
+                            <span className="text-slate-400">· Due {new Date(task.due_date).toLocaleDateString()}</span>
+                          )}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className={`text-xs font-semibold px-2 py-0.5 ${statusColor}`}>
+                          {task.status === "in_progress" ? "In Progress" : task.status.charAt(0).toUpperCase() + task.status.slice(1)}
+                        </Badge>
+                      </div>
+                    </div>
+                  );
+                }) : (
+                  <p className="text-sm text-muted-foreground p-4 text-center border-2 border-dashed rounded-lg">You haven't assigned any tasks to others.</p>
+                )}
+              </TabsContent>
+            </CardContent>
+          </Tabs>
         </Card>
 
         {/* Upcoming Meetings */}
@@ -267,6 +330,7 @@ export default function Dashboard() {
             )}
           </CardContent>
         </Card>
+
 
         {/* Team Activity */}
         <Card className="shadow-card border-0">
