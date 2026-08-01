@@ -261,6 +261,14 @@ function SystemSettingsTab() {
   const [departmentLimits, setDepartmentLimits] = useState<{ [key: string]: number }>({});
   const [employeeLimits, setEmployeeLimits] = useState<{ [key: string]: number }>({});
   
+  const [taskStatuses, setTaskStatuses] = useState<string[]>([]);
+  const [kbCategories, setKbCategories] = useState<string[]>([]);
+  const [policyCategories, setPolicyCategories] = useState<string[]>([]);
+  
+  const [newStatus, setNewStatus] = useState("");
+  const [newKbCat, setNewKbCat] = useState("");
+  const [newPolicyCat, setNewPolicyCat] = useState("");
+  
   // For new entries
   const [newDeptName, setNewDeptName] = useState("");
   const [newDeptLimit, setNewDeptLimit] = useState(4);
@@ -285,6 +293,9 @@ function SystemSettingsTab() {
           });
           setDepartmentLimits(adv.department_task_limits || {});
           setEmployeeLimits(adv.employee_task_limits || {});
+          setTaskStatuses(adv.task_statuses || []);
+          setKbCategories(adv.kb_categories || []);
+          setPolicyCategories(adv.policy_categories || []);
         }
       })
       .catch(console.error);
@@ -303,7 +314,10 @@ function SystemSettingsTab() {
         ...org.advanced_settings, 
         max_active_tasks: Number(settings.max_active_tasks),
         department_task_limits: departmentLimits,
-        employee_task_limits: employeeLimits
+        employee_task_limits: employeeLimits,
+        task_statuses: taskStatuses,
+        kb_categories: kbCategories,
+        policy_categories: policyCategories
       };
       
       const res = await fetch(`${API_BASE}/auth/organizations/${orgId}/`, {
@@ -323,12 +337,13 @@ function SystemSettingsTab() {
   };
 
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="space-y-6 w-full max-w-7xl">
       <div>
         <h2 className="text-base font-semibold text-foreground">System Settings</h2>
         <p className="text-sm text-muted-foreground mt-0.5">Configure global application behaviors and limits.</p>
       </div>
 
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Task Queue Configuration</CardTitle>
@@ -427,6 +442,95 @@ function SystemSettingsTab() {
           </Button>
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Custom Status & Categories</CardTitle>
+          <CardDescription>Configure global dropdown options for tasks and documents.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-8">
+          <div className="space-y-3">
+            <Label>Task Status Options</Label>
+            <div className="flex gap-2 max-w-md items-center">
+              <Input placeholder="e.g. In QA" value={newStatus} onChange={e => setNewStatus(e.target.value)} />
+              <Button size="sm" variant="outline" onClick={() => {
+                if (newStatus && !taskStatuses.includes(newStatus)) {
+                  setTaskStatuses([...taskStatuses, newStatus]);
+                  setNewStatus("");
+                }
+              }}>Add</Button>
+            </div>
+            {taskStatuses.length > 0 && (
+              <div className="flex flex-wrap gap-2 max-w-md mt-2">
+                {taskStatuses.map((s, idx) => (
+                  <Badge key={idx} variant="secondary" className="px-2 py-1 flex items-center gap-2">
+                    {s}
+                    <X className="h-3 w-3 cursor-pointer hover:text-destructive" onClick={() => {
+                      setTaskStatuses(taskStatuses.filter(t => t !== s));
+                    }} />
+                  </Badge>
+                ))}
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground mt-1">Leave empty to use defaults: todo, in-progress, done, blocked.</p>
+          </div>
+
+          <div className="space-y-3">
+            <Label>Knowledge Base Categories</Label>
+            <div className="flex gap-2 max-w-md items-center">
+              <Input placeholder="e.g. Engineering" value={newKbCat} onChange={e => setNewKbCat(e.target.value)} />
+              <Button size="sm" variant="outline" onClick={() => {
+                if (newKbCat && !kbCategories.includes(newKbCat)) {
+                  setKbCategories([...kbCategories, newKbCat]);
+                  setNewKbCat("");
+                }
+              }}>Add</Button>
+            </div>
+            {kbCategories.length > 0 && (
+              <div className="flex flex-wrap gap-2 max-w-md mt-2">
+                {kbCategories.map((c, idx) => (
+                  <Badge key={idx} variant="secondary" className="px-2 py-1 flex items-center gap-2">
+                    {c}
+                    <X className="h-3 w-3 cursor-pointer hover:text-destructive" onClick={() => {
+                      setKbCategories(kbCategories.filter(t => t !== c));
+                    }} />
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-3">
+            <Label>Company Policies Categories</Label>
+            <div className="flex gap-2 max-w-md items-center">
+              <Input placeholder="e.g. IT, Legal" value={newPolicyCat} onChange={e => setNewPolicyCat(e.target.value)} />
+              <Button size="sm" variant="outline" onClick={() => {
+                if (newPolicyCat && !policyCategories.includes(newPolicyCat)) {
+                  setPolicyCategories([...policyCategories, newPolicyCat]);
+                  setNewPolicyCat("");
+                }
+              }}>Add</Button>
+            </div>
+            {policyCategories.length > 0 && (
+              <div className="flex flex-wrap gap-2 max-w-md mt-2">
+                {policyCategories.map((c, idx) => (
+                  <Badge key={idx} variant="secondary" className="px-2 py-1 flex items-center gap-2">
+                    {c}
+                    <X className="h-3 w-3 cursor-pointer hover:text-destructive" onClick={() => {
+                      setPolicyCategories(policyCategories.filter(t => t !== c));
+                    }} />
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </div>
+          
+          <Button onClick={handleSave} disabled={loading || !orgId}>
+            {loading ? "Saving..." : "Save Settings"}
+          </Button>
+        </CardContent>
+      </Card>
+      </div>
     </div>
   );
 }

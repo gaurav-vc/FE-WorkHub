@@ -57,7 +57,7 @@ interface Policy {
   updated_at?: string;
 }
 
-const policyCategories = ["All", "General", "HR", "IT", "Finance", "Legal"];
+const defaultPolicyCategories = ["All", "General", "HR", "IT", "Finance", "Legal"];
 
 const formatDate = (dateString: string | undefined) => {
   if (!dateString) return "";
@@ -67,14 +67,18 @@ const formatDate = (dateString: string | undefined) => {
 };
 
 export default function CompanyPolicies() {
-  const { token } = useAuth();
+  const { token, settings } = useAuth();
+  
+  const customCats = settings?.policy_categories || [];
+  const policyCategories = customCats.length > 0 ? ["All", ...customCats] : defaultPolicyCategories;
+  
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [editPolicy, setEditPolicy] = useState<Policy | null>(null);
-  const [form, setForm] = useState({ title: "", category: "General", content: "", version: "1.0" });
+  const [form, setForm] = useState({ title: "", category: policyCategories.length > 1 ? policyCategories[1] : "General", content: "", version: "1.0" });
   const [attachment, setAttachment] = useState<File | null>(null);
   const [attachmentText, setAttachmentText] = useState<string | null>(null);
 

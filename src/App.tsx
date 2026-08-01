@@ -52,6 +52,7 @@ import AIAgents from "@/pages/AIAgents";
 import Setup from "@/pages/Setup";
 import Branding from "@/pages/Branding";
 import Integrations from "@/pages/Integrations";
+import AdminReports from "@/pages/AdminReports";
 
 // Super Admin additions
 import SuperAdminDashboard from "@/pages/SuperAdminDashboard";
@@ -99,6 +100,7 @@ export const APP_ROUTES = [
   { id: "admin-setup", path: "/admin/setup", title: "Setup", category: "Site Admin" },
   { id: "admin-branding", path: "/admin/branding", title: "Branding", category: "Site Admin" },
   { id: "admin-integrations", path: "/admin/integrations", title: "Integrations", category: "Site Admin" },
+  { id: "admin-reports", path: "/admin/reports", title: "Employee Reports", category: "Site Admin" },
 ];
 
 import { AuthProvider } from "@/context/AuthContext";
@@ -162,6 +164,7 @@ const App = () => (
               <Route path="/admin/setup" element={<ProtectedRoute route="/admin/setup"><Setup /></ProtectedRoute>} />
               <Route path="/admin/branding" element={<ProtectedRoute route="/admin/branding"><Branding /></ProtectedRoute>} />
               <Route path="/admin/integrations" element={<ProtectedRoute route="/admin/integrations"><Integrations /></ProtectedRoute>} />
+              <Route path="/admin/reports" element={<ProtectedRoute route="/admin/reports"><AdminReports /></ProtectedRoute>} />
               
               {/* Super Admin */}
               <Route path="/superadmin" element={<ProtectedRoute route="/superadmin"><SuperAdminDashboard /></ProtectedRoute>} />

@@ -34,7 +34,7 @@ interface Article {
   helpful_count?: number;
 }
 
-const categories = [
+const defaultCategories = [
   { id: "all", name: "All Articles" },
   { id: "engineering", name: "Engineering" },
   { id: "product", name: "Product" },
@@ -44,7 +44,7 @@ const categories = [
 ];
 
 export default function KnowledgeBase() {
-  const { token } = useAuth();
+  const { token, settings } = useAuth();
   const { toast } = useToast();
 
   const [search, setSearch] = useState("");
@@ -57,7 +57,12 @@ export default function KnowledgeBase() {
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newExcerpt, setNewExcerpt] = useState("");
-  const [newCategory, setNewCategory] = useState("engineering");
+  const customCategories = settings?.kb_categories?.map((c: string) => ({ id: c.toLowerCase().replace(/\s+/g, '-'), name: c })) || [];
+  const categories = customCategories.length > 0 
+    ? [{ id: "all", name: "All Articles" }, ...customCategories] 
+    : defaultCategories;
+
+  const [newCategory, setNewCategory] = useState(categories.length > 1 ? categories[1].id : "engineering");
   const [newContent, setNewContent] = useState("");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);

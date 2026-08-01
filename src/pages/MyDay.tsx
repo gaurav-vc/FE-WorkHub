@@ -36,7 +36,7 @@ export default function MyDay() {
   const { token, username, fullName, portalType, role } = useAuth();
   const isAdmin = portalType === 'site_admin' || portalType === 'super_user' || role === 'admin' || role?.toLowerCase().includes('admin');
   const { tasks, addTask, updateTask, deleteTask, setSelectedTask } = useTaskContext();
-  const [newTask, setNewTask] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [editTask, setEditTask] = useState<Task | null>(null);
   const [filterPriority, setFilterPriority] = useState("all");
@@ -67,6 +67,7 @@ export default function MyDay() {
 
     if (filterPriority !== "all" && t.priority !== filterPriority) return false;
     if (filterStatus !== "all" && t.status !== filterStatus) return false;
+    if (searchQuery.trim() && !t.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     return true;
   });
 
@@ -87,24 +88,6 @@ export default function MyDay() {
     return (b.id?.toString() || "").localeCompare(a.id?.toString() || "");
   });
 
-  const handleQuickAdd = () => {
-    if (!newTask.trim()) return;
-    const nameStr = username || "User";
-    const initialsStr = nameStr.substring(0, 2).toUpperCase();
-    const task: Task = {
-      id: `task-${Date.now()}`, title: newTask.trim(), description: "", taskType: "self",
-      priority: "P3", status: "todo", project: "Personal",
-      assignees: [{ name: nameStr, initials: initialsStr }],
-      createdBy: { name: nameStr, initials: initialsStr },
-      createdDate: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-      dueDate: "", dueTime: "", startDate: "",
-      estimatedEffort: 0, effortUnit: "hours", actualEffort: 0,
-      isUrgent: false, repeat: { enabled: false, type: "daily" },
-      dependencies: [], checklist: [], subtasks: [], comments: [], chat: [], attachments: [], tags: [],
-    };
-    addTask(task);
-    setNewTask("");
-  };
 
   const toggleComplete = (task: Task) => {
     updateTask(task.id, { status: task.status === "done" ? "todo" : "done" });
@@ -137,8 +120,8 @@ export default function MyDay() {
           <Card className="shadow-card">
             <CardContent className="p-3">
               <div className="flex gap-2 items-center">
-                <Input placeholder="Quick add a task..." value={newTask} onChange={e => setNewTask(e.target.value)}
-                  onKeyDown={e => e.key === "Enter" && handleQuickAdd()} className="flex-1" />
+                <Input placeholder="Search tasks..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+                  className="flex-1" />
                 
                 {isAdmin && (
                   <div className="flex bg-slate-100 p-1 rounded-full border border-slate-200 shadow-sm shrink-0">
@@ -157,7 +140,7 @@ export default function MyDay() {
                   </div>
                 )}
                 
-                <Button size="sm" onClick={handleQuickAdd} className="gradient-primary text-primary-foreground gap-1.5 shrink-0">
+                <Button size="sm" onClick={() => { setEditTask(null); setShowCreate(true); }} className="gradient-primary text-primary-foreground gap-1.5 shrink-0">
                   <Plus className="h-4 w-4" /> Add
                 </Button>
               </div>

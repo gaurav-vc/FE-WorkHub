@@ -16,6 +16,7 @@ interface AuthContextType {
   siteName: string | null;
   portalType: PortalType;
   accessRoutes: any[];
+  settings: any;
   login: (token: string, user_id: string, role?: string, user_type?: string) => void;
   logout: () => void;
   isAuthenticated: boolean;
@@ -35,6 +36,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [orgName, setOrgName] = useState<string | null>(localStorage.getItem('org_name'));
   const [siteName, setSiteName] = useState<string | null>(localStorage.getItem('site_name'));
   const [accessRoutes, setAccessRoutes] = useState<any[]>([]);
+  const [settings, setSettings] = useState<any>(JSON.parse(localStorage.getItem('settings') || '{}'));
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const navigate = useNavigate();
   const location = useLocation();
@@ -80,6 +82,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (data.site_name) {
         setSiteName(data.site_name);
         localStorage.setItem('site_name', data.site_name);
+      }
+      if (data.advanced_settings) {
+        setSettings(data.advanced_settings);
+        localStorage.setItem('settings', JSON.stringify(data.advanced_settings));
       }
       setAccessRoutes(data.access);
       if (data.warning) {
@@ -154,6 +160,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setEmail(null);
     setUserType(null);
     setCrossDepartmentAccess(false);
+    setOrgName(null);
+    setSiteName(null);
+    setSettings({});
     setAccessRoutes([]);
     localStorage.removeItem('token');
     localStorage.removeItem('role');
@@ -164,6 +173,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('cross_department_access');
     localStorage.removeItem('org_name');
     localStorage.removeItem('site_name');
+    localStorage.removeItem('settings');
     navigate('/login');
     toast.success('Logged out successfully');
   };
@@ -181,6 +191,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       siteName,
       portalType,
       accessRoutes,
+      settings,
       login,
       logout,
       isAuthenticated: !!token,

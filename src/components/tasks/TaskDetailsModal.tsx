@@ -25,7 +25,7 @@ interface TaskDetailsModalProps {
 
 
 export function TaskDetailsModal({ taskId, open, onOpenChange, onTaskUpdate, projectId, teamMembers = [], isBoardCard = false }: TaskDetailsModalProps) {
-  const { token, username } = useAuth();
+  const { token, username, settings } = useAuth();
   const baseUrl = isBoardCard ? `${API_BASE}/boards/cards` : `${API_BASE}/projects/tasks`;
   const [task, setTask] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -221,7 +221,10 @@ export function TaskDetailsModal({ taskId, open, onOpenChange, onTaskUpdate, pro
     }
   };
 
-  const STATUSES = ['planning', 'open', 'pending', 'review', 'completed', 'closed'];
+  const defaultStatuses = ['planning', 'open', 'pending', 'review', 'completed', 'closed'];
+  const STATUSES = settings?.task_statuses && settings.task_statuses.length > 0 
+    ? settings.task_statuses 
+    : defaultStatuses;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
