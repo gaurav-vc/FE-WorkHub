@@ -16,6 +16,7 @@ import { TaskCreateDialog } from "@/components/tasks/TaskCreateDialog";
 import { TaskWorkspacePanel } from "@/components/tasks/TaskWorkspacePanel";
 import { Task } from "@/types/tasks";
 import { useAuth } from "@/context/AuthContext";
+import { apiClient } from "@/api/client";
 import { getMyDayDashboard } from "@/api/tasks";
 
 const priorityConfig: Record<string, { color: string; label: string }> = {
@@ -32,18 +33,35 @@ const statusIcon = (status: string) => {
   return <Circle className="h-4 w-4 text-muted-foreground" />;
 };
 
+const getDueColor = (dueDateStr: string | null, isDelayed: boolean, isDone: boolean = false) => {
+  if (isDone) return "text-muted-foreground";
+  if (isDelayed) return "text-red-700 font-bold";
+  if (!dueDateStr) return "text-muted-foreground";
+  
+  const due = new Date(dueDateStr).getTime();
+  const now = new Date().getTime();
+  const diffHours = (due - now) / (1000 * 60 * 60);
+  
+  if (diffHours < 0) return "text-red-700 font-bold"; // overdue
+  if (diffHours <= 24) return "text-yellow-600 font-semibold"; // less time
+  return "text-green-600"; // plenty of time
+};
+
 export default function MyDay() {
   const { token, username, fullName, portalType, role } = useAuth();
   const isAdmin = portalType === 'site_admin' || portalType === 'super_user' || role === 'admin' || role?.toLowerCase().includes('admin');
+  const isSiteAdmin = portalType === 'site_admin' || portalType === 'super_user';
   const { tasks, addTask, updateTask, deleteTask, setSelectedTask } = useTaskContext();
   const [searchQuery, setSearchQuery] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [editTask, setEditTask] = useState<Task | null>(null);
   const [filterPriority, setFilterPriority] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [filterAssignee, setFilterAssignee] = useState("");
   const [viewMode, setViewMode] = useState<"my_tasks" | "team_tasks">("my_tasks");
   const [meetings, setMeetings] = useState<any[]>([]);
   const [birthdays, setBirthdays] = useState<any[]>([]);
+  const [employees, setEmployees] = useState<{id: number, name: string}[]>([]);
 
   useEffect(() => {
     if (token) {
@@ -51,6 +69,16 @@ export default function MyDay() {
         .then(data => {
           setMeetings(data.upcomingMeetings || []);
           setBirthdays(data.upcomingBirthdays || []);
+        })
+        .catch(console.error);
+        
+      apiClient('/auth/employees/')
+        .then(res => {
+          const formatted = (res || []).map((u: any) => ({
+            id: u.id,
+            name: u.full_name || u.username
+          }));
+          setEmployees(formatted);
         })
         .catch(console.error);
     }
@@ -67,7 +95,19 @@ export default function MyDay() {
 
     if (filterPriority !== "all" && t.priority !== filterPriority) return false;
     if (filterStatus !== "all" && t.status !== filterStatus) return false;
-    if (searchQuery.trim() && !t.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    if (filterAssignee && filterAssignee !== "all") {
+      if (filterAssignee === "unassigned") {
+        if (t.assignees && t.assignees.length > 0) return false;
+        if ((t as any).assigned_to) return false;
+      } else {
+        const hasAssignee = t.assignees?.some(a => a.id?.toString() === filterAssignee) || (t as any).assigned_to?.toString() === filterAssignee;
+        if (!hasAssignee) return false;
+      }
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      if (!t.title.toLowerCase().includes(q) && !(t.id?.toString() || "").includes(q.replace(/^#/, ''))) return false;
+    }
     return true;
   });
 
@@ -120,7 +160,7 @@ export default function MyDay() {
           <Card className="shadow-card">
             <CardContent className="p-3">
               <div className="flex gap-2 items-center">
-                <Input placeholder="Search tasks..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+                <Input placeholder="Search tasks or #ID..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
                   className="flex-1" />
                 
                 {isAdmin && (
@@ -148,7 +188,10 @@ export default function MyDay() {
           </Card>
 
           {/* Filters */}
-          <div className="flex gap-2">
+          <div className="flex flex-wrap items-center gap-3 bg-slate-50/50 p-2 rounded-lg border border-slate-100">
+            <div className="flex items-center gap-1.5 px-1">
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Filter by</span>
+            </div>
             <Select value={filterPriority} onValueChange={setFilterPriority}>
               <SelectTrigger className="w-[130px] h-8 text-xs"><SelectValue placeholder="Priority" /></SelectTrigger>
               <SelectContent>
@@ -169,6 +212,18 @@ export default function MyDay() {
                 <SelectItem value="blocked">Blocked</SelectItem>
               </SelectContent>
             </Select>
+            {isSiteAdmin && viewMode === 'team_tasks' && (
+              <Select value={filterAssignee} onValueChange={setFilterAssignee}>
+                <SelectTrigger className="w-[150px] h-8 text-xs">
+                  <SelectValue placeholder="Filter By" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Assignees</SelectItem>
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
+                  {employees.map(e => <SelectItem key={e.id} value={e.id.toString()}>{e.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            )}
             <Badge variant="secondary" className="text-xs h-8 px-3 flex items-center">{sortedTasks.length} tasks</Badge>
           </div>
 
@@ -194,81 +249,122 @@ export default function MyDay() {
                   const checklistTotal = (task.checklist || []).length;
                   return (
                     <div key={task.id}
-                      className={`flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors group cursor-pointer ${done ? "opacity-50" : ""} ${task.isUrgent && !done ? "bg-destructive/5 border-l-2 border-l-destructive" : ""}`}
+                      className={`flex flex-wrap items-start justify-between gap-x-6 gap-y-4 px-4 py-3 hover:bg-muted/50 transition-colors group cursor-pointer ${done ? "opacity-50" : ""} ${task.isUrgent && !done ? "bg-destructive/5 border-l-2 border-l-destructive" : ""}`}
                       onClick={() => setSelectedTask(task)}
                     >
-                      <div className={`w-2 h-2 rounded-full shrink-0 mt-1 ${
-                        task.healthStatus === 'red' ? 'bg-destructive' :
-                        task.healthStatus === 'yellow' ? 'bg-amber-500' :
-                        task.healthStatus === 'green' ? 'bg-emerald-500' : 'bg-primary/40'
-                      }`} />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          {task.isQueued && (
-                            <Badge variant="outline" className="text-[9px] bg-slate-100 text-slate-600 px-1 py-0 border-slate-200 uppercase tracking-wider">Queued</Badge>
-                          )}
-                          {task.isUrgent && <AlertTriangle className="h-3 w-3 text-destructive shrink-0" />}
-                          <p className={`text-sm font-medium ${done ? "line-through text-muted-foreground" : "text-foreground"}`}>
-                            {task.title}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2 mt-1 flex-wrap">
-                          <Badge className={`${pConfig.color} text-[10px] px-1.5 py-0 font-semibold`}>{task.priority}</Badge>
-                          {task.project && <span className="text-xs text-muted-foreground">{task.project}</span>}
-                          {(task.dependencies || []).length > 0 && (
-                            <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground"><Link2 className="h-2.5 w-2.5" />{(task.dependencies || []).length} deps</span>
-                          )}
-                          {task.repeat?.enabled && (
-                            <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground"><RotateCcw className="h-2.5 w-2.5" />{task.repeat.type}</span>
-                          )}
-                          {checklistTotal > 0 && (
-                            <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground"><CheckSquare className="h-2.5 w-2.5" />{checklistDone}/{checklistTotal}</span>
-                          )}
-                          {(task.subtasks || []).length > 0 && (
-                            <span className="text-[10px] text-muted-foreground">{(task.subtasks || []).filter(s => s.status === "done").length}/{(task.subtasks || []).length} subtasks</span>
-                          )}
-                          {(task.assignees || []).length > 1 && (
-                            <div className="flex -space-x-1">
-                              {(task.assignees || []).slice(0, 3).map((a, i) => (
-                                <Avatar key={i} className="h-4 w-4 border border-card">
-                                  <AvatarFallback className="text-[6px] bg-primary/10 text-primary">{a.initials}</AvatarFallback>
-                                </Avatar>
-                              ))}
+                      <div className="flex items-start gap-3 flex-1 min-w-[250px]">
+                        <div className={`w-2 h-2 rounded-full shrink-0 mt-2 ${
+                          task.healthStatus === 'red' ? 'bg-destructive' :
+                          task.healthStatus === 'yellow' ? 'bg-amber-500' :
+                          task.healthStatus === 'green' ? 'bg-emerald-500' : 'bg-primary/40'
+                        }`} />
+                        <div className="flex flex-col min-w-0 w-full gap-2.5">
+                          {/* Title and Badges */}
+                          <div>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {task.isQueued && (
+                                <Badge variant="outline" className="text-[9px] bg-slate-100 text-slate-600 px-1 py-0 border-slate-200 uppercase tracking-wider">Queued</Badge>
+                              )}
+                              {task.isUrgent && <AlertTriangle className="h-3 w-3 text-destructive shrink-0" />}
+                              <p className={`text-sm font-medium flex items-center gap-1.5 ${done ? "line-through text-muted-foreground" : "text-foreground"}`}>
+                                {task.title}
+                              </p>
                             </div>
-                          )}
+                            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                              <Badge className={`${pConfig.color} text-[10px] px-1.5 py-0 font-semibold`}>{task.priority}</Badge>
+                              {task.project && <span className="text-xs text-muted-foreground">{task.project}</span>}
+                              {(task.dependencies || []).length > 0 && (
+                                <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground"><Link2 className="h-2.5 w-2.5" />{(task.dependencies || []).length} deps</span>
+                              )}
+                              {task.repeat?.enabled && (
+                                <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground"><RotateCcw className="h-2.5 w-2.5" />{task.repeat.type}</span>
+                              )}
+                              {checklistTotal > 0 && (
+                                <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground"><CheckSquare className="h-2.5 w-2.5" />{checklistDone}/{checklistTotal}</span>
+                              )}
+                              {(task.subtasks || []).length > 0 && (
+                                <span className="text-[10px] text-muted-foreground">{(task.subtasks || []).filter(s => s.status === "done").length}/{(task.subtasks || []).length} subtasks</span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Metadata on the Left Hand Side */}
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
+                            <span className="flex items-center gap-1.5">
+                              <span className="font-semibold text-slate-500">Created by:</span> 
+                              <span className="text-foreground">{task.createdBy?.name || (task as any).created_by_name || "System"}</span>
+                            </span>
+                            {viewMode !== 'my_tasks' && (
+                              <span className="flex items-center gap-1.5">
+                                <span className="font-semibold text-slate-500">Assigned to:</span> 
+                                {isSiteAdmin ? (
+                                  <Select value={task.assignees?.[0]?.id?.toString() || (task as any).assigned_to?.toString() || "unassigned"} onValueChange={(val) => {
+                                    updateTask(task.id, { assigned_to: val === "unassigned" ? null : parseInt(val) } as any);
+                                  }}>
+                                    <SelectTrigger onClick={e => e.stopPropagation()} className="h-6 text-xs bg-slate-50 border border-slate-200 p-0 focus:ring-0 w-auto shadow-sm text-foreground hover:bg-slate-100 rounded px-2">
+                                      <SelectValue placeholder="Unassigned" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="unassigned">Unassigned</SelectItem>
+                                      {employees.map(e => <SelectItem key={e.id} value={e.id.toString()}>{e.name}</SelectItem>)}
+                                    </SelectContent>
+                                  </Select>
+                                ) : (
+                                  <span className="text-foreground">
+                                    {task.assignees?.[0]?.name || (task as any).assigned_to_name || "Unassigned"}
+                                  </span>
+                                )}
+                              </span>
+                            )}
+                            <span className="flex items-center gap-1.5">
+                              <span className="font-semibold text-slate-500">Due Date:</span> 
+                              <span className={getDueColor(task.dueDate || (task as any).due_date, (task as any).status === 'delayed' || (task as any).status === 'delay' || task.healthStatus === 'red', done)}>
+                                {task.dueDate || (task as any).due_date ? new Date(task.dueDate || (task as any).due_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : "No due date"}
+                              </span>
+                            </span>
+                            <div className="flex items-center gap-2.5 border-l pl-4 border-border/60">
+                              <span className="font-medium text-slate-500 text-xs tracking-wide">Task ID - {task.id}</span>
+                              {task.dueTime && (
+                                <div className="flex items-center gap-1 text-[13px] text-muted-foreground font-medium">
+                                  <Clock className="h-3.5 w-3.5" />{task.dueTime}
+                                </div>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       </div>
-                      {task.dueTime && (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0 mr-1">
-                          <Clock className="h-3 w-3" />{task.dueTime}
+                        
+                      {/* Right Hand Side: Status & Actions */}
+                      <div className="flex items-center shrink-0 gap-3 ml-auto">
+                        {/* Status Dropdown */}
+                        <div className="shrink-0" onClick={e => e.stopPropagation()}>
+                          <Select value={task.status} onValueChange={v => updateTask(task.id, { status: v as "todo" | "in-progress" | "done" | "blocked" })}>
+                            <SelectTrigger className={`w-[105px] h-7 text-[10px] font-semibold border-none ${task.status === 'done' ? 'bg-success/10 text-success' : task.status === 'in-progress' ? 'bg-primary/10 text-primary' : task.status === 'blocked' ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground'}`}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent align="end">
+                              <SelectItem value="todo">To Do</SelectItem>
+                              <SelectItem value="in-progress">In Progress</SelectItem>
+                              <SelectItem value="done">Done</SelectItem>
+                              <SelectItem value="blocked">Blocked</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
-                      )}
-                      
-                      <div className="shrink-0 ml-1" onClick={e => e.stopPropagation()}>
-                        <Select value={task.status} onValueChange={v => updateTask(task.id, { status: v as "todo" | "in-progress" | "done" | "blocked" })}>
-                          <SelectTrigger className={`w-[105px] h-7 text-[10px] font-semibold border-none ${task.status === 'done' ? 'bg-success/10 text-success' : task.status === 'in-progress' ? 'bg-primary/10 text-primary' : task.status === 'blocked' ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground'}`}>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent align="end">
-                            <SelectItem value="todo">To Do</SelectItem>
-                            <SelectItem value="in-progress">In Progress</SelectItem>
-                            <SelectItem value="done">Done</SelectItem>
-                            <SelectItem value="blocked">Blocked</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        
+                        {/* Actions */}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild onClick={e => e.stopPropagation()}>
+                            <Button size="icon" variant="ghost" className="h-7 w-7 opacity-0 group-hover:opacity-100">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setSelectedTask(task); }}><Eye className="h-3.5 w-3.5 mr-1.5" /> Open</DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setEditTask(task); setShowCreate(true); }}><Edit className="h-3.5 w-3.5 mr-1.5" /> Edit</DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive" onClick={(e) => { e.stopPropagation(); deleteTask(task.id); }}><Trash2 className="h-3.5 w-3.5 mr-1.5" /> Delete</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild onClick={e => e.stopPropagation()}>
-                          <Button size="icon" variant="ghost" className="h-7 w-7 opacity-0 group-hover:opacity-100">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setSelectedTask(task); }}><Eye className="h-3.5 w-3.5 mr-1.5" /> Open</DropdownMenuItem>
-                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setEditTask(task); setShowCreate(true); }}><Edit className="h-3.5 w-3.5 mr-1.5" /> Edit</DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive" onClick={(e) => { e.stopPropagation(); deleteTask(task.id); }}><Trash2 className="h-3.5 w-3.5 mr-1.5" /> Delete</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
                     </div>
                   );
                 }))}

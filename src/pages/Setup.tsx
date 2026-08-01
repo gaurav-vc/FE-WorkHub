@@ -8,7 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
-  Check, X, ShieldAlert, UserPlus, Calendar,
+  Check, X, ShieldAlert, UserPlus, Calendar, Pencil,
   CheckCircle2, Users, Shield, GraduationCap, FileBadge, Clock, Settings2
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -269,6 +269,9 @@ function SystemSettingsTab() {
   const [newKbCat, setNewKbCat] = useState("");
   const [newPolicyCat, setNewPolicyCat] = useState("");
   
+  const [editingItem, setEditingItem] = useState<{type: 'status'|'kb'|'policy', index: number} | null>(null);
+  const [editingValue, setEditingValue] = useState("");
+  
   // For new entries
   const [newDeptName, setNewDeptName] = useState("");
   const [newDeptLimit, setNewDeptLimit] = useState(4);
@@ -464,10 +467,38 @@ function SystemSettingsTab() {
               <div className="flex flex-wrap gap-2 max-w-md mt-2">
                 {taskStatuses.map((s, idx) => (
                   <Badge key={idx} variant="secondary" className="px-2 py-1 flex items-center gap-2">
-                    {s}
-                    <X className="h-3 w-3 cursor-pointer hover:text-destructive" onClick={() => {
-                      setTaskStatuses(taskStatuses.filter(t => t !== s));
-                    }} />
+                    {editingItem?.type === 'status' && editingItem.index === idx ? (
+                      <Input 
+                        value={editingValue} 
+                        onChange={(e) => setEditingValue(e.target.value)}
+                        className="h-6 text-xs w-24 px-1 py-0"
+                        onBlur={() => {
+                          if (editingValue.trim() && editingValue !== s) {
+                            const newArr = [...taskStatuses];
+                            newArr[idx] = editingValue.trim();
+                            setTaskStatuses(newArr);
+                          }
+                          setEditingItem(null);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.currentTarget.blur();
+                          }
+                        }}
+                        autoFocus
+                      />
+                    ) : (
+                      <>
+                        {s}
+                        <Pencil className="h-3 w-3 cursor-pointer hover:text-primary ml-1" onClick={() => {
+                          setEditingItem({type: 'status', index: idx});
+                          setEditingValue(s);
+                        }} />
+                        <X className="h-3 w-3 cursor-pointer hover:text-destructive" onClick={() => {
+                          setTaskStatuses(taskStatuses.filter((_, i) => i !== idx));
+                        }} />
+                      </>
+                    )}
                   </Badge>
                 ))}
               </div>
@@ -490,10 +521,38 @@ function SystemSettingsTab() {
               <div className="flex flex-wrap gap-2 max-w-md mt-2">
                 {kbCategories.map((c, idx) => (
                   <Badge key={idx} variant="secondary" className="px-2 py-1 flex items-center gap-2">
-                    {c}
-                    <X className="h-3 w-3 cursor-pointer hover:text-destructive" onClick={() => {
-                      setKbCategories(kbCategories.filter(t => t !== c));
-                    }} />
+                    {editingItem?.type === 'kb' && editingItem.index === idx ? (
+                      <Input 
+                        value={editingValue} 
+                        onChange={(e) => setEditingValue(e.target.value)}
+                        className="h-6 text-xs w-24 px-1 py-0"
+                        onBlur={() => {
+                          if (editingValue.trim() && editingValue !== c) {
+                            const newArr = [...kbCategories];
+                            newArr[idx] = editingValue.trim();
+                            setKbCategories(newArr);
+                          }
+                          setEditingItem(null);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.currentTarget.blur();
+                          }
+                        }}
+                        autoFocus
+                      />
+                    ) : (
+                      <>
+                        {c}
+                        <Pencil className="h-3 w-3 cursor-pointer hover:text-primary ml-1" onClick={() => {
+                          setEditingItem({type: 'kb', index: idx});
+                          setEditingValue(c);
+                        }} />
+                        <X className="h-3 w-3 cursor-pointer hover:text-destructive" onClick={() => {
+                          setKbCategories(kbCategories.filter((_, i) => i !== idx));
+                        }} />
+                      </>
+                    )}
                   </Badge>
                 ))}
               </div>
@@ -515,10 +574,38 @@ function SystemSettingsTab() {
               <div className="flex flex-wrap gap-2 max-w-md mt-2">
                 {policyCategories.map((c, idx) => (
                   <Badge key={idx} variant="secondary" className="px-2 py-1 flex items-center gap-2">
-                    {c}
-                    <X className="h-3 w-3 cursor-pointer hover:text-destructive" onClick={() => {
-                      setPolicyCategories(policyCategories.filter(t => t !== c));
-                    }} />
+                    {editingItem?.type === 'policy' && editingItem.index === idx ? (
+                      <Input 
+                        value={editingValue} 
+                        onChange={(e) => setEditingValue(e.target.value)}
+                        className="h-6 text-xs w-24 px-1 py-0"
+                        onBlur={() => {
+                          if (editingValue.trim() && editingValue !== c) {
+                            const newArr = [...policyCategories];
+                            newArr[idx] = editingValue.trim();
+                            setPolicyCategories(newArr);
+                          }
+                          setEditingItem(null);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.currentTarget.blur();
+                          }
+                        }}
+                        autoFocus
+                      />
+                    ) : (
+                      <>
+                        {c}
+                        <Pencil className="h-3 w-3 cursor-pointer hover:text-primary ml-1" onClick={() => {
+                          setEditingItem({type: 'policy', index: idx});
+                          setEditingValue(c);
+                        }} />
+                        <X className="h-3 w-3 cursor-pointer hover:text-destructive" onClick={() => {
+                          setPolicyCategories(policyCategories.filter((_, i) => i !== idx));
+                        }} />
+                      </>
+                    )}
                   </Badge>
                 ))}
               </div>

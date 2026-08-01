@@ -18,12 +18,13 @@ export interface EmployeeStats {
 }
 
 export const fetchEmployeeReport = async (
-  employeeId: string, 
+  employeeId: string | string[], 
   filter?: string, 
   startDate?: string, 
   endDate?: string
 ): Promise<EmployeeStats> => {
-  let url = `/projects/reports/employee-stats/?employee_id=${employeeId}`;
+  const ids = Array.isArray(employeeId) ? employeeId.join(',') : employeeId;
+  let url = `/projects/reports/employee-stats/?employee_ids=${ids}`;
   if (filter) url += `&quick_filter=${filter}`;
   if (startDate && endDate) url += `&start_date=${startDate}&end_date=${endDate}`;
   

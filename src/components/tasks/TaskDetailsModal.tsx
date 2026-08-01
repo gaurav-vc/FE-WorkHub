@@ -302,6 +302,7 @@ export function TaskDetailsModal({ taskId, open, onOpenChange, onTaskUpdate, pro
 
             {/* Subheader */}
             <div className="flex items-center gap-2 mb-6">
+              <span className="text-muted-foreground font-mono text-sm bg-slate-100 px-2 py-0.5 rounded border border-slate-200">#{task.id}</span>
               <h2 className="text-lg font-medium text-slate-800">{task.title}</h2>
               <Pencil className="h-4 w-4 text-slate-400 cursor-pointer" />
             </div>

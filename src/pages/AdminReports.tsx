@@ -2,8 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import { Download, FileText, CheckCircle, Clock, AlertTriangle, Users } from 'lucide-react';
 import { fetchEmployeeReport, EmployeeStats } from '@/api/reports';
@@ -13,7 +16,7 @@ import { toast } from 'sonner';
 
 const AdminReports = () => {
   const [employees, setEmployees] = useState<{id: number, name: string}[]>([]);
-  const [selectedEmployee, setSelectedEmployee] = useState<string>('');
+  const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const [reportData, setReportData] = useState<EmployeeStats | null>(null);
   const [loading, setLoading] = useState(false);
   const [dateFilter, setDateFilter] = useState('30d'); // '30d', '6m', '1y', 'custom'
@@ -37,8 +40,8 @@ const AdminReports = () => {
   }, []);
 
   const loadReport = async () => {
-    if (!selectedEmployee) {
-      toast.error("Please select an employee first");
+    if (selectedEmployees.length === 0) {
+      toast.error("Please select at least one employee");
       return;
     }
     setLoading(true);
@@ -58,7 +61,7 @@ const AdminReports = () => {
         eDate = '';
       }
       
-      const data = await fetchEmployeeReport(selectedEmployee, filter, sDate, eDate);
+      const data = await fetchEmployeeReport(selectedEmployees, filter, sDate, eDate);
       setReportData(data);
     } catch (err) {
       toast.error("Failed to load report data");
@@ -68,10 +71,10 @@ const AdminReports = () => {
   };
 
   useEffect(() => {
-    if (selectedEmployee && dateFilter !== 'custom') {
+    if (selectedEmployees.length > 0 && dateFilter !== 'custom') {
       loadReport();
     }
-  }, [selectedEmployee, dateFilter]);
+  }, [selectedEmployees, dateFilter]);
 
   const handleDownloadPdf = () => {
     const element = document.getElementById('report-dashboard');
@@ -79,7 +82,7 @@ const AdminReports = () => {
     
     const opt = {
       margin: 0.5,
-      filename: `employee_report_${selectedEmployee}.pdf`,
+      filename: `employee_report_${selectedEmployees.join('_')}.pdf`,
       image: { type: 'jpeg' as const, quality: 0.98 },
       html2canvas: { scale: 2 },
       jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' as const }
@@ -112,17 +115,57 @@ const AdminReports = () => {
         <CardContent className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
             <div className="space-y-2 md:col-span-1">
-              <Label>Select Employee</Label>
-              <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select an employee..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {employees.map(emp => (
-                    <SelectItem key={emp.id} value={emp.id.toString()}>{emp.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Select Employee(s)</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-between font-normal text-left h-10 px-3">
+                    {selectedEmployees.length === 0 ? "Select employees..." : `${selectedEmployees.length} selected`}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[280px] p-0" align="start">
+                  <div className="p-3 border-b border-border">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="select-all" 
+                        checked={selectedEmployees.length === employees.length && employees.length > 0}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedEmployees(employees.map(e => e.id.toString()));
+                          } else {
+                            setSelectedEmployees([]);
+                          }
+                        }}
+                      />
+                      <label htmlFor="select-all" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer">
+                        Select All
+                      </label>
+                    </div>
+                  </div>
+                  <div className="max-h-[200px] overflow-y-auto p-2">
+                    {employees.map((emp) => {
+                      const empId = emp.id.toString();
+                      return (
+                        <div key={empId} className="flex items-center space-x-2 p-1.5 rounded hover:bg-muted/50 cursor-pointer">
+                          <Checkbox 
+                            id={`emp-${empId}`} 
+                            checked={selectedEmployees.includes(empId)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedEmployees([...selectedEmployees, empId]);
+                              } else {
+                                setSelectedEmployees(selectedEmployees.filter(id => id !== empId));
+                              }
+                            }}
+                          />
+                          <label htmlFor={`emp-${empId}`} className="text-sm cursor-pointer flex-1 select-none truncate">
+                            {emp.name}
+                          </label>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
             
             <div className="space-y-2 md:col-span-1">

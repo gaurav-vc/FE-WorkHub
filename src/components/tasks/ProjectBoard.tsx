@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import {
-  Kanban, List, LayoutGrid, CheckCircle2, MoreHorizontal, Pencil, Trash2, Plus, X, GripVertical, AlertCircle, ArrowLeft
+  Kanban, List, LayoutGrid, CheckCircle2, MoreHorizontal, Pencil, Trash2, Plus, X, GripVertical, AlertCircle, ArrowLeft, Search
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -81,11 +81,12 @@ export default function ProjectBoard({ projectId, onBack }: ProjectBoardProps) {
   const [project, setProject] = useState<Project | null>(null);
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const [dragCard, setDragCard] = useState<{ taskId: number; fromCol: string } | null>(null);
-  const [addingToCol, setAddingToCol] = useState<string | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
   const [showCreateModalForCol, setShowCreateModalForCol] = useState<string | null>(null);
+  const [addingToCol, setAddingToCol] = useState<string | null>(null);
   
   // Custom columns state
   const [columns, setColumns] = useState<Array<{ id: string; title: string; color: string }>>(DEFAULT_COLUMNS);
@@ -367,7 +368,11 @@ export default function ProjectBoard({ projectId, onBack }: ProjectBoardProps) {
     return <div className="p-8 text-center text-destructive">Project not found</div>;
   }
 
-  const tasks = project.imported_tasks || [];
+  const tasks = (project.imported_tasks || []).filter(t => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return t.title.toLowerCase().includes(q) || t.id.toString().includes(q.replace(/^#/, ''));
+  });
 
   return (
     <div className="flex flex-col h-full animate-fade-in space-y-3">
@@ -381,13 +386,24 @@ export default function ProjectBoard({ projectId, onBack }: ProjectBoardProps) {
             <Badge variant="outline" className="text-[9px] px-1.5 py-0 uppercase tracking-wider">{project.status}</Badge>
           </div>
         </div>
-        <div className="flex items-center bg-muted/50 p-0.5 rounded-lg border">
+        <div className="flex items-center gap-3">
+          <div className="relative w-48 sm:w-64">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input 
+              placeholder="Search tasks or #ID..." 
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="h-7 pl-8 text-xs bg-background"
+            />
+          </div>
+          <div className="flex items-center bg-muted/50 p-0.5 rounded-lg border">
           <Button variant={viewMode === "kanban" ? "secondary" : "ghost"} size="sm" className="h-7 px-2 rounded-md text-xs gap-1" onClick={() => setViewMode("kanban")}>
             <LayoutGrid className="h-3 w-3" /> <span className="hidden sm:inline">Kanban</span>
           </Button>
           <Button variant={viewMode === "list" ? "secondary" : "ghost"} size="sm" className="h-7 px-2 rounded-md text-xs gap-1" onClick={() => setViewMode("list")}>
             <List className="h-3 w-3" /> <span className="hidden sm:inline">List</span>
           </Button>
+          </div>
         </div>
       </div>
 
@@ -477,6 +493,7 @@ export default function ProjectBoard({ projectId, onBack }: ProjectBoardProps) {
                               {/* Title */}
                               <div className="flex items-start justify-between gap-2 mb-2">
                                 <h4 className="text-sm font-semibold leading-snug break-words group-hover:text-primary transition-colors w-full pr-6">
+                                  <span className="text-muted-foreground font-mono text-xs mr-1.5">#{task.id}</span>
                                   {task.title}
                                 </h4>
                               </div>
@@ -637,7 +654,10 @@ export default function ProjectBoard({ projectId, onBack }: ProjectBoardProps) {
                         <div className="flex items-start gap-2 flex-1 min-w-0">
                           <CheckCircle2 className={`h-3.5 w-3.5 mt-0.5 shrink-0 ${col.id === 'done' ? 'text-green-500' : 'text-muted-foreground/50'}`} />
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium text-foreground break-words">{task.title}</p>
+                            <p className="text-xs font-medium text-foreground break-words">
+                              <span className="text-muted-foreground font-mono text-[10px] mr-1.5">#{task.id}</span>
+                              {task.title}
+                            </p>
                             {task.due_date && <p className="text-[9px] text-muted-foreground mt-0.5">Due: {task.due_date}</p>}
                           </div>
                         </div>
