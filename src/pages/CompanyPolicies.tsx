@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import {
   Select,
   SelectContent,
@@ -178,16 +179,13 @@ export default function CompanyPolicies() {
         </div>
         <Card className="shadow-card">
           <CardContent className="p-6">
-            {/* Render text content if it exists and is not just the auto-placeholder */}
+            {/* Render HTML content if it exists and is not just the auto-placeholder */}
             {selectedPolicy.content.trim() && !selectedPolicy.content.trim().startsWith("[Attached Policy Document:") && (
               <div className={selectedPolicy.attachment ? "mb-8 pb-6 border-b" : ""}>
-                {selectedPolicy.content.split("\n").map((line, i) => {
-                  if (line.startsWith("# ")) return <h1 key={i} className="text-2xl font-display font-bold text-foreground mt-6 mb-4">{line.slice(2)}</h1>;
-                  if (line.startsWith("## ")) return <h2 key={i} className="text-xl font-display font-semibold text-foreground mt-5 mb-3">{line.slice(3)}</h2>;
-                  if (line.startsWith("- ")) return <li key={i} className="text-base text-foreground/90 ml-6 py-1 list-disc marker:text-muted-foreground">{line.slice(2)}</li>;
-                  if (line.trim() === "") return <div key={i} className="h-4"></div>;
-                  return <p key={i} className="text-base text-foreground/90 leading-7">{line}</p>;
-                })}
+                <div 
+                  className="[&_h1]:text-2xl [&_h1]:font-bold [&_h2]:text-xl [&_h2]:font-semibold [&_p]:leading-relaxed [&_ul]:list-disc [&_ul]:ml-6 [&_ol]:list-decimal [&_ol]:ml-6"
+                  dangerouslySetInnerHTML={{ __html: selectedPolicy.content }} 
+                />
               </div>
             )}
 
@@ -274,7 +272,7 @@ export default function CompanyPolicies() {
       </div>
 
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editPolicy ? "Edit Policy" : "Add Policy"}</DialogTitle></DialogHeader>
           <div className="space-y-4 mt-2">
             <div className="space-y-1.5"><Label className="text-sm font-semibold">Title</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
@@ -303,7 +301,7 @@ export default function CompanyPolicies() {
               />
               {editPolicy?.attachment && !attachment && <p className="text-xs text-muted-foreground mt-1">Currently attached: <a href={editPolicy.attachment} target="_blank" rel="noreferrer" className="text-primary hover:underline">View file</a></p>}
             </div>
-            <div className="space-y-1.5"><Label className="text-sm font-semibold">Content</Label><Textarea value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} rows={10} placeholder="Policy content (markdown supported)" className="resize-y" /></div>
+            <div className="space-y-1.5"><Label className="text-sm font-semibold">Content</Label><RichTextEditor value={form.content} onChange={(value) => setForm({ ...form, content: value })} placeholder="Policy content" /></div>
           </div>
           <DialogFooter className="mt-6">
             <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>

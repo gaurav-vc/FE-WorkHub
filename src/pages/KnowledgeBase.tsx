@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { getKbArticles, createKbArticle, toggleKbHelpful, toggleKbSave } from "@/api/collaboration";
@@ -229,15 +230,10 @@ export default function KnowledgeBase() {
             {/* Render Text Content if meaningful */}
             {selectedArticle.content && !selectedArticle.content.trim().startsWith("[Attached Article Document:") && (
               <div className={selectedArticle.file_url ? "mb-10 pb-8 border-b border-border/50 space-y-3" : "space-y-3"}>
-                {selectedArticle.content.split("\n").map((line, i) => {
-                  if (line.startsWith("# ")) return <h1 key={i} className="text-2xl font-display font-bold text-foreground mt-8 mb-4">{line.slice(2)}</h1>;
-                  if (line.startsWith("## ")) return <h2 key={i} className="text-xl font-display font-semibold text-foreground mt-6 mb-3">{line.slice(3)}</h2>;
-                  if (line.startsWith("### ")) return <h3 key={i} className="text-lg font-semibold text-foreground mt-5 mb-2">{line.slice(4)}</h3>;
-                  if (line.startsWith("- [ ] ")) return <label key={i} className="flex items-center gap-3 text-base py-1 text-foreground/90"><input type="checkbox" className="rounded border-input h-4 w-4" />{line.slice(6)}</label>;
-                  if (line.startsWith("- ")) return <li key={i} className="text-base ml-6 list-disc marker:text-muted-foreground text-foreground/90">{line.slice(2)}</li>;
-                  if (line.trim() === "") return <div key={i} className="h-2"></div>;
-                  return <p key={i} className="text-base leading-7 text-foreground/90">{line}</p>;
-                })}
+                <div 
+                  className="[&_h1]:text-2xl [&_h1]:font-bold [&_h2]:text-xl [&_h2]:font-semibold [&_p]:leading-relaxed [&_ul]:list-disc [&_ul]:ml-6 [&_ol]:list-decimal [&_ol]:ml-6 prose prose-sm max-w-none text-foreground/90"
+                  dangerouslySetInnerHTML={{ __html: selectedArticle.content }} 
+                />
               </div>
             )}
 
@@ -283,7 +279,7 @@ export default function KnowledgeBase() {
               <Plus className="h-4 w-4" /> Add Knowledge
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>Add to Knowledge Base</DialogTitle></DialogHeader>
             <form onSubmit={handleUpload} className="space-y-4">
               <div className="space-y-2">
@@ -307,12 +303,10 @@ export default function KnowledgeBase() {
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-700">Content</label>
-                <textarea 
-                  className="w-full min-h-[100px] p-3 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                <RichTextEditor 
                   value={newContent}
-                  onChange={e => setNewContent(e.target.value)}
-                  placeholder="Article content. You can use markdown like '# Heading' or '- List item'..."
-                  required
+                  onChange={setNewContent}
+                  placeholder="Article content"
                 />
               </div>
               <div className="space-y-2">
