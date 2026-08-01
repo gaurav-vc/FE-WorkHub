@@ -122,6 +122,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    let ws: WebSocket | null = null;
     if (isAuthenticated && token) {
       fetchTasks();
       fetchNotifications();
@@ -135,11 +136,25 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       
       window.addEventListener('tasks-updated', handleSync);
       
+      // Setup WebSocket connection for real-time syncing
+      const wsUrl = `${API_BASE.replace('http', 'ws').replace('/api', '')}/ws/workspace/?token=${token}`;
+      ws = new WebSocket(wsUrl);
+      
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.event === "tasks_updated") {
+            window.dispatchEvent(new Event('tasks-updated'));
+          }
+        } catch (e) {}
+      };
+      
       // Optional: Setup polling for notifications every 60 seconds
       const interval = setInterval(fetchNotifications, 60000);
       return () => {
-        clearInterval(interval);
         window.removeEventListener('tasks-updated', handleSync);
+        clearInterval(interval);
+        if (ws) ws.close();
       };
     } else if (!isAuthenticated) {
       setTasks([]);

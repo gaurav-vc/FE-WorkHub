@@ -38,16 +38,23 @@ export const createTask = async (task: any) => {
 
 export const updateTask = async (id: string, updates: Partial<Task>) => {
   const isBoardCard = id.toString().startsWith("board_card_");
-  const endpoint = isBoardCard ? `/myday/tasks/${id.replace('board_card_', '')}/toggle/` : `/tasks/${id}/`;
-  const method = isBoardCard ? "POST" : "PATCH";
-  const data = isBoardCard ? { status: updates.status } : updates;
-
-  const res = await apiClient(endpoint, {
-    method,
-    data,
-  });
-  triggerSync();
-  return res;
+  
+  if (isBoardCard) {
+    const cardId = id.replace('board_card_', '');
+    const res = await apiClient(`/boards/cards/${cardId}/`, {
+      method: "PATCH",
+      data: updates,
+    });
+    triggerSync();
+    return res;
+  } else {
+    const res = await apiClient(`/tasks/${id}/`, {
+      method: "PATCH",
+      data: updates,
+    });
+    triggerSync();
+    return res;
+  }
 };
 
 export const deleteTask = async (id: string) => {
