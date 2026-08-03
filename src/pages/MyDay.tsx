@@ -86,10 +86,17 @@ export default function MyDay() {
 
   const filteredTasks = tasks.filter(t => {
     if (viewMode === "my_tasks") {
-      // Only show tasks assigned to me or my personal self-tasks
+      const uLower = (username || "").toLowerCase();
+      const fLower = (fullName || "").toLowerCase();
       const isAssignedToMe = 
-        (t.assignees || []).some(a => a.name === username || a.name === fullName) || 
-        (t.taskType === "self" && (t.createdBy?.name === username || t.createdBy?.name === fullName));
+        (t.assignees || []).some(a => {
+          const aLower = (a.name || "").toLowerCase();
+          return (uLower && aLower === uLower) || (fLower && aLower === fLower);
+        }) || 
+        (t.taskType === "self" && (() => {
+          const cLower = (t.createdBy?.name || "").toLowerCase();
+          return (uLower && cLower === uLower) || (fLower && cLower === fLower);
+        })());
       if (!isAssignedToMe) return false;
     }
 
