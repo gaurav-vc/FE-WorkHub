@@ -52,8 +52,47 @@ interface Project {
   template_type: string;
   team: Array<{ name: string; initials: string }>;
   dueDate: string | null;
-  tasks: { total: number; completed: number };
+  tasks: any;
+  imported_tasks?: any[];
 }
+
+const DEFAULT_COLUMNS = [
+  { id: "planning", title: "Planning", color: "bg-slate-400" },
+  { id: "open", title: "Open", color: "bg-blue-400" },
+  { id: "pending", title: "Pending", color: "bg-yellow-500" },
+  { id: "review", title: "Review", color: "bg-purple-500" },
+  { id: "completed", title: "Completed", color: "bg-green-500" },
+  { id: "closed", title: "Closed", color: "bg-red-500" },
+];
+
+const STATUS_MAPPING: Record<string, string> = {
+  "in_progress": "open",
+  "done": "completed",
+  "hold": "pending",
+  "on_hold": "pending",
+  "delay": "review",
+  "delayed": "review",
+};
+
+const getMappedStatus = (status: string, columns: Array<{ id: string }>) => {
+  if (!status) return "pending";
+  const s = status.toLowerCase();
+  if (columns.some(c => c.id === s)) return s;
+  return STATUS_MAPPING[s] || s;
+};
+
+const getStatusStyles = (status: string) => {
+  const s = status.toLowerCase();
+  if (s.includes('planning')) return { backgroundColor: '#e0f2fe', color: '#0369a1' }; // Sky blue
+  if (s.includes('open') && !s.includes('re-open')) return { backgroundColor: '#fce7f3', color: '#be185d' }; // Pink
+  if (s.includes('pending')) return { backgroundColor: '#fee2e2', color: '#b91c1c' }; // Red
+  if (s.includes('wip') || s.includes('progress')) return { backgroundColor: '#ede9fe', color: '#6d28d9' }; // Purple
+  if (s.includes('review')) return { backgroundColor: '#fef3c7', color: '#b45309' }; // Amber
+  if (s.includes('complete') || s.includes('done')) return { backgroundColor: '#dcfce7', color: '#15803d' }; // Green
+  if (s.includes('closed')) return { backgroundColor: '#ccfbf1', color: '#0f766e' }; // Teal
+  if (s.includes('re-open') || s.includes('delayed')) return { backgroundColor: '#ffedd5', color: '#c2410c' }; // Orange
+  return { backgroundColor: '#f3f4f6', color: '#374151' }; // Gray
+};
 
 const statusConfig: Record<string, { label: string; color: string }> = {
   active: { label: "Active", color: "bg-success/10 text-success border-success/20" },
@@ -90,7 +129,8 @@ export default function Projects() {
         template_type: p.template_type || "blank",
         team: p.team || [],
         dueDate: p.dueDate,
-        tasks: p.tasks || { total: 0, completed: 0 }
+        tasks: p.tasks || { total: 0, completed: 0 },
+        imported_tasks: p.imported_tasks || [],
       })));
     } catch (error) {
       console.error("Failed to fetch projects", error);
@@ -258,15 +298,23 @@ export default function Projects() {
                 <div className="flex items-center gap-2 mb-3">
                   <Badge variant="outline" className={`${statusConfig[project.status]?.color || statusConfig['planning'].color} text-[10px]`}>{statusConfig[project.status]?.label || 'Planning'}</Badge>
                   {project.department && <Badge variant="secondary" className="text-[10px]">{project.department}</Badge>}
-                  {project.template_type !== 'blank' && <Badge variant="outline" className="text-[10px] bg-slate-100 text-slate-600 capitalize">{project.template_type}</Badge>}
+                  <Badge variant="outline" className="text-[10px] bg-slate-100 text-slate-600">Total Tasks: {project.imported_tasks?.length || 0}</Badge>
                 </div>
-                <div className="mb-3">
-                  <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="text-muted-foreground">Progress</span>
-                    <span className="font-semibold text-foreground">{project.progress}%</span>
-                  </div>
-                  <Progress value={project.progress} className="h-1.5" />
-                </div>
+                {(() => {
+                  const totalTasks = project.imported_tasks?.length || 0;
+                  const completedTasks = project.imported_tasks?.filter((t: any) => ['completed', 'done', 'closed'].includes(t.status?.toLowerCase())).length || 0;
+                  const progressValue = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+                  
+                  return (
+                    <div className="mb-3">
+                      <div className="flex items-center justify-between text-xs mb-1">
+                        <span className="text-muted-foreground">Progress</span>
+                        <span className="font-semibold text-foreground">{progressValue}%</span>
+                      </div>
+                      <Progress value={progressValue} className="h-1.5" />
+                    </div>
+                  );
+                })()}
                 <div className="flex items-center justify-between">
                   <div className="flex -space-x-1.5">
                     {project.team.slice(0, 4).map((m, i) => (
@@ -280,8 +328,32 @@ export default function Projects() {
                     {project.dueDate && <span className="flex items-center gap-0.5"><Calendar className="h-3 w-3" />{project.dueDate}</span>}
                   </div>
                 </div>
-                <div className="text-[11px] text-muted-foreground mt-2">
-                  {project.tasks.completed}/{project.tasks.total} tasks completed
+                <div className="mt-4 pt-3 border-t border-border">
+                  <div className="flex flex-wrap gap-1.5">
+                    {(() => {
+                      const projectColumns = (project.tasks && project.tasks.columns && Array.isArray(project.tasks.columns)) ? project.tasks.columns : DEFAULT_COLUMNS;
+                      const taskCounts: Record<string, number> = {};
+                      
+                      projectColumns.forEach((c: any) => {
+                        taskCounts[c.id] = 0;
+                      });
+
+                      if (project.imported_tasks) {
+                        project.imported_tasks.forEach((task: any) => {
+                          const mappedId = getMappedStatus(task.status, projectColumns);
+                          if (taskCounts[mappedId] !== undefined) {
+                            taskCounts[mappedId]++;
+                          }
+                        });
+                      }
+
+                      return projectColumns.map((col: any) => (
+                        <span key={col.id} style={getStatusStyles(col.title)} className="px-3 py-1 rounded-full text-xs font-semibold capitalize shadow-sm border border-black/5">
+                          {col.title} {taskCounts[col.id]}
+                        </span>
+                      ));
+                    })()}
+                  </div>
                 </div>
               </CardContent>
             </Card>

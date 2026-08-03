@@ -646,11 +646,9 @@ export default function CalendarMeetings() {
                       <SelectValue placeholder="Select platform" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Zoom">Zoom</SelectItem>
                       <SelectItem value="Google Meet">Google Meet</SelectItem>
                       <SelectItem value="Microsoft Teams">Microsoft Teams</SelectItem>
-                      <SelectItem value="Webex">Webex</SelectItem>
-                      <SelectItem value="Other">Other</SelectItem>
+                      <SelectItem value="Jitsi Meet">Jitsi Meet (Instantly Working)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

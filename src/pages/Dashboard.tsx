@@ -26,6 +26,7 @@ export default function Dashboard() {
   const { token } = useAuth();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [updatingTasks, setUpdatingTasks] = useState<Set<string>>(new Set());
   const [isAddLinkOpen, setIsAddLinkOpen] = useState(false);
   const [newLinkLabel, setNewLinkLabel] = useState("");
   const [newLinkUrl, setNewLinkUrl] = useState("");
@@ -123,6 +124,11 @@ export default function Dashboard() {
   };
 
   const handleStatusChange = async (taskId: string, newStatus: string) => {
+    if (updatingTasks.has(taskId)) {
+      toast.info("Wait, task is updating");
+      return;
+    }
+    setUpdatingTasks(prev => new Set(prev).add(taskId));
     try {
       // Optimistic update
       setData((prev: any) => {
@@ -135,8 +141,14 @@ export default function Dashboard() {
       // Fire a custom event so company pulse can sync
       window.dispatchEvent(new Event('tasks-updated'));
     } catch (e) {
-      toast.error("Failed to update status");
+      toast.error("Wait, task is updating");
       fetchDashboardData(); // revert
+    } finally {
+      setUpdatingTasks(prev => {
+        const next = new Set(prev);
+        next.delete(taskId);
+        return next;
+      });
     }
   };
 
@@ -215,7 +227,8 @@ export default function Dashboard() {
                         className={`h-4 w-4 rounded border-2 flex items-center justify-center transition-colors shrink-0 
                           ${task.status === 'done' || task.status === 'completed' 
                             ? 'bg-success border-success text-white' 
-                            : 'border-muted-foreground/30 hover:border-primary'}`}
+                            : 'border-muted-foreground/30 hover:border-primary'}
+                          ${updatingTasks.has(task.id || task.task_id) ? 'opacity-50' : ''}`}
                       >
                         {(task.status === 'done' || task.status === 'completed') && <Check className="h-3 w-3" />}
                       </button>

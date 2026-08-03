@@ -46,6 +46,12 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
   const [assignedTo, setAssignedTo] = useState("unassigned");
   const [globalUsers, setGlobalUsers] = useState<any[]>([]);
 
+  // Advanced fields
+  const [isQueued, setIsQueued] = useState(false);
+  const [color, setColor] = useState("bg-primary");
+  const [startDay, setStartDay] = useState(0);
+  const [duration, setDuration] = useState(3);
+
   useEffect(() => {
     if (open) {
       const token = localStorage.getItem("token") || sessionStorage.getItem("token");
@@ -103,7 +109,11 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
         estimatedEffort,
         effortUnit,
         isUrgent,
-        tags
+        tags,
+        is_queued: isQueued,
+        color,
+        start_day: startDay,
+        duration
       });
       // Reset form
       setTitle("");
@@ -119,6 +129,10 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
       setTags([]);
       setTaskType("self");
       setAssignedTo("unassigned");
+      setIsQueued(false);
+      setColor("bg-primary");
+      setStartDay(0);
+      setDuration(3);
       onOpenChange(false);
     } catch (e) {
       console.error(e);
@@ -154,16 +168,16 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
                 {/* Task Type */}
                 <div className="flex items-center gap-6 border-b border-border/50 pb-4">
                   <span className="font-semibold text-sm">Task Type</span>
-                  <div className="flex items-center bg-muted/50 rounded-lg p-1">
+                  <div className="flex items-center bg-muted/50 rounded-xl p-1.5 shadow-inner">
                     <button 
                       onClick={() => setTaskType("self")}
-                      className={`px-6 py-1.5 rounded-md text-sm font-semibold transition-colors ${taskType === 'self' ? 'bg-[#2563eb] text-white shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                      className={`px-8 py-2.5 rounded-lg text-base font-semibold transition-all ${taskType === 'self' ? 'bg-[#2563eb] text-white shadow-md' : 'text-muted-foreground hover:text-foreground'}`}
                     >
                       Self Task
                     </button>
                     <button 
                       onClick={() => setTaskType("assign")}
-                      className={`px-6 py-1.5 rounded-md text-sm font-semibold transition-colors ${taskType === 'assign' ? 'bg-[#2563eb] text-white shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                      className={`px-8 py-2.5 rounded-lg text-base font-semibold transition-all ${taskType === 'assign' ? 'bg-[#2563eb] text-white shadow-md' : 'text-muted-foreground hover:text-foreground'}`}
                     >
                       Assign to Others
                     </button>
@@ -312,7 +326,44 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
               </TabsContent>
               <TabsContent value="checklist" className="mt-0 py-8 text-center text-muted-foreground">Checklist functionality coming soon.</TabsContent>
               <TabsContent value="subtasks" className="mt-0 py-8 text-center text-muted-foreground">Subtasks functionality coming soon.</TabsContent>
-              <TabsContent value="advanced" className="mt-0 py-8 text-center text-muted-foreground">Advanced settings coming soon.</TabsContent>
+              <TabsContent value="advanced" className="mt-0 pt-4 space-y-6">
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold">Task Color Label</Label>
+                    <Select value={color} onValueChange={setColor}>
+                      <SelectTrigger className="h-10 bg-muted/30"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="bg-primary">Default Primary</SelectItem>
+                        <SelectItem value="bg-red-500">Red</SelectItem>
+                        <SelectItem value="bg-yellow-500">Yellow</SelectItem>
+                        <SelectItem value="bg-green-500">Green</SelectItem>
+                        <SelectItem value="bg-purple-500">Purple</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex flex-col justify-center space-y-2 pt-6">
+                    <div className="flex items-center space-x-2">
+                      <Switch id="is-queued" checked={isQueued} onCheckedChange={setIsQueued} />
+                      <Label htmlFor="is-queued" className="text-sm font-semibold cursor-pointer">Queue Task Execution</Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground">If checked, task will wait in queue for resources.</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-6 pt-4 border-t border-border/50">
+                  <div className="col-span-2">
+                    <h4 className="text-sm font-semibold mb-1">Timeline Settings</h4>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold">Start Day Offset</Label>
+                    <Input type="number" min={0} value={startDay} onChange={(e) => setStartDay(parseInt(e.target.value) || 0)} className="h-10 bg-muted/30" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold">Duration (Days)</Label>
+                    <Input type="number" min={1} value={duration} onChange={(e) => setDuration(parseInt(e.target.value) || 1)} className="h-10 bg-muted/30" />
+                  </div>
+                </div>
+              </TabsContent>
             </Tabs>
           </div>
 

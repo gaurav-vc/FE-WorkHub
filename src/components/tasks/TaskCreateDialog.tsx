@@ -528,17 +528,15 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
                   <Label className="text-xs font-medium">Dependencies</Label>
                 </div>
                 <p className="text-xs text-muted-foreground">Select tasks that must be completed before this task can start.</p>
-                <ScrollArea className="max-h-40">
-                  <div className="space-y-1">
-                    {tasks.filter(t => t.id !== editTask?.id).map(t => (
-                      <div key={t.id} className="flex items-center gap-2 p-1.5 rounded hover:bg-muted/50">
-                        <Checkbox checked={(form.dependencies || []).includes(t.id)} onCheckedChange={() => toggleDep(t.id)} />
-                        <span className="text-xs flex-1 truncate">{t.title}</span>
-                        <Badge variant="outline" className="text-[9px]">{t.status}</Badge>
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
+                <div className="max-h-48 overflow-y-auto pr-2 space-y-1">
+                  {tasks.filter(t => t.id !== editTask?.id).map(t => (
+                    <div key={t.id} className="flex items-center gap-2 p-1.5 rounded hover:bg-muted/50">
+                      <Checkbox checked={(form.dependencies || []).includes(t.id)} onCheckedChange={() => toggleDep(t.id)} />
+                      <span className="text-xs flex-1 truncate">{t.title}</span>
+                      <Badge variant="outline" className="text-[9px]">{t.status}</Badge>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {/* Attachments */}
