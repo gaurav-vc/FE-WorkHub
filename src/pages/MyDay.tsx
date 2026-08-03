@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   CheckSquare, Plus, Clock, Flag, Circle, CheckCircle2, Calendar, Users, Video,
-  RotateCcw, AlertTriangle, Link2, MoreHorizontal, Edit, Trash2, Eye, PartyPopper, Cake
+  RotateCcw, AlertTriangle, Link2, MoreHorizontal, Edit, Trash2, Eye, PartyPopper, Cake, Loader2
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -48,10 +48,10 @@ const getDueColor = (dueDateStr: string | null, isDelayed: boolean, isDone: bool
 };
 
 export default function MyDay() {
-  const { token, username, fullName, portalType, role } = useAuth();
+  const { token, username, fullName, portalType, role, isLoading: isAuthLoading } = useAuth();
   const isAdmin = portalType === 'site_admin' || portalType === 'super_user' || role === 'admin' || role?.toLowerCase().includes('admin');
   const isSiteAdmin = portalType === 'site_admin' || portalType === 'super_user';
-  const { tasks, addTask, updateTask, deleteTask, setSelectedTask } = useTaskContext();
+  const { tasks, addTask, updateTask, deleteTask, setSelectedTask, isLoadingTasks } = useTaskContext();
   const [searchQuery, setSearchQuery] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [editTask, setEditTask] = useState<Task | null>(null);
@@ -243,7 +243,11 @@ export default function MyDay() {
             </CardHeader>
             <CardContent className="p-0">
               <div className="divide-y divide-border max-h-[650px] overflow-y-auto custom-scrollbar">
-                {sortedTasks.length === 0 ? (
+                {(isLoadingTasks || isAuthLoading) ? (
+                  <div className="p-12 flex items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : sortedTasks.length === 0 ? (
                   <div className="p-8 text-center text-muted-foreground flex flex-col items-center justify-center">
                     <CheckSquare className="h-10 w-10 text-slate-200 mb-3" />
                     <p className="text-sm font-medium">{viewMode === 'team_tasks' ? 'No team task' : 'No task'}</p>

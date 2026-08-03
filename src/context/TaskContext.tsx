@@ -18,6 +18,7 @@ interface TaskContextType {
   unreadCount: number;
   selectedTask: Task | null;
   setSelectedTask: (task: Task | null) => void;
+  isLoadingTasks: boolean;
 }
 
 const TaskContext: Context<TaskContextType | null> = (window as any).__TaskContext || createContext<TaskContextType | null>(null);
@@ -32,6 +33,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [isLoadingTasks, setIsLoadingTasks] = useState<boolean>(true);
 
   const mapTaskFromApi = (t: any): Task => {
     const formatDate = (dateStr: string) => {
@@ -89,6 +91,8 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       if (err?.status !== 403) {
         console.error("Failed to fetch tasks", err);
       }
+    } finally {
+      setIsLoadingTasks(false);
     }
   };
 
@@ -292,8 +296,11 @@ export function TaskProvider({ children }: { children: ReactNode }) {
   return (
     <TaskContext.Provider value={{
       tasks, setTasks, addTask, updateTask, deleteTask,
-      notifications, setNotifications, markNotificationRead, markAllNotificationsRead, unreadCount,
-      selectedTask, setSelectedTask,
+      notifications, setNotifications, markNotificationRead, markAllNotificationsRead,
+      unreadCount,
+      selectedTask,
+      setSelectedTask,
+      isLoadingTasks
     }}>
       {children}
     </TaskContext.Provider>
