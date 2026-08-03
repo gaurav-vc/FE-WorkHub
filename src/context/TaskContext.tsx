@@ -53,11 +53,15 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       createdDate: formatDate(t.created_at || t.createdDate),
       createdTime: t.created_at ? new Date(t.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "",
       dueTime: t.dueTime || t.due_time || "",
-      assignees: t.assignees || (t.assignee_detail ? [{
+      assignees: (t.assignees_detail && t.assignees_detail.length > 0) ? t.assignees_detail.map((a: any) => ({
+        id: a.id,
+        name: a.name,
+        initials: a.name ? a.name.substring(0, 2).toUpperCase() : ""
+      })) : (Array.isArray(t.assignees) && t.assignees.length > 0 && typeof t.assignees[0] === 'object' ? t.assignees : (t.assignee_detail ? [{
         id: t.assignee_detail.id,
         name: t.assignee_detail.name,
         initials: t.assignee_detail.name.substring(0, 2).toUpperCase()
-      }] : []),
+      }] : [])),
       createdBy: t.createdBy || (t.created_by_name ? {
         name: t.created_by_name,
         initials: t.created_by_name.substring(0, 2).toUpperCase()

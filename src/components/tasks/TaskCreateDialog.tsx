@@ -1,8 +1,11 @@
 
 import { useState, useEffect } from "react";
 import {
-  Plus, X, AlertTriangle, RotateCcw, Link2, CheckSquare, ListTree, Paperclip, Flag,
+  Plus, X, AlertTriangle, RotateCcw, Link2, CheckSquare, ListTree, Paperclip, Flag, Check, ChevronsUpDown
 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -91,6 +94,7 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
   const [newSubtask, setNewSubtask] = useState({ title: "", assignee: "", dueDate: "" });
   const [newTag, setNewTag] = useState("");
   const [attachment, setAttachment] = useState<File | null>(null);
+  const [assigneePopoverOpen, setAssigneePopoverOpen] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -235,25 +239,68 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
                 <div className="space-y-1.5">
                   <Label className="text-sm">Assign To</Label>
                   <div className="flex flex-col gap-2">
-                    <Select onValueChange={(val) => {
-                      if (!form.assigneeIds.includes(val)) {
-                        setForm(f => ({ ...f, assigneeIds: [...f.assigneeIds, val] }));
-                      }
-                    }}>
-                      <SelectTrigger className="w-full sm:w-[360px] bg-background">
-                        <SelectValue placeholder="Select employees to assign..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {teamMembers.filter(m => !form.assigneeIds.includes(m.id.toString())).length === 0 && (
-                          <SelectItem value="none" disabled>No more employees to assign</SelectItem>
-                        )}
-                        {teamMembers.filter(m => !form.assigneeIds.includes(m.id.toString())).map(m => (
-                          <SelectItem key={m.id} value={m.id.toString()}>
-                            {m.name} ({m.initials})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Popover open={assigneePopoverOpen} onOpenChange={setAssigneePopoverOpen}>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" role="combobox" aria-expanded={assigneePopoverOpen} className="w-full sm:w-[360px] justify-between bg-background font-normal">
+                          {form.assigneeIds.length === 0 ? "Select employees to assign..." : (form.assigneeIds.length === 1 ? (() => {
+                            const found = teamMembers.find(m => m.id.toString() === form.assigneeIds[0].toString());
+                            return found ? `${found.name} (${found.initials})` : "1 Selected";
+                          })() : `${form.assigneeIds.length} Selected`)}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[360px] p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder="Search employee..." />
+                          <CommandList>
+                            <CommandEmpty>No employee found.</CommandEmpty>
+                            <CommandGroup>
+                              <div className="px-2 py-1.5 text-xs text-muted-foreground border-b border-border flex items-center justify-between">
+                                <span>Employees</span>
+                                <button
+                                  type="button"
+                                  className="text-primary hover:underline font-semibold"
+                                  onClick={() => {
+                                    if (form.assigneeIds.length === teamMembers.length && teamMembers.length > 0) {
+                                      setForm(f => ({ ...f, assigneeIds: [] }));
+                                    } else {
+                                      setForm(f => ({ ...f, assigneeIds: teamMembers.map(m => m.id.toString()) }));
+                                    }
+                                  }}
+                                >
+                                  {(form.assigneeIds.length === teamMembers.length && teamMembers.length > 0) ? "Deselect All" : "Select All"}
+                                </button>
+                              </div>
+                              {teamMembers.map((m: any) => {
+                                const idStr = m.id.toString();
+                                return (
+                                  <CommandItem
+                                    key={idStr}
+                                    value={m.name}
+                                    onSelect={() => {
+                                      setForm(prev => ({
+                                        ...prev,
+                                        assigneeIds: prev.assigneeIds.includes(idStr) 
+                                          ? prev.assigneeIds.filter(id => id !== idStr)
+                                          : [...prev.assigneeIds, idStr]
+                                      }));
+                                    }}
+                                  >
+                                    <div className={cn(
+                                      "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                                      form.assigneeIds.includes(idStr) ? "bg-primary text-primary-foreground" : "opacity-50 [&_svg]:invisible"
+                                    )}>
+                                      <Check className="h-3 w-3" />
+                                    </div>
+                                    {m.name} ({m.initials})
+                                  </CommandItem>
+                                );
+                              })}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
 
                     {form.assigneeIds.length > 0 && (
                       <div className="flex flex-wrap gap-1.5">

@@ -843,7 +843,9 @@ export default function CalendarMeetings() {
             
             {selectedEvent?.description && (
               <div className="flex items-start gap-3 text-sm text-muted-foreground mt-4 border-t border-border pt-4">
-                <p className="whitespace-pre-wrap">{selectedEvent.description}</p>
+                <div className="max-h-[150px] overflow-y-auto w-full pr-2 custom-scrollbar">
+                  <p className="whitespace-pre-wrap">{selectedEvent.description}</p>
+                </div>
               </div>
             )}
             

@@ -49,7 +49,7 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
   const [tags, setTags] = useState<string[]>([]);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [assignedTo, setAssignedTo] = useState("unassigned");
+  const [assignedToIds, setAssignedToIds] = useState<string[]>([]);
   const [globalUsers, setGlobalUsers] = useState<any[]>([]);
 
   // Advanced fields
@@ -107,17 +107,20 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
         ? parsedEffort * (effortUnit === "Hours" ? 60 : 480) 
         : 60;
 
-      let safeAssignedTo = null;
-      if (taskType === "assign" && assignedTo && assignedTo !== "unassigned") {
-        const parsed = parseInt(String(assignedTo).split('-')[0]);
-        if (!isNaN(parsed)) safeAssignedTo = parsed;
+      let assigneeIdsToSubmit: number[] = [];
+      if (taskType === "assign" && assignedToIds.length > 0) {
+        assigneeIdsToSubmit = assignedToIds.map(idStr => {
+           const parsed = parseInt(String(idStr).split('-')[0]);
+           return isNaN(parsed) ? null : parsed;
+        }).filter(id => id !== null) as number[];
       }
 
       await onSubmit({
         title: title.trim(),
         description: description || "",
         taskType,
-        assignedTo: safeAssignedTo,
+        assignedTo: assigneeIdsToSubmit.length > 0 ? assigneeIdsToSubmit[0] : null,
+        assigneeIds: assigneeIdsToSubmit,
         priority: priority || "P3 Medium",
         projectId: projectId && projectId !== "general" ? parseInt(projectId) : null,
         startDate: startDate || null,
@@ -147,7 +150,7 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
       setIsUrgent(false);
       setTags([]);
       setTaskType("self");
-      setAssignedTo("unassigned");
+      setAssignedToIds([]);
       setIsQueued(false);
       setColor("bg-primary");
       setStartDay(0);
@@ -228,14 +231,14 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
                     <Popover open={assigneePopoverOpen} onOpenChange={setAssigneePopoverOpen}>
                       <PopoverTrigger asChild>
                         <Button variant="outline" role="combobox" aria-expanded={assigneePopoverOpen} className="w-full justify-between bg-muted/30 h-10 font-normal">
-                          {assignedTo === "unassigned" ? "Unassigned" : (() => {
+                          {assignedToIds.length === 0 ? "Unassigned" : (assignedToIds.length === 1 ? (() => {
                             const userList = Array.isArray(teamMembers) && teamMembers.length ? teamMembers : globalUsers;
                             const found = userList.find((m: any, idx) => {
                               const uniqueVal = m?.id ? `${m.id}-${idx}` : (m?.email ? `${m.email}-${idx}` : `user-${idx}`);
-                              return uniqueVal === assignedTo;
+                              return uniqueVal === assignedToIds[0];
                             });
-                            return found ? (found.name || found.username || found.email || "Unknown User") : "Unassigned";
-                          })()}
+                            return found ? (found.name || found.username || found.email || "Unknown User") : "1 Selected";
+                          })() : `${assignedToIds.length} Selected`)}
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </PopoverTrigger>
@@ -245,14 +248,38 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
                           <CommandList>
                             <CommandEmpty>No employee found.</CommandEmpty>
                             <CommandGroup>
+                              <div className="px-2 py-1.5 text-xs text-muted-foreground border-b border-border flex items-center justify-between">
+                                <span>Employees</span>
+                                <button
+                                  type="button"
+                                  className="text-primary hover:underline font-semibold"
+                                  onClick={() => {
+                                    const userList = Array.isArray(teamMembers) && teamMembers.length ? teamMembers : globalUsers;
+                                    if (assignedToIds.length === userList.length && userList.length > 0) {
+                                      setAssignedToIds([]);
+                                    } else {
+                                      setAssignedToIds(userList.map((m: any, idx) => m?.id ? `${m.id}-${idx}` : (m?.email ? `${m.email}-${idx}` : `user-${idx}`)));
+                                    }
+                                  }}
+                                >
+                                  {(() => {
+                                    const userList = Array.isArray(teamMembers) && teamMembers.length ? teamMembers : globalUsers;
+                                    return (assignedToIds.length === userList.length && userList.length > 0) ? "Deselect All" : "Select All";
+                                  })()}
+                                </button>
+                              </div>
                               <CommandItem
                                 value="unassigned"
                                 onSelect={() => {
-                                  setAssignedTo("unassigned");
-                                  setAssigneePopoverOpen(false);
+                                  setAssignedToIds([]);
                                 }}
                               >
-                                <Check className={cn("mr-2 h-4 w-4", assignedTo === "unassigned" ? "opacity-100" : "opacity-0")} />
+                                <div className={cn(
+                                  "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                                  assignedToIds.length === 0 ? "bg-primary text-primary-foreground" : "opacity-50 [&_svg]:invisible"
+                                )}>
+                                  <Check className="h-3 w-3" />
+                                </div>
                                 Unassigned
                               </CommandItem>
                               {(Array.isArray(teamMembers) && teamMembers.length ? teamMembers : globalUsers).map((m: any, idx) => {
@@ -263,11 +290,19 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
                                     key={uniqueVal}
                                     value={displayName}
                                     onSelect={() => {
-                                      setAssignedTo(uniqueVal);
-                                      setAssigneePopoverOpen(false);
+                                      setAssignedToIds(prev => 
+                                        prev.includes(uniqueVal) 
+                                          ? prev.filter(id => id !== uniqueVal)
+                                          : [...prev, uniqueVal]
+                                      );
                                     }}
                                   >
-                                    <Check className={cn("mr-2 h-4 w-4", assignedTo === uniqueVal ? "opacity-100" : "opacity-0")} />
+                                    <div className={cn(
+                                      "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                                      assignedToIds.includes(uniqueVal) ? "bg-primary text-primary-foreground" : "opacity-50 [&_svg]:invisible"
+                                    )}>
+                                      <Check className="h-3 w-3" />
+                                    </div>
                                     {displayName}
                                   </CommandItem>
                                 );
