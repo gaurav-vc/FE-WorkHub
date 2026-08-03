@@ -733,6 +733,7 @@ export default function ProjectBoard({ projectId, onBack }: ProjectBoardProps) {
         onSubmit={addTaskWithDetails}
         teamMembers={project?.team || []}
         tasks={project?.imported_tasks || []}
+        defaultProjectId={project?.id?.toString()}
       />
     </div>
   );

@@ -8,8 +8,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { API_BASE } from "@/config";
 import { ErrorBoundary } from "../ErrorBoundary";
+import { toast } from "sonner";
 
 interface CreateTaskModalProps {
   open: boolean;
@@ -17,9 +22,10 @@ interface CreateTaskModalProps {
   onSubmit: (taskData: any) => Promise<void> | void;
   teamMembers?: any[];
   tasks?: any[];
+  defaultProjectId?: string;
 }
 
-export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tasks }: CreateTaskModalProps) {
+export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tasks, defaultProjectId }: CreateTaskModalProps) {
   const [activeTab, setActiveTab] = useState("details");
   const [taskType, setTaskType] = useState<"self" | "assign">("self");
   
@@ -52,8 +58,13 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
   const [startDay, setStartDay] = useState(0);
   const [duration, setDuration] = useState(3);
 
+  const [assigneePopoverOpen, setAssigneePopoverOpen] = useState(false);
+
   useEffect(() => {
     if (open) {
+      if (defaultProjectId) setProjectId(defaultProjectId);
+      else setProjectId("general");
+      
       const token = localStorage.getItem("token") || sessionStorage.getItem("token");
       const headers = token ? { "Authorization": `Bearer ${token}` } : {};
       
@@ -67,7 +78,7 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
         .then(data => setProjects(Array.isArray(data) ? data : data.results || []))
         .catch(console.error);
     }
-  }, [open]);
+  }, [open, defaultProjectId]);
 
   const handleAddTag = (e: React.KeyboardEvent | React.MouseEvent) => {
     if (('key' in e && e.key === 'Enter') || e.type === 'click') {
@@ -84,37 +95,45 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
   };
 
   const handleSubmit = async () => {
-    if (!title.trim() || !dueDate) {
-      alert("Please fill in required fields (Task Topic and Due Date)");
+    if (!title || !title.trim()) {
+      toast.error("Please provide a Task Topic");
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const timeIntervalMinutes = estimatedEffort > 0 
-        ? estimatedEffort * (effortUnit === "Hours" ? 60 : 480) 
+      const parsedEffort = Number(estimatedEffort) || 0;
+      const timeIntervalMinutes = parsedEffort > 0 
+        ? parsedEffort * (effortUnit === "Hours" ? 60 : 480) 
         : 60;
 
+      let safeAssignedTo = null;
+      if (taskType === "assign" && assignedTo && assignedTo !== "unassigned") {
+        const parsed = parseInt(String(assignedTo).split('-')[0]);
+        if (!isNaN(parsed)) safeAssignedTo = parsed;
+      }
+
       await onSubmit({
-        title,
-        description,
+        title: title.trim(),
+        description: description || "",
         taskType,
-        assignedTo: taskType === "assign" && assignedTo !== "unassigned" ? parseInt(assignedTo.split('-')[0]) : null,
-        priority,
-        projectId: projectId === "general" ? null : parseInt(projectId),
-        startDate,
-        dueDate,
-        dueTime,
+        assignedTo: safeAssignedTo,
+        priority: priority || "P3 Medium",
+        projectId: projectId && projectId !== "general" ? parseInt(projectId) : null,
+        startDate: startDate || null,
+        dueDate: dueDate || new Date().toISOString().split('T')[0],
+        dueTime: dueTime || null,
         timeIntervalMinutes,
-        estimatedEffort,
-        effortUnit,
-        isUrgent,
-        tags,
-        is_queued: isQueued,
-        color,
-        start_day: startDay,
-        duration
+        estimatedEffort: parsedEffort,
+        effortUnit: effortUnit || "Hours",
+        isUrgent: !!isUrgent,
+        tags: tags || [],
+        is_queued: !!isQueued,
+        color: color || "bg-primary",
+        start_day: Number(startDay) || 0,
+        duration: Number(duration) || 3
       });
+      
       // Reset form
       setTitle("");
       setDescription("");
@@ -134,9 +153,9 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
       setStartDay(0);
       setDuration(3);
       onOpenChange(false);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      alert("Failed to create task");
+      toast.error(e.message || "Failed to create task");
     } finally {
       setIsSubmitting(false);
     }
@@ -206,19 +225,58 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
                 {taskType === "assign" && (
                   <div className="space-y-1.5">
                     <Label className="text-sm font-semibold">Assign To</Label>
-                    <Select value={assignedTo} onValueChange={setAssignedTo}>
-                      <SelectTrigger className="bg-muted/30 h-10">
-                        <SelectValue placeholder="Select employees to assign..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="unassigned">Unassigned</SelectItem>
-                        {(Array.isArray(teamMembers) && teamMembers.length ? teamMembers : globalUsers).map((m: any, idx) => {
-                          const uniqueVal = m?.id ? `${m.id}-${idx}` : (m?.email ? `${m.email}-${idx}` : `user-${idx}`);
-                          const displayName = m?.name || m?.username || m?.email || "Unknown User";
-                          return <SelectItem key={uniqueVal} value={uniqueVal}>{displayName}</SelectItem>;
-                        })}
-                      </SelectContent>
-                    </Select>
+                    <Popover open={assigneePopoverOpen} onOpenChange={setAssigneePopoverOpen}>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" role="combobox" aria-expanded={assigneePopoverOpen} className="w-full justify-between bg-muted/30 h-10 font-normal">
+                          {assignedTo === "unassigned" ? "Unassigned" : (() => {
+                            const userList = Array.isArray(teamMembers) && teamMembers.length ? teamMembers : globalUsers;
+                            const found = userList.find((m: any, idx) => {
+                              const uniqueVal = m?.id ? `${m.id}-${idx}` : (m?.email ? `${m.email}-${idx}` : `user-${idx}`);
+                              return uniqueVal === assignedTo;
+                            });
+                            return found ? (found.name || found.username || found.email || "Unknown User") : "Unassigned";
+                          })()}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[400px] p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder="Search employee..." />
+                          <CommandList>
+                            <CommandEmpty>No employee found.</CommandEmpty>
+                            <CommandGroup>
+                              <CommandItem
+                                value="unassigned"
+                                onSelect={() => {
+                                  setAssignedTo("unassigned");
+                                  setAssigneePopoverOpen(false);
+                                }}
+                              >
+                                <Check className={cn("mr-2 h-4 w-4", assignedTo === "unassigned" ? "opacity-100" : "opacity-0")} />
+                                Unassigned
+                              </CommandItem>
+                              {(Array.isArray(teamMembers) && teamMembers.length ? teamMembers : globalUsers).map((m: any, idx) => {
+                                const uniqueVal = m?.id ? `${m.id}-${idx}` : (m?.email ? `${m.email}-${idx}` : `user-${idx}`);
+                                const displayName = m?.name || m?.username || m?.email || "Unknown User";
+                                return (
+                                  <CommandItem
+                                    key={uniqueVal}
+                                    value={displayName}
+                                    onSelect={() => {
+                                      setAssignedTo(uniqueVal);
+                                      setAssigneePopoverOpen(false);
+                                    }}
+                                  >
+                                    <Check className={cn("mr-2 h-4 w-4", assignedTo === uniqueVal ? "opacity-100" : "opacity-0")} />
+                                    {displayName}
+                                  </CommandItem>
+                                );
+                              })}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 )}
 
