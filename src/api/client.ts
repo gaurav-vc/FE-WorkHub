@@ -3,6 +3,7 @@ import { API_BASE } from "@/config";
 interface ApiOptions extends RequestInit {
   data?: any;
   params?: Record<string, string>;
+  responseType?: 'json' | 'blob' | 'text';
 }
 
 /**
@@ -53,6 +54,14 @@ export const apiClient = async <T = any>(endpoint: string, options: ApiOptions =
   }
 
   if (res.status === 204) return null as unknown as T;
+  
+  if (options.responseType === 'blob') {
+    return (await res.blob()) as unknown as T;
+  }
+  
+  if (options.responseType === 'text') {
+    return (await res.text()) as unknown as T;
+  }
   
   try {
     const text = await res.text();

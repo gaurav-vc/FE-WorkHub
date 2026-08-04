@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { getProjects, createProject, updateProject, deleteProject as deleteProjectApi, getDepartments, getTemplates, importTemplate } from "@/api/projects";
+import { getProjects, createProject, updateProject, deleteProject as deleteProjectApi, getDepartments, getTemplates, importTemplate, duplicateProject, exportProject } from "@/api/projects";
 import { toast } from "sonner";
 import { PermissionGuard } from "@/components/auth/PermissionGuard";
 
@@ -54,11 +54,13 @@ interface Project {
   dueDate: string | null;
   tasks: any;
   imported_tasks?: any[];
+  created_by_name?: string;
 }
 
 const DEFAULT_COLUMNS = [
   { id: "planning", title: "Planning", color: "bg-slate-400" },
   { id: "open", title: "Open", color: "bg-blue-400" },
+  { id: "started", title: "Started", color: "bg-indigo-400" },
   { id: "pending", title: "Pending", color: "bg-yellow-500" },
   { id: "review", title: "Review", color: "bg-purple-500" },
   { id: "completed", title: "Completed", color: "bg-green-500" },
@@ -72,6 +74,9 @@ const STATUS_MAPPING: Record<string, string> = {
   "on_hold": "pending",
   "delay": "review",
   "delayed": "review",
+  "todo": "planning",
+  "not_started": "planning",
+  "not started": "planning",
 };
 
 const getMappedStatus = (status: string, columns: Array<{ id: string }>) => {
@@ -226,6 +231,27 @@ export default function Projects() {
     }
   };
 
+  const handleDuplicate = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    try {
+      await duplicateProject(id);
+      toast.success("Project duplicated successfully");
+      fetchProjects();
+    } catch (err) {
+      toast.error("Failed to duplicate project");
+    }
+  };
+
+  const handleExport = async (e: React.MouseEvent, project: Project) => {
+    e.stopPropagation();
+    try {
+      await exportProject(project.id, project.name);
+      toast.success("Project exported successfully");
+    } catch (err) {
+      toast.error("Failed to export project");
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -277,81 +303,182 @@ export default function Projects() {
               className="shadow-card hover:shadow-md transition-all cursor-pointer group"
               onClick={() => navigate(`/tasks/projects/${project.id}`)}
             >
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">{project.name}</h3>
-                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{project.description}</p>
+              <CardContent className="p-6 flex flex-col h-full">
+                {/* Header */}
+                <div className="flex items-start justify-between mb-5">
+                  <div className="flex-1 min-w-0 pr-4">
+                    <h3 className="text-[15px] font-bold text-slate-800 group-hover:text-primary transition-colors">{project.name}</h3>
+                    <p className="text-[11px] font-medium text-slate-400 mt-1 line-clamp-1">
+                      {project.department || 'General'} &middot; {project.template_type === 'blank' ? 'Project' : project.template_type || 'Project'}
+                    </p>
                   </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                      <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0"><MoreHorizontal className="h-4 w-4" /></Button>
-                    </DropdownMenuTrigger>
-                    <PermissionGuard requires="edit">
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={(e) => openEdit(e, project)}><Edit className="h-3.5 w-3.5 mr-1.5" /> Edit</DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive" onClick={(e) => deleteProject(e, project.id)}><Trash2 className="h-3.5 w-3.5 mr-1.5" /> Delete</DropdownMenuItem>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className={`${statusConfig[project.status]?.color || statusConfig['planning'].color} text-[10px] font-semibold border-0 bg-opacity-10 px-2.5 py-1 whitespace-nowrap flex items-center`}>
+                      <span className={`w-1.5 h-1.5 rounded-full mr-1.5 inline-block ${statusConfig[project.status]?.color?.replace('text-', 'bg-').replace('border-', 'bg-') || 'bg-slate-400'}`}></span>
+                      {statusConfig[project.status]?.label || 'Planning'}
+                    </Badge>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-slate-600" onClick={(e) => e.stopPropagation()}>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-40">
+                        <PermissionGuard requires="edit">
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEdit(e as any, project); }}>
+                            Edit Project
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => handleDuplicate(e as any, project.id)}>
+                            Duplicate
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => handleExport(e as any, project)}>
+                            Export
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="text-red-600" onClick={(e) => deleteProject(e as any, project.id)}>
+                            Archive
+                          </DropdownMenuItem>
+                        </PermissionGuard>
                       </DropdownMenuContent>
-                    </PermissionGuard>
-                  </DropdownMenu>
+                    </DropdownMenu>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 mb-3">
-                  <Badge variant="outline" className={`${statusConfig[project.status]?.color || statusConfig['planning'].color} text-[10px]`}>{statusConfig[project.status]?.label || 'Planning'}</Badge>
-                  {project.department && <Badge variant="secondary" className="text-[10px]">{project.department}</Badge>}
-                  <Badge variant="outline" className="text-[10px] bg-slate-100 text-slate-600">Total Tasks: {project.imported_tasks?.length || 0}</Badge>
+
+                {/* 2x2 Grid */}
+                <div className="grid grid-cols-2 gap-y-5 gap-x-2 mb-6">
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Access Scope</p>
+                    <p className="text-xs font-semibold text-slate-700">{project.department || 'Execution'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Project Head</p>
+                    <p className="text-xs font-semibold text-slate-700">{project.created_by_name || 'System'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Total Tasks</p>
+                    <p className="text-xs font-semibold text-slate-700">{project.imported_tasks?.length || 0}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Timeline Status</p>
+                    <p className="text-xs font-semibold text-slate-700">
+                      {(() => {
+                        if (!project.dueDate) return 'TBD';
+                        if (['completed', 'closed', 'done'].includes(project.status.toLowerCase())) return 'Completed';
+                        
+                        const due = new Date(project.dueDate);
+                        const today = new Date();
+                        due.setHours(0,0,0,0);
+                        today.setHours(0,0,0,0);
+                        
+                        const diffTime = due.getTime() - today.getTime();
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        
+                        if (diffDays < 0) return <span className="text-red-500">{Math.abs(diffDays)} day{Math.abs(diffDays) === 1 ? '' : 's'} behind</span>;
+                        if (diffDays === 0) return <span className="text-amber-500">Due today</span>;
+                        return <span className="text-emerald-500">On Schedule</span>;
+                      })()}
+                    </p>
+                  </div>
                 </div>
+
+                {/* Progress Bar */}
                 {(() => {
                   const totalTasks = project.imported_tasks?.length || 0;
                   const completedTasks = project.imported_tasks?.filter((t: any) => ['completed', 'done', 'closed'].includes(t.status?.toLowerCase())).length || 0;
                   const progressValue = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
                   
+                  let progressColor = "bg-blue-600";
+                  if (project.status === "completed") progressColor = "bg-blue-600";
+                  else if (project.status === "on-hold" || project.status === "planning") progressColor = "bg-amber-500";
+                  else if (project.status === "active") progressColor = "bg-emerald-500";
+                  else progressColor = "bg-red-500";
+
                   return (
-                    <div className="mb-3">
-                      <div className="flex items-center justify-between text-xs mb-1">
-                        <span className="text-muted-foreground">Progress</span>
-                        <span className="font-semibold text-foreground">{progressValue}%</span>
+                    <div className="mb-6">
+                      <div className="flex items-center justify-between text-[11px] font-bold text-slate-400 mb-1.5">
+                        <span>Progress</span>
+                        <span className="text-slate-700">{progressValue}%</span>
                       </div>
-                      <Progress value={progressValue} className="h-1.5" />
+                      <div className="h-1 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <div className={`h-full ${progressColor} rounded-full`} style={{ width: `${progressValue}%` }} />
+                      </div>
                     </div>
                   );
                 })()}
-                <div className="flex items-center justify-between">
-                  <div className="flex -space-x-1.5">
-                    {project.team.slice(0, 4).map((m, i) => (
-                      <Avatar key={i} className="h-6 w-6 border-2 border-card">
-                        <AvatarFallback className="text-[8px] bg-primary/10 text-primary font-semibold">{m.initials}</AvatarFallback>
-                      </Avatar>
-                    ))}
-                    {project.team.length > 4 && <span className="text-[10px] text-muted-foreground ml-2">+{project.team.length - 4}</span>}
-                  </div>
-                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                    {project.dueDate && <span className="flex items-center gap-0.5"><Calendar className="h-3 w-3" />{project.dueDate}</span>}
-                  </div>
-                </div>
-                <div className="mt-4 pt-3 border-t border-border">
-                  <div className="flex flex-wrap gap-1.5">
-                    {(() => {
-                      const projectColumns = (project.tasks && project.tasks.columns && Array.isArray(project.tasks.columns)) ? project.tasks.columns : DEFAULT_COLUMNS;
-                      const taskCounts: Record<string, number> = {};
-                      
-                      projectColumns.forEach((c: any) => {
-                        taskCounts[c.id] = 0;
-                      });
 
+                <div className="mt-auto">
+                  {/* Date & Avatars row */}
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+                    <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-400">
+                      <Calendar className="h-3.5 w-3.5" />
+                      {project.dueDate ? `Due ${project.dueDate}` : 'No Due Date'}
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      {(() => {
+                        const activeAssignees = new Map();
+                        if (project.imported_tasks) {
+                          project.imported_tasks.forEach((task: any) => {
+                            if (task.assignee_detail) {
+                               activeAssignees.set(task.assignee_detail.id, task.assignee_detail.name);
+                            }
+                            if (task.assignees_detail) {
+                               task.assignees_detail.forEach((a: any) => activeAssignees.set(a.id, a.name));
+                            }
+                          });
+                        }
+                        const assigneesList = Array.from(activeAssignees.values());
+                        const displayList = assigneesList.slice(0, 4);
+                        const remaining = assigneesList.length - 4;
+
+                        return (
+                          <>
+                            {displayList.map((name: any, idx) => {
+                              const initials = name.split(" ").map((n: string) => n[0]).join("").substring(0, 2).toUpperCase();
+                              return (
+                                <div key={idx} className="h-5 w-5 rounded flex items-center justify-center bg-blue-50 text-blue-500 text-[8px] font-bold">
+                                  {initials}
+                                </div>
+                              );
+                            })}
+                            {remaining > 0 && (
+                              <div className="h-5 w-5 rounded flex items-center justify-center bg-slate-50 text-slate-400 text-[8px] font-bold">
+                                +{remaining}
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </div>
+
+                  {/* Status Counts row */}
+                  <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-slate-100">
+                    {(() => {
+                      const counts: Record<string, number> = {
+                        planning: 0, open: 0, pending: 0, review: 0, completed: 0, closed: 0
+                      };
                       if (project.imported_tasks) {
-                        project.imported_tasks.forEach((task: any) => {
-                          const mappedId = getMappedStatus(task.status, projectColumns);
-                          if (taskCounts[mappedId] !== undefined) {
-                            taskCounts[mappedId]++;
+                        project.imported_tasks.forEach((t: any) => {
+                          const status = getMappedStatus(t.status, DEFAULT_COLUMNS);
+                          if (counts[status] === undefined) {
+                            counts[status] = 0;
                           }
+                          counts[status]++;
                         });
                       }
-
-                      return projectColumns.map((col: any) => (
-                        <span key={col.id} style={getStatusStyles(col.title)} className="px-3 py-1 rounded-full text-xs font-semibold capitalize shadow-sm border border-black/5">
-                          {col.title} {taskCounts[col.id]}
-                        </span>
-                      ));
+                      
+                      return Object.entries(counts).map(([statusId, count]) => {
+                        const defaultCol = DEFAULT_COLUMNS.find(c => c.id === statusId);
+                        const title = defaultCol ? defaultCol.title : statusId.charAt(0).toUpperCase() + statusId.slice(1).replace(/_/g, ' ');
+                        const color = defaultCol ? defaultCol.color : "bg-slate-500";
+                        return (
+                          <div key={statusId} className="flex items-center gap-1.5 bg-slate-50 border border-slate-100 rounded-lg px-2.5 py-1.5 min-w-[80px] justify-center shadow-sm">
+                            <span className={`w-2 h-2 rounded-full ${color}`}></span>
+                            <span className="text-[11px] font-semibold text-slate-700 hidden sm:inline">{title}</span>
+                            <span className="text-xs font-bold text-slate-900 ml-auto">{count}</span>
+                          </div>
+                        );
+                      });
                     })()}
                   </div>
                 </div>

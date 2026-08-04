@@ -192,6 +192,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       const anyTask: any = task;
       if (anyTask.assigneeIds && anyTask.assigneeIds.length > 0) {
           apiPayload.assigned_to = anyTask.assigneeIds[0];
+          apiPayload.assignees = anyTask.assigneeIds;
       }
       
       if (task.status === "todo") apiPayload.status = "pending";
@@ -232,8 +233,10 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     if (anyUpdates.assigneeIds !== undefined) {
         if (anyUpdates.assigneeIds.length > 0) {
             apiPayload.assigned_to = anyUpdates.assigneeIds[0];
+            apiPayload.assignees = anyUpdates.assigneeIds;
         } else {
             apiPayload.assigned_to = null;
+            apiPayload.assignees = [];
         }
     }
     

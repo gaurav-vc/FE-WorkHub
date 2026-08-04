@@ -73,7 +73,10 @@ const STATUS_MAPPING: Record<string, string> = {
 const getMappedStatus = (status: string, columns: Array<{ id: string }>) => {
   if (!status) return "pending";
   if (columns.some(c => c.id === status)) return status;
-  return STATUS_MAPPING[status] || status;
+  const mapped = STATUS_MAPPING[status] || status;
+  // If the status is not in the columns, default to pending (or the first column) to prevent tasks from vanishing
+  if (!columns.some(c => c.id === mapped)) return columns[0]?.id || "pending";
+  return mapped;
 };
 
 export default function ProjectBoard({ projectId, onBack }: ProjectBoardProps) {
