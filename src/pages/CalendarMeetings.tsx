@@ -100,7 +100,7 @@ export default function CalendarMeetings() {
               grouped[dateKey].push({
                 id: ev.id?.toString() || `e${Math.random()}`,
                 title: ev.title || "Untitled",
-                time: isTask ? "10:00 AM" : (ev.start_time ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "10:00 AM"),
+                time: ev.start_time ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "10:00 AM",
                 duration: isTask ? "" : (ev.duration || "1h"),
                 type: ev.meeting_type || ev.type || "meeting",
                 attendees: ev.attendees || [],

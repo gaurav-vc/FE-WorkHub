@@ -284,7 +284,7 @@ export default function UsersRoles() {
       <div className="relative">
         <div className="absolute inset-0 pointer-events-none z-50">
           <Dialog open={isRoleModalOpen} onOpenChange={setIsRoleModalOpen}>
-            <DialogContent className="sm:max-w-[700px] pointer-events-auto">
+            <DialogContent className="sm:max-w-[700px] pointer-events-auto max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>{editRoleId ? "Edit Role" : "New Role"}</DialogTitle>
                 <CardDescription>Roles define the permission templates inherited by users.</CardDescription>
@@ -354,7 +354,7 @@ export default function UsersRoles() {
             </DialogContent>
           </Dialog>
           <Dialog open={isUserModalOpen} onOpenChange={setIsUserModalOpen}>
-            <DialogContent className="sm:max-w-[700px]">
+            <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>{editUserId ? "Edit User" : "New User"}</DialogTitle>
                 <CardDescription>Fields are linked to keep your hierarchy consistent.</CardDescription>

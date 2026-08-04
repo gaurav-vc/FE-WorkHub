@@ -16,6 +16,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { useTaskContext } from "@/context/TaskContext";
+import { API_BASE, MEDIA_BASE } from "@/config";
 import { Task } from "@/types/tasks";
 import { useAuth } from "@/context/AuthContext";
 import { addTaskComment, addTaskChat } from "@/api/tasks";
@@ -320,7 +321,12 @@ export function TaskWorkspacePanel() {
                     className="text-xs"
                     onClick={() => {
                       if (a.file) {
-                        window.open(a.file, '_blank');
+                        let url = a.file;
+                        if (!url.startsWith('http')) {
+                            const fileUrlStr = url.startsWith('/') ? url : `/${url}`;
+                            url = `${MEDIA_BASE}${fileUrlStr}`;
+                        }
+                        window.open(url, '_blank');
                       }
                     }}
                   >

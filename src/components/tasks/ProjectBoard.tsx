@@ -259,18 +259,20 @@ export default function ProjectBoard({ projectId, onBack }: ProjectBoardProps) {
       } else {
         const data = await res.json();
         
-        if (taskData.file && data.task_id) {
-          const formData = new FormData();
-          formData.append("file", taskData.file);
+        if (taskData.attachments && taskData.attachments.length > 0 && data.task_id) {
           try {
-            await fetch(`${API_BASE}/projects/tasks/${data.task_id}/upload/`, {
-              method: "POST",
-              headers: { "Authorization": `Bearer ${token}` },
-              body: formData
-            });
+            await Promise.all(taskData.attachments.map(async (file: File) => {
+              const formData = new FormData();
+              formData.append("file", file);
+              await fetch(`${API_BASE}/projects/tasks/${data.task_id}/upload/`, {
+                method: "POST",
+                headers: { "Authorization": `Bearer ${token}` },
+                body: formData
+              });
+            }));
           } catch (uploadErr) {
             console.error("File upload failed", uploadErr);
-            toast.error("Task created, but file upload failed.");
+            toast.error("Task created, but some file uploads failed.");
           }
         }
         

@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/context/AuthContext";
 import { ImageViewerModal } from "@/components/shared/ImageViewerModal";
-import { API_BASE } from "@/config";
+import { API_BASE, MEDIA_BASE } from "@/config";
 import { ErrorBoundary } from "../ErrorBoundary";
 
 interface TaskDetailsModalProps {
@@ -493,7 +493,7 @@ export function TaskDetailsModal({ taskId, open, onOpenChange, onTaskUpdate, pro
                     const fileName = att.file_name || att.file.split('/').pop() || "Attachment";
                     const isImg = isImageFile(fileName);
                     const fileUrlStr = att.file.startsWith('/') ? att.file : `/${att.file}`;
-                    const url = att.file.startsWith('http') ? att.file : `${API_BASE.replace('/api', '')}${fileUrlStr}`;
+                    const url = att.file.startsWith('http') ? att.file : `${MEDIA_BASE}${fileUrlStr}`;
                     return (
                       <div key={att.id} className="relative group rounded-lg border border-slate-200 overflow-hidden bg-slate-50 aspect-video flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 transition-colors"
                         onClick={() => {

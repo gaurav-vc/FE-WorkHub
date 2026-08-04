@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,6 +57,7 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
   const [color, setColor] = useState("bg-primary");
   const [startDay, setStartDay] = useState(0);
   const [duration, setDuration] = useState(3);
+  const [attachments, setAttachments] = useState<File[]>([]);
 
   const [assigneePopoverOpen, setAssigneePopoverOpen] = useState(false);
 
@@ -134,7 +135,8 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
         is_queued: !!isQueued,
         color: color || "bg-primary",
         start_day: Number(startDay) || 0,
-        duration: Number(duration) || 3
+        duration: Number(duration) || 3,
+        attachments: attachments,
       });
       
       // Reset form
@@ -155,6 +157,7 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
       setColor("bg-primary");
       setStartDay(0);
       setDuration(3);
+      setAttachments([]);
       onOpenChange(false);
     } catch (e: any) {
       console.error(e);
@@ -175,8 +178,9 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
             </DialogTitle>
             
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="w-full bg-transparent border-b border-border p-0 h-auto grid grid-cols-4 justify-start">
+              <TabsList className="w-full bg-transparent border-b border-border p-0 h-auto grid grid-cols-5 justify-start">
                 <TabsTrigger value="details" className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:bg-transparent rounded-none px-4 py-2 text-muted-foreground font-semibold">Details</TabsTrigger>
+                <TabsTrigger value="attachments" className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:bg-transparent rounded-none px-4 py-2 text-muted-foreground font-semibold">Attachments</TabsTrigger>
                 <TabsTrigger value="checklist" className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:bg-transparent rounded-none px-4 py-2 text-muted-foreground font-semibold">Checklist</TabsTrigger>
                 <TabsTrigger value="subtasks" className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:bg-transparent rounded-none px-4 py-2 text-muted-foreground font-semibold">Subtasks</TabsTrigger>
                 <TabsTrigger value="advanced" className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:bg-transparent rounded-none px-4 py-2 text-muted-foreground font-semibold">Advanced</TabsTrigger>
@@ -417,6 +421,46 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
                 </div>
 
               </TabsContent>
+              <TabsContent value="attachments" className="mt-0 py-6 space-y-4">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold">Task Attachments</h3>
+                    <div className="relative">
+                      <input 
+                        type="file" 
+                        multiple 
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
+                        onChange={(e) => {
+                          if (e.target.files) {
+                            setAttachments(prev => [...prev, ...Array.from(e.target.files!)]);
+                          }
+                        }}
+                      />
+                      <Button variant="outline" size="sm" className="gap-2 pointer-events-none">
+                        <Plus className="h-4 w-4" /> Add Files
+                      </Button>
+                    </div>
+                  </div>
+                  {attachments.length > 0 ? (
+                    <div className="grid grid-cols-2 gap-3">
+                      {attachments.map((file, i) => (
+                        <div key={i} className="flex items-center justify-between p-2 border border-border rounded-md bg-muted/30">
+                          <div className="flex items-center gap-2 overflow-hidden">
+                            <span className="text-xs font-medium truncate">{file.name}</span>
+                          </div>
+                          <button onClick={() => setAttachments(attachments.filter((_, idx) => idx !== i))} className="text-muted-foreground hover:text-foreground shrink-0">
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center p-8 border border-dashed border-border rounded-lg text-muted-foreground">
+                      <p className="text-sm">No attachments yet. Click Add Files to upload.</p>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
               <TabsContent value="checklist" className="mt-0 py-8 text-center text-muted-foreground">Checklist functionality coming soon.</TabsContent>
               <TabsContent value="subtasks" className="mt-0 py-8 text-center text-muted-foreground">Subtasks functionality coming soon.</TabsContent>
               <TabsContent value="advanced" className="mt-0 pt-4 space-y-6">
@@ -436,8 +480,8 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
                   </div>
                   <div className="flex flex-col justify-center space-y-2 pt-6">
                     <div className="flex items-center space-x-2">
-                      <Switch id="is-queued" checked={isQueued} onCheckedChange={setIsQueued} />
-                      <Label htmlFor="is-queued" className="text-sm font-semibold cursor-pointer">Queue Task Execution</Label>
+                      <Switch id="is-queued" checked={isQueued} onCheckedChange={setIsQueued} className="scale-150 transform origin-left ml-2" />
+                      <Label htmlFor="is-queued" className="text-base ml-4 font-bold cursor-pointer">Queue Task Execution</Label>
                     </div>
                     <p className="text-xs text-muted-foreground">If checked, task will wait in queue for resources.</p>
                   </div>
