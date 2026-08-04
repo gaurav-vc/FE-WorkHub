@@ -173,6 +173,16 @@ export function TaskProvider({ children }: { children: ReactNode }) {
   const addTask = async (task: Task) => {
     try {
       const apiPayload: any = { ...task };
+      
+      // Clean up frontend-only fields
+      delete apiPayload.assignees;
+      delete apiPayload.subtasks;
+      delete apiPayload.checklists;
+      delete apiPayload.checklist;
+      delete apiPayload.comments;
+      delete apiPayload.chat;
+      delete apiPayload.dependent_tasks_legacy;
+
       if (task.dueDate) apiPayload.due_date = task.dueDate;
       else apiPayload.due_date = new Date().toISOString().split('T')[0]; // Required by backend
       
