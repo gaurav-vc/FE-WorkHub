@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthContext";
+import { useBranding } from "@/context/BrandingContext";
 import { API_BASE } from "@/config";
 
 interface BrandSettings {
@@ -64,6 +65,13 @@ export default function Branding() {
   const [hasChanges, setHasChanges] = useState(false);
   const [loading, setLoading] = useState(true);
   const { token } = useAuth();
+  const { updateBrandingState } = useBranding();
+
+  useEffect(() => {
+    if (!loading) {
+      updateBrandingState(settings);
+    }
+  }, [settings, loading]);
 
   useEffect(() => {
     fetchSettings();
@@ -127,6 +135,24 @@ export default function Branding() {
     setHasChanges(true);
   };
 
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast({ title: "Error", description: "Image must be less than 2MB", variant: "destructive" });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        update("logo", event.target.result as string);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   if (loading) return <div className="p-8 text-center text-muted-foreground animate-pulse">Loading branding settings...</div>;
 
   return (
@@ -159,9 +185,17 @@ export default function Branding() {
                   {settings.logo ? <img src={settings.logo} alt="Logo" className="h-12 w-12 object-contain" /> : <Upload className="h-6 w-6 text-muted-foreground" />}
                 </div>
                 <div>
-                  <Button size="sm" variant="outline" className="text-xs" onClick={() => update("logo", "/placeholder.svg")}>
-                    <Upload className="h-3.5 w-3.5 mr-1" /> Upload Logo
-                  </Button>
+                  <div className="relative inline-block">
+                    <input 
+                      type="file" 
+                      accept="image/png, image/jpeg, image/svg+xml" 
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
+                      onChange={handleLogoUpload}
+                    />
+                    <Button size="sm" variant="outline" className="text-xs pointer-events-none">
+                      <Upload className="h-3.5 w-3.5 mr-1" /> Upload Logo
+                    </Button>
+                  </div>
                   <p className="text-[10px] text-muted-foreground mt-1">PNG or SVG, max 2MB</p>
                 </div>
               </div>

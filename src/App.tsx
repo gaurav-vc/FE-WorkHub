@@ -104,6 +104,7 @@ export const APP_ROUTES = [
 ];
 
 import { AuthProvider } from "@/context/AuthContext";
+import { BrandingProvider } from "@/context/BrandingContext";
 
 const queryClient = new QueryClient();
 
@@ -114,9 +115,10 @@ const App = () => (
       <Sonner />
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <AuthProvider>
-          <TaskProvider>
-            <AppLayout>
-              <Routes>
+          <BrandingProvider>
+            <TaskProvider>
+              <AppLayout>
+                <Routes>
               <Route path="/" element={<ProtectedRoute route="/"><Dashboard /></ProtectedRoute>} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
@@ -180,8 +182,9 @@ const App = () => (
             </Routes>
             </AppLayout>
           </TaskProvider>
-          </AuthProvider>
-        </BrowserRouter>
+          </BrandingProvider>
+        </AuthProvider>
+      </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
 );

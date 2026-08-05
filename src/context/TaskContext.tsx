@@ -248,12 +248,19 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     console.log("Sending update to backend:", id, apiPayload);
     
     // Pass snake_case payload
+    const updatePromise = updateTaskApi(id, apiPayload);
+    
+    toast.promise(updatePromise, {
+      loading: 'Wait, The task is updating...',
+      success: 'Task successfully updated!',
+      error: (err: any) => `Failed to update task: ${err.message || 'Unknown error'}`
+    });
+
     try {
-      await updateTaskApi(id, apiPayload);
+      await updatePromise;
       console.log("Update successful, refetch scheduled...");
       // Re-fetch is handled by tasks-updated event which is already debounced
     } catch (err: any) {
-      toast.error(`Failed to update task: ${err.message || 'Unknown error'}`);
       console.error("Update task failed:", err);
       if (fetchTimeout) clearTimeout(fetchTimeout);
       fetchTimeout = setTimeout(() => fetchTasks(), 500);

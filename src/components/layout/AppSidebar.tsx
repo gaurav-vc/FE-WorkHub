@@ -1,3 +1,5 @@
+import { useState, useEffect } from "react";
+import { API_BASE } from "@/config";
 import {
   LayoutDashboard,
   CalendarDays,
@@ -41,6 +43,7 @@ import {
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
+import { useBranding } from "@/context/BrandingContext";
 import { PortalType } from "@/lib/auth-utils";
 
 const getNavGroups = (portalType: PortalType) => {
@@ -125,7 +128,8 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
-  const { portalType, accessRoutes, role } = useAuth();
+  const { portalType, accessRoutes, role, token } = useAuth();
+  const { branding } = useBranding();
 
   const rawNavGroups = getNavGroups(portalType);
 
@@ -166,13 +170,26 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" className="border-r-0">
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg gradient-primary">
-            <Sparkles className="h-5 w-5 text-primary-foreground" />
-          </div>
+          {branding?.logo ? (
+            <img 
+              src={branding.logo} 
+              alt="Logo" 
+              className={cn(
+                "object-contain shrink-0 rounded-sm", 
+                collapsed ? "h-9 w-9" : "h-11 w-auto max-w-[140px]"
+              )} 
+            />
+          ) : (
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg gradient-primary">
+              <Sparkles className="h-5 w-5 text-primary-foreground" />
+            </div>
+          )}
           {!collapsed && (
-            <div className="flex flex-col">
-              <span className="font-display text-sm font-bold text-sidebar-accent-foreground">WorkHub</span>
-              <span className="text-[11px] text-sidebar-foreground/60">
+            <div className="flex flex-col min-w-0">
+              <span className="font-display text-sm font-bold text-sidebar-accent-foreground truncate">
+                {branding?.companyName || "WorkHub"}
+              </span>
+              <span className="text-[11px] text-sidebar-foreground/60 truncate">
                 {portalType === 'super_user' ? 'Super Admin Portal' : portalType === 'site_admin' ? 'Site Admin Portal' : 'Employee Portal'}
               </span>
             </div>

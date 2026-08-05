@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { getMyDayDashboard, submitApprovalAction, addQuickLink, updateTask } from "@/api/tasks";
 import { toast } from "sonner";
+import { useBranding } from "@/context/BrandingContext";
 import { Plus, ExternalLink, Link2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -24,6 +25,7 @@ const priorityColors: Record<string, string> = {
 
 export default function Dashboard() {
   const { token } = useAuth();
+  const { branding } = useBranding();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [updatingTasks, setUpdatingTasks] = useState<Set<string>>(new Set());
@@ -155,16 +157,18 @@ export default function Dashboard() {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Welcome Banner */}
-      <div className="rounded-xl gradient-primary p-6 text-primary-foreground">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="font-display text-2xl font-bold">
-              {greeting}, {currentUser?.name?.split(" ")[0]}! <span className="inline-block animate-bounce">👋</span>
-            </h1>
-            <p className="mt-1 text-primary-foreground/80 text-sm">{dateStr}</p>
+      {branding?.showWelcomeBanner !== false && (
+        <div className="rounded-xl gradient-primary p-6 text-primary-foreground">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="font-display text-2xl font-bold">
+                {greeting}, {currentUser?.name?.split(" ")[0]}! <span className="inline-block animate-bounce">👋</span>
+              </h1>
+              <p className="mt-1 text-primary-foreground/80 text-sm">{dateStr}</p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Summary Stats */}
       <div className="grid grid-cols-2 gap-4">
