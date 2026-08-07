@@ -11,6 +11,14 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import { useTaskContext } from "@/context/TaskContext";
 import { TaskCreateDialog } from "@/components/tasks/TaskCreateDialog";
 import { TaskWorkspacePanel } from "@/components/tasks/TaskWorkspacePanel";
@@ -51,7 +59,8 @@ export default function MyDay() {
   const { token, username, fullName, portalType, role, isLoading: isAuthLoading } = useAuth();
   const isAdmin = portalType === 'site_admin' || portalType === 'super_user' || role === 'admin' || role?.toLowerCase().includes('admin');
   const isSiteAdmin = portalType === 'site_admin' || portalType === 'super_user';
-  const { tasks, addTask, updateTask, deleteTask, setSelectedTask, isLoadingTasks } = useTaskContext();
+  const { tasks, addTask, updateTask, deleteTask, setSelectedTask, isLoadingTasks, fetchTasks, totalTasks, totalPages } = useTaskContext();
+  const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [editTask, setEditTask] = useState<Task | null>(null);
@@ -84,56 +93,21 @@ export default function MyDay() {
     }
   }, [token]);
 
-  const filteredTasks = tasks.filter(t => {
-    if (viewMode === "my_tasks") {
-      const uLower = (username || "").toLowerCase();
-      const fLower = (fullName || "").toLowerCase();
-      const isAssignedToMe = 
-        (t.assignees || []).some(a => {
-          const aLower = (a.name || "").toLowerCase();
-          return (uLower && aLower === uLower) || (fLower && aLower === fLower);
-        }) || 
-        (t.taskType === "self" && (() => {
-          const cLower = (t.createdBy?.name || "").toLowerCase();
-          return (uLower && cLower === uLower) || (fLower && cLower === fLower);
-        })());
-      if (!isAssignedToMe) return false;
+  useEffect(() => {
+    if (token) {
+      const delay = setTimeout(() => {
+        fetchTasks({
+          search: searchQuery,
+          priority: filterPriority,
+          status: filterStatus,
+          assignee: filterAssignee,
+          view_mode: viewMode,
+          page: currentPage
+        });
+      }, 300);
+      return () => clearTimeout(delay);
     }
-
-    if (filterPriority !== "all" && t.priority !== filterPriority) return false;
-    if (filterStatus !== "all" && t.status !== filterStatus) return false;
-    if (filterAssignee && filterAssignee !== "all") {
-      if (filterAssignee === "unassigned") {
-        if (t.assignees && t.assignees.length > 0) return false;
-        if ((t as any).assigned_to) return false;
-      } else {
-        const hasAssignee = t.assignees?.some(a => a.id?.toString() === filterAssignee) || (t as any).assigned_to?.toString() === filterAssignee;
-        if (!hasAssignee) return false;
-      }
-    }
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      if (!t.title.toLowerCase().includes(q) && !(t.id?.toString() || "").includes(q.replace(/^#/, ''))) return false;
-    }
-    return true;
-  });
-
-  const sortedTasks = [...filteredTasks].sort((a, b) => {
-    // 1. Urgent items first
-    if (a.isUrgent && !b.isUrgent) return -1;
-    if (!a.isUrgent && b.isUrgent) return 1;
-    
-    // 2. Priority
-    const prioritySort = a.priority.localeCompare(b.priority);
-    if (prioritySort !== 0) return prioritySort;
-    
-    // 3. Newest first (recently added on top)
-    const dateA = new Date(a.createdDate || 0).getTime();
-    const dateB = new Date(b.createdDate || 0).getTime();
-    // If we have actual IDs that increment, we can also use that as a fallback
-    if (dateA !== dateB) return dateB - dateA;
-    return (b.id?.toString() || "").localeCompare(a.id?.toString() || "");
-  });
+  }, [searchQuery, filterPriority, filterStatus, filterAssignee, viewMode, currentPage, token]);
 
 
   const toggleComplete = (task: Task) => {
@@ -231,7 +205,7 @@ export default function MyDay() {
                 </SelectContent>
               </Select>
             )}
-            <Badge variant="secondary" className="text-xs h-8 px-3 flex items-center">{sortedTasks.length} tasks</Badge>
+            <Badge variant="secondary" className="text-xs h-8 px-3 flex items-center">{totalTasks || tasks.length} tasks</Badge>
           </div>
 
           {/* Task List */}
@@ -247,13 +221,13 @@ export default function MyDay() {
                   <div className="p-12 flex items-center justify-center">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
-                ) : sortedTasks.length === 0 ? (
+                ) : tasks.length === 0 ? (
                   <div className="p-8 text-center text-muted-foreground flex flex-col items-center justify-center">
                     <CheckSquare className="h-10 w-10 text-slate-200 mb-3" />
                     <p className="text-sm font-medium">{viewMode === 'team_tasks' ? 'No team task' : 'No task'}</p>
                   </div>
                 ) : (
-                  sortedTasks.map(task => {
+                  tasks.map(task => {
                   const done = task.status === "done";
                   const pConfig = priorityConfig[task.priority] || priorityConfig.P4;
                   const checklistDone = (task.checklist || []).filter(c => c.completed).length;
@@ -380,6 +354,28 @@ export default function MyDay() {
                   );
                 }))}
               </div>
+
+              {totalPages > 1 && (
+                <div className="py-4 border-t border-border mt-2 bg-slate-50/50">
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious onClick={() => setCurrentPage(p => Math.max(1, p - 1))} className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"} />
+                      </PaginationItem>
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                        <PaginationItem key={p}>
+                          <PaginationLink isActive={p === currentPage} onClick={() => setCurrentPage(p)} className="cursor-pointer">
+                            {p}
+                          </PaginationLink>
+                        </PaginationItem>
+                      ))}
+                      <PaginationItem>
+                        <PaginationNext onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"} />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

@@ -36,6 +36,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { getProjects, createProject, updateProject, deleteProject as deleteProjectApi, getDepartments, getTemplates, importTemplate, duplicateProject, exportProject } from "@/api/projects";
@@ -116,6 +124,8 @@ export default function Projects() {
   const [loading, setLoading] = useState(true);
   const [templates, setTemplates] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   const navigate = useNavigate();
   const { token } = useAuth();
@@ -123,8 +133,9 @@ export default function Projects() {
   const fetchProjects = async () => {
     try {
       setLoading(true);
-      const data = await getProjects();
-      setProjects(data.map((p: any) => ({
+      const data = await getProjects({ search, status: filterStatus, page: currentPage });
+      const rawProjects = data.results || data;
+      setProjects(rawProjects.map((p: any) => ({
         id: p.id.toString(),
         name: p.name,
         description: p.description,
@@ -137,6 +148,11 @@ export default function Projects() {
         tasks: p.tasks || { total: 0, completed: 0 },
         imported_tasks: p.imported_tasks || [],
       })));
+      if (data.count !== undefined) {
+        setTotalPages(Math.ceil(data.count / 12));
+      } else {
+        setTotalPages(1);
+      }
     } catch (error) {
       console.error("Failed to fetch projects", error);
       toast.error("Failed to load projects");
@@ -162,16 +178,16 @@ export default function Projects() {
   };
 
   useEffect(() => {
-    fetchProjects();
     fetchTemplates();
     fetchDepartments();
   }, [token]);
 
-  const filtered = projects.filter((p) => {
-    const matchStatus = filterStatus === "all" || p.status === filterStatus;
-    const matchSearch = !search || p.name.toLowerCase().includes(search.toLowerCase());
-    return matchStatus && matchSearch;
-  });
+  useEffect(() => {
+    const delay = setTimeout(() => {
+      fetchProjects();
+    }, 300);
+    return () => clearTimeout(delay);
+  }, [token, currentPage, search, filterStatus]);
 
   const openCreate = () => { setEditProject(null); setForm({ name: "", description: "", department: "Entire Organization", status: "planning", dueDate: "", template_type: "blank" }); setShowDialog(true); };
   
@@ -289,7 +305,7 @@ export default function Projects() {
         <div className="flex items-center justify-center p-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
-      ) : filtered.length === 0 ? (
+      ) : projects.length === 0 ? (
          <div className="text-center p-12 bg-card rounded-xl border border-dashed border-border shadow-sm">
            <FolderKanban className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
            <h3 className="text-lg font-medium text-foreground">No projects found</h3>
@@ -297,7 +313,7 @@ export default function Projects() {
          </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((project) => (
+          {projects.map((project) => (
             <Card 
               key={project.id} 
               className="shadow-card hover:shadow-md transition-all cursor-pointer group"
@@ -485,6 +501,28 @@ export default function Projects() {
               </CardContent>
             </Card>
           ))}
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className="mt-8 mb-4">
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious onClick={() => setCurrentPage(p => Math.max(1, p - 1))} className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"} />
+              </PaginationItem>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                <PaginationItem key={p}>
+                  <PaginationLink isActive={p === currentPage} onClick={() => setCurrentPage(p)} className="cursor-pointer">
+                    {p}
+                  </PaginationLink>
+                </PaginationItem>
+              ))}
+              <PaginationItem>
+                <PaginationNext onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"} />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
         </div>
       )}
 

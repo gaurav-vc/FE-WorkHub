@@ -24,6 +24,7 @@ import { Task, ChecklistItem, SubTask, RepeatConfig } from "@/types/tasks";
 import { useAuth } from "@/context/AuthContext";
 import { API_BASE } from "@/config";
 import { getProjects } from "@/api/projects";
+import { toast } from "sonner";
 
 interface TaskCreateDialogProps {
   open: boolean;
@@ -126,7 +127,14 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
   }, [open, editTask, teamMembers]);
 
   const handleSave = () => {
-    if (!form.title.trim()) return;
+    if (!form.title.trim()) {
+      toast.error("Task title is required");
+      return;
+    }
+    if (!form.project) {
+      toast.error("Please select a project before adding the task.");
+      return;
+    }
     const assignees = form.taskType === "self"
       ? [{ name: username || "User", initials: username ? username.substring(0, 2).toUpperCase() : "U" }]
       : form.assigneeIds.map(id => {
@@ -376,11 +384,10 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-sm">Project</Label>
-                  <Select value={form.project?.toString() || "none"} onValueChange={v => setForm(f => ({ ...f, project: v === "none" ? "" : v }))}>
+                  <Label className="text-sm">Project <span className="text-destructive">*</span></Label>
+                  <Select value={form.project?.toString() || ""} onValueChange={v => setForm(f => ({ ...f, project: v }))}>
                     <SelectTrigger><SelectValue placeholder="Select a project..." /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">No Project / General</SelectItem>
                       {projects.map(p => (
                         <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>
                       ))}

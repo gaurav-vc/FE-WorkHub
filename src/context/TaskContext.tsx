@@ -19,6 +19,9 @@ interface TaskContextType {
   selectedTask: Task | null;
   setSelectedTask: (task: Task | null) => void;
   isLoadingTasks: boolean;
+  fetchTasks: (filters?: any) => Promise<void>;
+  totalTasks: number;
+  totalPages: number;
 }
 
 const TaskContext: Context<TaskContextType | null> = (window as any).__TaskContext || createContext<TaskContextType | null>(null);
@@ -34,6 +37,8 @@ export function TaskProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isLoadingTasks, setIsLoadingTasks] = useState<boolean>(true);
+  const [totalTasks, setTotalTasks] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
   const mapTaskFromApi = (t: any): Task => {
     const formatDate = (dateStr: string) => {
@@ -86,11 +91,19 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     return mappedTask;
   };
 
-  const fetchTasks = async () => {
+  const fetchTasks = async (filters: any = {}) => {
+    setIsLoadingTasks(true);
     try {
-      const data = await getTasks();
+      const data = await getTasks(filters);
       const rawTasks = data.results || data;
       setTasks(rawTasks.map(mapTaskFromApi));
+      if (data.count !== undefined) {
+        setTotalTasks(data.count);
+        setTotalPages(Math.ceil(data.count / 12));
+      } else {
+        setTotalTasks(rawTasks.length);
+        setTotalPages(1);
+      }
     } catch (err: any) {
       if (err?.status !== 403) {
         console.error("Failed to fetch tasks", err);
@@ -324,7 +337,10 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       unreadCount,
       selectedTask,
       setSelectedTask,
-      isLoadingTasks
+      isLoadingTasks,
+      fetchTasks,
+      totalTasks,
+      totalPages,
     }}>
       {children}
     </TaskContext.Provider>

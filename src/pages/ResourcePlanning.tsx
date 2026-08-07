@@ -21,7 +21,8 @@ import { API_BASE } from "@/config";
 
 export default function ResourcePlanning() {
   const { token } = useAuth();
-  const { tasks, updateTask } = useTaskContext();
+  const { updateTask } = useTaskContext();
+  const [allTasks, setAllTasks] = useState<any[]>([]);
   const [view, setView] = useState("dashboard");
   const [filter, setFilter] = useState<"all" | "optimal" | "overloaded">("all");
   const [teamMembers, setTeamMembers] = useState<any[]>([]);
@@ -32,6 +33,25 @@ export default function ResourcePlanning() {
   const [showDeadlineModal, setShowDeadlineModal] = useState(false);
   const [reassignTo, setReassignTo] = useState("");
   const [newDeadline, setNewDeadline] = useState("");
+  const [apiError, setApiError] = useState<string | null>(null);
+
+  // Get this week's Mon-Fri dates
+  const weekDates = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dayOfWeek = today.getDay();
+    const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const monday = new Date(today);
+    monday.setDate(today.getDate() + diffToMonday);
+    
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      return d;
+    });
+  }, []);
+
+  const formattedDays = weekDates.map(d => `${d.toLocaleDateString('en-US', { weekday: 'short' })}, ${d.getDate()} ${d.toLocaleDateString('en-US', { month: 'short' })}`);
 
   useEffect(() => {
     if (token) {
@@ -58,14 +78,81 @@ export default function ResourcePlanning() {
           setTeamMembers(members);
         })
         .catch(console.error);
+
+      fetch(`${API_BASE}/tasks/?paginate=false`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.json())
+        .then(data => {
+            const fetched = data.results || data;
+            if (Array.isArray(fetched)) {
+                const mapTaskFromApi = (t: any) => {
+                    const formatDate = (dateStr: string) => {
+                        if (!dateStr) return "";
+                        try {
+                            const d = new Date(dateStr);
+                            return isNaN(d.getTime()) ? dateStr : d.toISOString().split('T')[0];
+                        } catch {
+                            return dateStr;
+                        }
+                    };
+                    return {
+                        id: t.id,
+                        title: t.title,
+                        dueDate: formatDate(t.due_date || t.dueDate),
+                        startDate: formatDate(t.start_date || t.created_at || t.startDate),
+                        status: (t.status === "pending" || t.status === "open" || t.status === "planning") ? "todo" :
+                                (t.status === "in_progress") ? "in-progress" :
+                                (t.status === "delayed" || t.status === "on_hold") ? "blocked" :
+                                (t.status === "completed" || t.status === "done") ? "done" : t.status,
+                        assignees: (t.assignees_detail && t.assignees_detail.length > 0) ? t.assignees_detail.map((a: any) => ({
+                            id: a.id,
+                            name: a.name,
+                            initials: a.name ? a.name.substring(0, 2).toUpperCase() : ""
+                        })) : (Array.isArray(t.assignees) && t.assignees.length > 0 && typeof t.assignees[0] === 'object' ? t.assignees : (t.assignee_detail ? [{
+                            id: t.assignee_detail.id,
+                            name: t.assignee_detail.name,
+                            initials: t.assignee_detail.name.substring(0, 2).toUpperCase()
+                        }] : [])),
+                        estimatedEffort: t.estimated_effort !== undefined ? t.estimated_effort : (t.estimatedEffort || t.duration || 3),
+                        effortUnit: t.effort_unit || t.effortUnit || "hours",
+                        isUrgent: t.isUrgent || t.is_urgent || false,
+                        priority: t.priority || "P3"
+                    };
+                };
+                setAllTasks(fetched.map(mapTaskFromApi));
+                setApiError(null);
+            } else {
+                setApiError("Backend API returned an invalid format. It likely crashed with a 500 Error due to fetching too many tasks at once.");
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            setApiError("Failed to fetch tasks from the backend. The server might have crashed or the database query exceeded its limits (e.g., SQLite 999 variable limit).");
+        });
     }
   }, [token]);
 
   const resourceData = useMemo(() => {
+    const weekStart = weekDates[0];
+    const weekEnd = weekDates[weekDates.length - 1];
+
     return teamMembers.map(member => {
-      const assignedTasks = tasks.filter(t =>
-        t.assignees.some(a => (a.name === member.name || a.initials === member.initials)) && t.status !== "done"
-      );
+      const assignedTasks = allTasks.filter(t => {
+        const isAssigned = t.assignees.some((a: any) => (a.name === member.name || a.initials === member.initials));
+        if (!isAssigned || t.status === "done") return false;
+
+        // Check if task falls in the current week
+        const start = new Date(t.startDate);
+        const due = new Date(t.dueDate);
+        
+        // If neither start nor due date exists, assume it's active
+        if (isNaN(start.getTime()) && isNaN(due.getTime())) return true;
+        
+        // Task overlaps with the current week if it starts before week end AND ends after week start
+        const effectiveStart = isNaN(start.getTime()) ? new Date(due) : start;
+        const effectiveDue = isNaN(due.getTime()) ? new Date(start) : due;
+        
+        return effectiveStart <= weekEnd && effectiveDue >= weekStart;
+      });
       const totalEffortHours = assignedTasks.reduce((sum, t) => {
         const hours = t.effortUnit === "days" ? t.estimatedEffort * 8 : t.estimatedEffort;
         return sum + hours;
@@ -77,7 +164,7 @@ export default function ResourcePlanning() {
 
       return { ...member, assignedTasks, totalEffortHours, weeklyCapacity, utilization, status };
     });
-  }, [tasks, teamMembers]);
+  }, [allTasks, teamMembers]);
 
   const filteredResourceData = useMemo(() => {
     if (filter === "all") return resourceData;
@@ -152,24 +239,6 @@ export default function ResourcePlanning() {
     overloaded: "text-destructive bg-destructive/10",
   };
 
-  // Get this week's Mon-Fri dates
-  const weekDates = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const dayOfWeek = today.getDay();
-    const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-    const monday = new Date(today);
-    monday.setDate(today.getDate() + diffToMonday);
-    
-    return Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(monday);
-      d.setDate(monday.getDate() + i);
-      return d;
-    });
-  }, []);
-
-  const formattedDays = weekDates.map(d => `${d.toLocaleDateString('en-US', { weekday: 'short' })}, ${d.getDate()} ${d.toLocaleDateString('en-US', { month: 'short' })}`);
-
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col gap-1 mb-8">
@@ -181,6 +250,19 @@ export default function ResourcePlanning() {
         </h1>
         <p className="text-muted-foreground text-sm md:ml-14">Track team workload, capacity constraints, and resolve resource conflicts dynamically.</p>
       </div>
+
+      {apiError && (
+        <div className="bg-destructive/15 border-l-4 border-destructive p-4 rounded-md mb-6 flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+          <div>
+            <h3 className="text-destructive font-semibold">Critical Data Fetching Error</h3>
+            <p className="text-destructive/90 text-sm mt-1">{apiError}</p>
+            <p className="text-destructive/80 text-xs mt-2">
+              <strong>Root Cause:</strong> The utilization calculated as 0% because the frontend received 0 tasks. This happened because the backend crashed trying to fetch thousands of tasks at once, exceeding the database limits.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

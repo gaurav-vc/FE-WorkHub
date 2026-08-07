@@ -1,8 +1,9 @@
 import { apiClient } from "./client";
 import { Task } from "@/types/tasks";
 
-export const getTasks = () => {
-  return apiClient("/tasks/");
+export const getTasks = (params: any = {}) => {
+  const query = new URLSearchParams(params).toString();
+  return apiClient(`/tasks/${query ? `?${query}` : ''}`);
 };
 
 const triggerSync = () => {

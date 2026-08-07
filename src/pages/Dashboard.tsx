@@ -15,6 +15,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 const priorityColors: Record<string, string> = {
   P1: "bg-destructive/10 text-destructive border-destructive/20",
@@ -33,6 +41,9 @@ export default function Dashboard() {
   const [newLinkLabel, setNewLinkLabel] = useState("");
   const [newLinkUrl, setNewLinkUrl] = useState("");
   const [isAddingLink, setIsAddingLink] = useState(false);
+  const [activeTab, setActiveTab] = useState("my_tasks");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
 
   const handleAddLink = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,6 +97,10 @@ export default function Dashboard() {
   if (!data) return null;
 
   const { currentUser, summaryStats, todayTasks, delegatedTasks, upcomingMeetings, teamActivity, pendingApprovals, quickLinks } = data;
+
+  const activeTasksList = activeTab === 'my_tasks' ? todayTasks : delegatedTasks;
+  const totalPages = Math.ceil((activeTasksList?.length || 0) / itemsPerPage);
+  const paginatedTasks = activeTasksList?.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const statCards = [
     { label: "Tasks Due Today", value: summaryStats.tasksDue, icon: CheckSquare, color: "text-primary", bg: "bg-primary/10" },
@@ -193,7 +208,7 @@ export default function Dashboard() {
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Tasks Widget with Tabs */}
         <Card className="lg:col-span-2 shadow-card border-0">
-          <Tabs defaultValue="my_tasks" className="w-full">
+          <Tabs value={activeTab} onValueChange={(val) => { setActiveTab(val); setCurrentPage(1); }} className="w-full">
             <CardHeader className="pb-2">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <TabsList className="h-9 bg-slate-100">
@@ -215,7 +230,7 @@ export default function Dashboard() {
               
               {/* My Tasks Tab */}
               <TabsContent value="my_tasks" className="m-0 space-y-2">
-                {todayTasks?.length > 0 ? todayTasks.map((task: any) => {
+                {paginatedTasks?.length > 0 ? paginatedTasks.map((task: any) => {
                   const timeline = getTimelineStatus(task);
                   return (
                     <div
@@ -280,7 +295,7 @@ export default function Dashboard() {
 
               {/* Delegated Tasks Tab */}
               <TabsContent value="assigned_tasks" className="m-0 space-y-2">
-                {delegatedTasks?.length > 0 ? delegatedTasks.map((task: any) => {
+                {paginatedTasks?.length > 0 ? paginatedTasks.map((task: any) => {
                   const isDone = task.status === 'done' || task.status === 'completed';
                   const isDelayed = task.status === 'delayed' || task.status === 'blocked';
                   
@@ -312,9 +327,31 @@ export default function Dashboard() {
                     </div>
                   );
                 }) : (
-                  <p className="text-sm text-muted-foreground p-4 text-center border-2 border-dashed rounded-lg">You haven't assigned any tasks to others.</p>
+                  <p className="text-sm text-muted-foreground p-4 text-center border-2 border-dashed rounded-lg">No delegated tasks found.</p>
                 )}
               </TabsContent>
+
+              {totalPages > 1 && (
+                <div className="py-4 mt-4 border-t border-slate-100">
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious onClick={() => setCurrentPage(p => Math.max(1, p - 1))} className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"} />
+                      </PaginationItem>
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                        <PaginationItem key={p}>
+                          <PaginationLink isActive={p === currentPage} onClick={() => setCurrentPage(p)} className="cursor-pointer">
+                            {p}
+                          </PaginationLink>
+                        </PaginationItem>
+                      ))}
+                      <PaginationItem>
+                        <PaginationNext onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"} />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              )}
             </CardContent>
           </Tabs>
         </Card>

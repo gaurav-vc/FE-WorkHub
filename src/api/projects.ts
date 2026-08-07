@@ -1,7 +1,8 @@
 import { apiClient } from "./client";
 
-export const getProjects = () => {
-  return apiClient("/projects/");
+export const getProjects = (params: any = {}) => {
+  const query = new URLSearchParams(params).toString();
+  return apiClient(`/projects/${query ? `?${query}` : ''}`);
 };
 
 export const createProject = (data: any) => {
