@@ -87,7 +87,7 @@ export default function TemplateMarketplace() {
 
   const fetchProjects = async () => {
     try {
-      const res = await fetch(`${API_BASE}/projects/`, { headers: { 'Authorization': `Bearer ${token}` } });
+      const res = await fetch(`${API_BASE}/projects/?paginate=false`, { headers: { 'Authorization': `Bearer ${token}` } });
       if (res.ok) {
         const data = await res.json();
         setProjects(data.results || data);

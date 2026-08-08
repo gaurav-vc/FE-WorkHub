@@ -74,7 +74,7 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
         .then(data => setGlobalUsers(Array.isArray(data) ? data : data.results || []))
         .catch(console.error);
         
-      fetch(`${API_BASE}/projects/`, { headers })
+      fetch(`${API_BASE}/projects/?paginate=false`, { headers })
         .then(res => res.json())
         .then(data => setProjects(Array.isArray(data) ? data : data.results || []))
         .catch(console.error);
