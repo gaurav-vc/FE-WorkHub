@@ -41,7 +41,7 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
 
   useEffect(() => {
     if (token && open) {
-      getProjects()
+      getProjects({ paginate: 'false' })
         .then(data => {
           setProjects(Array.isArray(data) ? data : data.results || []);
         })
@@ -96,6 +96,7 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
   const [newTag, setNewTag] = useState("");
   const [attachment, setAttachment] = useState<File | null>(null);
   const [assigneePopoverOpen, setAssigneePopoverOpen] = useState(false);
+  const [projectPopoverOpen, setProjectPopoverOpen] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -385,14 +386,41 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-sm">Project <span className="text-destructive">*</span></Label>
-                  <Select value={form.project?.toString() || ""} onValueChange={v => setForm(f => ({ ...f, project: v }))}>
-                    <SelectTrigger><SelectValue placeholder="Select a project..." /></SelectTrigger>
-                    <SelectContent>
-                      {projects.map(p => (
-                        <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover open={projectPopoverOpen} onOpenChange={setProjectPopoverOpen}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" role="combobox" aria-expanded={projectPopoverOpen} className="w-full justify-between h-10 font-normal">
+                        <span className="truncate">
+                          {form.project ? (projects.find(p => p.id.toString() === form.project.toString())?.name || "Select a project...") : "Select a project..."}
+                        </span>
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[300px] p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Search projects..." />
+                        <CommandList>
+                          <CommandEmpty>No project found.</CommandEmpty>
+                          <CommandGroup>
+                            {projects.map((p: any) => (
+                              <CommandItem
+                                key={p.id}
+                                value={`${p.name} ${p.id}`}
+                                onSelect={() => {
+                                  setForm(f => ({ ...f, project: p.id.toString() }));
+                                  setProjectPopoverOpen(false);
+                                }}
+                              >
+                                <div className={cn("mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary shrink-0", form.project?.toString() === p.id.toString() ? "bg-primary text-primary-foreground" : "opacity-50 [&_svg]:invisible")}>
+                                  <Check className="h-3 w-3" />
+                                </div>
+                                {p.name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
               </div>
 

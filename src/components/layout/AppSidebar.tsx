@@ -24,7 +24,8 @@ import {
   Clock,
   Activity,
   CheckCircle,
-  GraduationCap
+  GraduationCap,
+  Mail
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -68,6 +69,7 @@ const getNavGroups = (portalType: PortalType) => {
         { title: "Dashboard", url: "/", icon: LayoutDashboard },
         { title: "My Day", url: "/tasks/my-day", icon: CheckSquare },
         { title: "Calendar", url: "/tasks/calendar", icon: CalendarDays },
+        { title: "Inbox", url: "/inbox", icon: Mail },
         { title: "Projects", url: "/tasks/projects", icon: Kanban },
         { title: "Timeline", url: "/tasks/timeline", icon: BarChart3 },
         { title: "Resources", url: "/tasks/resources", icon: Users },

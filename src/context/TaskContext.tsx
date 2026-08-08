@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode, Context } from "react";
 import { Task, Notification } from "@/types/tasks";
 import { getTasks, createTask, updateTask as updateTaskApi, deleteTask as deleteTaskApi } from "@/api/tasks";
+import { apiClient } from "@/api/client";
 import { useAuth } from "./AuthContext";
 import { API_BASE } from "@/config";
 import { toast } from "sonner";
@@ -115,28 +116,19 @@ export function TaskProvider({ children }: { children: ReactNode }) {
 
   const fetchNotifications = async () => {
     try {
-      const res = await fetch(`${API_BASE}/workspace/notifications/`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const rawNotifs = data.results || data;
-        setNotifications(rawNotifs.map((n: any) => ({
-          id: n.id,
-          type: n.type || 'task-updated',
-          title: n.title,
-          message: n.message,
-          time: n.time,
-          read: n.is_read || n.read || false,
-          link: n.link
-        })));
-      } else if (res.status !== 403) {
-        console.error("Failed to fetch notifications, status:", res.status);
-      }
+      const data = await apiClient('/workspace/notifications/');
+      const rawNotifs = data.results || data;
+      setNotifications(rawNotifs.map((n: any) => ({
+        id: n.id,
+        type: n.type || 'task-updated',
+        title: n.title,
+        message: n.message,
+        time: n.time,
+        read: n.is_read || n.read || false,
+        link: n.link
+      })));
     } catch (err: any) {
-      if (err?.status !== 403) {
+      if (err?.status !== 403 && err?.status !== 401) {
         console.error("Failed to fetch notifications", err);
       }
     }

@@ -274,6 +274,7 @@ export default function SitesList() {
                           'dashboard': 'Dashboard',
                           'tasks-my-day': 'My Day',
                           'tasks-calendar': 'Calendar Meetings',
+                          'tasks-inbox': 'Inbox',
                           'tasks-projects': 'Projects',
                           'tasks-resources': 'Resource Planning',
                           'tasks-templates': 'Template Marketplace',

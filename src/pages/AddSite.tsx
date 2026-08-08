@@ -11,6 +11,7 @@ const MODULES_LIST = [
   { id: 'dashboard', label: 'Dashboard', group: 'Core Services' },
   { id: 'tasks-my-day', label: 'My Day', group: 'Core Services' },
   { id: 'tasks-calendar', label: 'Calendar Meetings', group: 'Core Services' },
+  { id: 'tasks-inbox', label: 'Inbox', group: 'Core Services' },
   { id: 'tasks-projects', label: 'Projects', group: 'Core Services' },
   { id: 'tasks-resources', label: 'Resource Planning', group: 'Core Services' },
   { id: 'tasks-templates', label: 'Template Marketplace', group: 'Core Services' },
