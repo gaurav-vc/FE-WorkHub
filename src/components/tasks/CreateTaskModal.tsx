@@ -60,6 +60,7 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
   const [attachments, setAttachments] = useState<File[]>([]);
 
   const [assigneePopoverOpen, setAssigneePopoverOpen] = useState(false);
+  const [projectPopoverOpen, setProjectPopoverOpen] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -340,17 +341,53 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-sm font-semibold">Project</Label>
-                    <Select value={projectId} onValueChange={setProjectId}>
-                      <SelectTrigger className="bg-muted/30 h-10">
-                        <SelectValue placeholder="No Project / General" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="general">No Project / General</SelectItem>
-                        {projects.map((p: any) => (
-                          <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Popover open={projectPopoverOpen} onOpenChange={setProjectPopoverOpen}>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" role="combobox" aria-expanded={projectPopoverOpen} className="w-full justify-between bg-muted/30 h-10 font-normal">
+                          <span className="truncate">
+                            {projectId === "general" ? "No Project / General" : (projects.find((p: any) => p.id.toString() === projectId)?.name || "Select a project...")}
+                          </span>
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[300px] p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder="Search projects..." />
+                          <CommandList>
+                            <CommandEmpty>No project found.</CommandEmpty>
+                            <CommandGroup>
+                              <CommandItem
+                                value="No Project / General"
+                                onSelect={() => {
+                                  setProjectId("general");
+                                  setProjectPopoverOpen(false);
+                                }}
+                              >
+                                <div className={cn("mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary shrink-0", projectId === "general" ? "bg-primary text-primary-foreground" : "opacity-50 [&_svg]:invisible")}>
+                                  <Check className="h-3 w-3" />
+                                </div>
+                                No Project / General
+                              </CommandItem>
+                              {projects.map((p: any) => (
+                                <CommandItem
+                                  key={p.id}
+                                  value={`${p.name} ${p.id}`}
+                                  onSelect={() => {
+                                    setProjectId(p.id.toString());
+                                    setProjectPopoverOpen(false);
+                                  }}
+                                >
+                                  <div className={cn("mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary shrink-0", projectId === p.id.toString() ? "bg-primary text-primary-foreground" : "opacity-50 [&_svg]:invisible")}>
+                                    <Check className="h-3 w-3" />
+                                  </div>
+                                  <span className="truncate">{p.name}</span>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 </div>
 

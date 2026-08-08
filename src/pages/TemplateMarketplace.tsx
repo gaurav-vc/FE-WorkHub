@@ -39,8 +39,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ProjectTemplate } from "@/types/tasks";
 import { useAuth } from "@/context/AuthContext";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { API_BASE } from "@/config";
-
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -73,6 +76,7 @@ export default function TemplateMarketplace() {
   const [projects, setProjects] = useState<any[]>([]);
   const [showUseModal, setShowUseModal] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
+  const [projectPopoverOpen, setProjectPopoverOpen] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
 
   const [createForm, setCreateForm] = useState({ title: "", description: "", category: "", numTasks: 1 });
@@ -465,16 +469,41 @@ export default function TemplateMarketplace() {
             <p className="text-sm text-muted-foreground">Select a project to import these template tasks into.</p>
             <div className="space-y-2">
               <Label>Select Project</Label>
-              <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a project" />
-                </SelectTrigger>
-                <SelectContent>
-                  {projects.map(p => (
-                    <SelectItem key={p.id} value={p.id.toString()}>{p.name || p.title}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={projectPopoverOpen} onOpenChange={setProjectPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" role="combobox" aria-expanded={projectPopoverOpen} className="w-full justify-between font-normal">
+                    <span className="truncate">
+                      {selectedProjectId ? (projects.find(p => p.id.toString() === selectedProjectId)?.name || projects.find(p => p.id.toString() === selectedProjectId)?.title || "Select a project") : "Select a project"}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[300px] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Search projects..." />
+                    <CommandList>
+                      <CommandEmpty>No project found.</CommandEmpty>
+                      <CommandGroup>
+                        {projects.map(p => (
+                          <CommandItem
+                            key={p.id}
+                            value={`${p.name || p.title} ${p.id}`}
+                            onSelect={() => {
+                              setSelectedProjectId(p.id.toString());
+                              setProjectPopoverOpen(false);
+                            }}
+                          >
+                            <div className={cn("mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary shrink-0", selectedProjectId === p.id.toString() ? "bg-primary text-primary-foreground" : "opacity-50 [&_svg]:invisible")}>
+                              <Check className="h-3 w-3" />
+                            </div>
+                            <span className="truncate">{p.name || p.title}</span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
           <DialogFooter>
