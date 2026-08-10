@@ -83,3 +83,10 @@ export const getCurrentProfile = () => {
   return apiClient("/auth/me/");
 };
 
+export const updateCurrentProfile = (data: FormData) => {
+  return apiClient("/auth/me/", {
+    method: "PATCH",
+    data,
+  });
+};
+

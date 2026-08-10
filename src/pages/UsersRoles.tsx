@@ -63,7 +63,7 @@ export default function UsersRoles() {
   // New User Form State
   const defaultUserState = {
     name: '', email: '', dept: '', role: '', status: true,
-    phone: '', location: '', dob: '', manager: '', skills: '', photo: null as File | null, photo_url: '' as string
+    phone: '', location: '', dob: '', manager: '', skills: '', photo: null as File | null, photo_url: '' as string, remove_photo: false as boolean
   };
   const [newUser, setNewUser] = useState(defaultUserState);
 
@@ -152,8 +152,9 @@ export default function UsersRoles() {
       } else {
         formData.append("manager", "");
       }
-      formData.append("skills", newUser.skills);
+      if (newUser.skills) formData.append("skills", newUser.skills);
       if (newUser.photo) formData.append("photo", newUser.photo);
+      if (newUser.remove_photo) formData.append("remove_photo", "true");
 
       const method = editUserId ? "PATCH" : "POST";
       const url = editUserId ? `${API_BASE}/rbac/users/${editUserId}/` : `${API_BASE}/rbac/users/`;
@@ -240,7 +241,7 @@ export default function UsersRoles() {
     setEditUserId(u.id);
     setNewUser({
       name: u.name || '', email: u.email || '', dept: u.dept || '', role: u.role || '', status: u.status === 'Active',
-      phone: u.phone || '', location: u.location || '', dob: u.dob || '', manager: u.manager_id || 'none', skills: u.skills || '', photo: null, photo_url: u.photo_url || ''
+      phone: u.phone || '', location: u.location || '', dob: u.dob || '', manager: u.manager_id || 'none', skills: u.skills || '', photo: null, photo_url: u.photo_url || '', remove_photo: false
     });
     setIsUserModalOpen(true);
   };
@@ -393,13 +394,19 @@ export default function UsersRoles() {
                     </div>
                     <div className="space-y-2">
                       <Label>Profile Photo</Label>
-                      {newUser.photo_url && !newUser.photo && (
-                        <div className="mb-2">
+                      {newUser.photo_url && !newUser.photo && !newUser.remove_photo && (
+                        <div className="mb-2 flex items-center gap-4">
                           <img src={newUser.photo_url} alt="Current Profile" className="h-16 w-16 rounded-full object-cover border" />
-                          <p className="text-xs text-muted-foreground mt-1">Current photo</p>
+                          <Button variant="outline" size="sm" onClick={() => setNewUser({ ...newUser, remove_photo: true, photo: null })} className="text-xs text-destructive hover:text-destructive">Remove Photo</Button>
                         </div>
                       )}
-                      <Input type="file" accept="image/*" onChange={e => { if (e.target.files && e.target.files.length > 0) setNewUser({ ...newUser, photo: e.target.files[0] }); }} className="cursor-pointer file:mr-4 file:py-1 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20" />
+                      {newUser.photo && (
+                        <div className="mb-2 flex items-center gap-4">
+                          <img src={URL.createObjectURL(newUser.photo)} alt="New Profile" className="h-16 w-16 rounded-full object-cover border" />
+                          <Button variant="outline" size="sm" onClick={() => setNewUser({ ...newUser, photo: null })} className="text-xs text-destructive hover:text-destructive">Remove File</Button>
+                        </div>
+                      )}
+                      <Input type="file" accept="image/*" onChange={e => { if (e.target.files && e.target.files.length > 0) setNewUser({ ...newUser, photo: e.target.files[0], remove_photo: false }); }} className="cursor-pointer file:mr-4 file:py-1 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20" />
                     </div>
                   </div>
                 </div>

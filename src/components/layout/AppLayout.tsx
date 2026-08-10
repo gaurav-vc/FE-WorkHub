@@ -16,10 +16,12 @@ export function AppLayout({ children }: AppLayoutProps) {
   const { isLoading } = useAuth();
   
   const isAIAssistantPage = location.pathname === "/ai/assistant";
-  const isAuthPage = ["/login", "/register", "/forgot-password"].includes(location.pathname);
+  const path = location.pathname.replace(/\/$/, "") || "/";
+  const publicPages = ["/login", "/register", "/forgot-password", "/home", "/privacy-policy", "/terms-of-service"];
+  const isAuthPage = publicPages.includes(path);
 
   if (isAuthPage) {
-    return <div className="min-h-screen w-full">{children}</div>;
+    return <div className="min-h-screen w-full bg-slate-50">{children}</div>;
   }
 
   if (isLoading) {

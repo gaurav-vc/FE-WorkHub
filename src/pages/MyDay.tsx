@@ -125,9 +125,9 @@ export default function MyDay() {
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-display font-bold text-foreground">My Day</h1>
+          <h1 className="text-2xl font-display font-bold text-foreground">My Tasks</h1>
           <p className="text-muted-foreground mt-1">{dayName}, {dateStr}</p>
-          <p className="text-sm font-medium text-slate-500 mt-1">My Today's Tasks</p>
+          <p className="text-sm font-medium text-slate-500 mt-1">Overview of all your tasks</p>
         </div>
         <div className="flex items-center gap-3">
           <Button className="gradient-primary text-primary-foreground gap-1.5 rounded-full px-5" onClick={() => { setEditTask(null); setShowCreate(true); }}>

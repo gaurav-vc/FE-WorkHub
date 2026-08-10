@@ -31,6 +31,11 @@ import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import ForgotPassword from "@/pages/ForgotPassword";
 
+// Public pages for Google OAuth verification
+import Home from "@/pages/public/Home";
+import PrivacyPolicy from "@/pages/public/PrivacyPolicy";
+import TermsOfService from "@/pages/public/TermsOfService";
+
 // HR & Employees additions
 import Attendance from "@/pages/Attendance";
 import { CompanyPulse } from "@/pages/CompanyPulse";
@@ -125,6 +130,11 @@ const App = () => (
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
+              
+              {/* Public Pages */}
+              <Route path="/home" element={<Home />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="/terms-of-service" element={<TermsOfService />} />
               
               {/* Task & Project Management */}
               <Route path="/tasks/my-day" element={<ProtectedRoute route="/tasks/my-day"><MyDay /></ProtectedRoute>} />

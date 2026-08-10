@@ -6,11 +6,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Building, MapPin, Mail, Phone, Briefcase, Lock, User as UserIcon } from "lucide-react";
+import { Building, MapPin, Mail, Phone, Briefcase, Lock, User as UserIcon, Calendar, Edit2, X, Upload } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { getCurrentProfile } from "@/api/collaboration";
+import { getCurrentProfile, updateCurrentProfile } from "@/api/collaboration";
 import { changePassword } from "@/api/auth";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
@@ -33,6 +33,13 @@ export function ProfileModal({ open, onOpenChange }: ProfileModalProps) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isChanging, setIsChanging] = useState(false);
 
+  // Edit profile state
+  const [isEditing, setIsEditing] = useState(false);
+  const [editDob, setEditDob] = useState("");
+  const [editPhoto, setEditPhoto] = useState<File | null>(null);
+  const [removePhoto, setRemovePhoto] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
   useEffect(() => {
     if (open) {
       setLoading(true);
@@ -43,6 +50,10 @@ export function ProfileModal({ open, onOpenChange }: ProfileModalProps) {
       getCurrentProfile()
         .then((data) => {
           setProfile(data);
+          setEditDob(data.dob || "");
+          setEditPhoto(null);
+          setRemovePhoto(false);
+          setIsEditing(false);
           setLoading(false);
         })
         .catch((err) => {
@@ -73,6 +84,31 @@ export function ProfileModal({ open, onOpenChange }: ProfileModalProps) {
       toast.error(err.response?.data?.error || "Failed to change password.");
     } finally {
       setIsChanging(false);
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    try {
+      setIsSaving(true);
+      const formData = new FormData();
+      if (editDob !== (profile.dob || "")) formData.append("dob", editDob);
+      if (editPhoto) formData.append("photo", editPhoto);
+      if (removePhoto) formData.append("remove_photo", "true");
+
+      await updateCurrentProfile(formData);
+      toast.success("Profile updated successfully");
+      
+      // Refresh profile data
+      const data = await getCurrentProfile();
+      setProfile(data);
+      setEditDob(data.dob || "");
+      setEditPhoto(null);
+      setRemovePhoto(false);
+      setIsEditing(false);
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || "Failed to update profile.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -116,15 +152,58 @@ export function ProfileModal({ open, onOpenChange }: ProfileModalProps) {
             ) : profile ? (
               <>
                 {activeTab === "profile" && (
-                  <div className="flex flex-col gap-8 animate-in fade-in slide-in-from-right-4 duration-300">
-                    <div className="flex items-center gap-6">
-                      <Avatar className="h-24 w-24 border-4 border-muted shrink-0">
-                        <AvatarFallback className="text-3xl bg-primary/10 text-primary font-bold">
-                          {profile.full_name?.substring(0, 2).toUpperCase() || profile.username.substring(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
+                  <div className="flex flex-col gap-8 animate-in fade-in slide-in-from-right-4 duration-300 relative">
+                    <div className="absolute top-0 right-0 flex gap-2">
+                      {isEditing ? (
+                        <>
+                          <Button variant="outline" size="sm" onClick={() => setIsEditing(false)}>Cancel</Button>
+                          <Button size="sm" onClick={handleSaveProfile} disabled={isSaving}>
+                            {isSaving ? "Saving..." : "Save Changes"}
+                          </Button>
+                        </>
+                      ) : (
+                        <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+                          <Edit2 className="h-4 w-4 mr-2" />
+                          Edit Profile
+                        </Button>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center gap-6 mt-4">
+                      <div className="relative group">
+                        <Avatar className="h-24 w-24 border-4 border-muted shrink-0">
+                          {(!removePhoto && profile.photo_url) || editPhoto ? (
+                            <img src={editPhoto ? URL.createObjectURL(editPhoto) : profile.photo_url} alt={profile.full_name} className="object-cover w-full h-full" />
+                          ) : (
+                            <AvatarFallback className="text-3xl bg-primary/10 text-primary font-bold">
+                              {profile.full_name?.substring(0, 2).toUpperCase() || profile.username.substring(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          )}
+                        </Avatar>
+                        {isEditing && (
+                          <div className="absolute inset-0 bg-black/50 rounded-full flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <label className="cursor-pointer text-white text-xs text-center flex flex-col items-center p-1">
+                              <Upload className="h-4 w-4 mb-1" />
+                              Upload
+                              <input type="file" className="hidden" accept="image/*" onChange={(e) => {
+                                if (e.target.files && e.target.files[0]) {
+                                  setEditPhoto(e.target.files[0]);
+                                  setRemovePhoto(false);
+                                }
+                              }} />
+                            </label>
+                          </div>
+                        )}
+                      </div>
                       <div className="space-y-1">
-                        <h2 className="text-2xl font-bold text-foreground">{profile.full_name}</h2>
+                        <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                          {profile.full_name}
+                          {isEditing && ((profile.photo_url && !removePhoto) || editPhoto) && (
+                            <Badge variant="outline" className="cursor-pointer text-xs hover:bg-destructive hover:text-white transition-colors" onClick={() => { setRemovePhoto(true); setEditPhoto(null); }}>
+                              <X className="h-3 w-3 mr-1" /> Remove Photo
+                            </Badge>
+                          )}
+                        </h2>
                         <p className="text-sm text-muted-foreground font-medium capitalize">{profile.role}</p>
                       </div>
                     </div>
@@ -146,6 +225,16 @@ export function ProfileModal({ open, onOpenChange }: ProfileModalProps) {
                           <div className="flex items-center gap-3 text-sm">
                             <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
                             <span>{profile.location}</span>
+                          </div>
+                        )}
+                        {(profile.dob || isEditing) && (
+                          <div className="flex items-center gap-3 text-sm">
+                            <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+                            {isEditing ? (
+                              <Input type="date" className="h-8 py-1 max-w-[150px]" value={editDob} onChange={(e) => setEditDob(e.target.value)} />
+                            ) : (
+                              <span>{profile.dob}</span>
+                            )}
                           </div>
                         )}
                       </div>

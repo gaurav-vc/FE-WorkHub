@@ -47,8 +47,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       fetchAccess();
     } else {
       setIsLoading(false);
-      // We do not redirect to login immediately if we are on login or register
-      if (location.pathname !== '/login' && location.pathname !== '/register') {
+      // We do not redirect to login immediately if we are on public pages
+      const path = location.pathname.replace(/\/$/, "") || "/";
+      const publicPaths = ['/login', '/register', '/forgot-password', '/home', '/privacy-policy', '/terms-of-service'];
+      if (!publicPaths.includes(path)) {
         navigate('/login');
       }
     }
