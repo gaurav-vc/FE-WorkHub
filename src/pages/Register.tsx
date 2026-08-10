@@ -46,7 +46,7 @@ const Register: React.FC = () => {
             <div className="p-3 bg-white/20 rounded-xl backdrop-blur-md border border-white/30 shadow-lg">
               <Layers className="h-8 w-8 text-white" />
             </div>
-            <h1 className="text-4xl font-display font-extrabold tracking-tight">Workhub</h1>
+            <h1 className="text-4xl font-display font-extrabold tracking-tight">WorkHub</h1>
           </div>
           
           <h2 className="text-4xl lg:text-5xl font-bold leading-tight mb-6">
@@ -77,7 +77,7 @@ const Register: React.FC = () => {
             <div className="p-2 bg-primary/10 rounded-lg">
               <Layers className="h-6 w-6 text-primary" />
             </div>
-            <h1 className="text-2xl font-display font-bold text-foreground">Workhub</h1>
+            <h1 className="text-2xl font-display font-bold text-foreground">WorkHub</h1>
           </div>
 
           <div className="space-y-2 text-center lg:text-left">

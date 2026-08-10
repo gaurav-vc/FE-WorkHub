@@ -9,7 +9,7 @@ export default function PrivacyPolicy() {
         <div className="container mx-auto px-4 h-16 flex items-center">
           <Link to="/home" className="flex items-center gap-2">
             <Layers className="h-6 w-6 text-indigo-600" />
-            <span className="font-bold text-xl tracking-tight text-slate-900">Workhub</span>
+            <span className="font-bold text-xl tracking-tight text-slate-900">WorkHub</span>
           </Link>
         </div>
       </header>
@@ -21,7 +21,7 @@ export default function PrivacyPolicy() {
 
           <div className="prose prose-slate max-w-none space-y-6">
             <p>
-              Workhub ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy explains how your personal information is collected, used, and disclosed by Workhub.
+              WorkHub ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy explains how your personal information is collected, used, and disclosed by WorkHub.
             </p>
 
             <h2 className="text-xl font-semibold text-slate-900 mt-8 mb-4">1. Information We Collect</h2>
@@ -47,7 +47,7 @@ export default function PrivacyPolicy() {
               </p>
             </div>
             <p>
-              Specifically, when you connect your Google/Gmail account to Workhub, we only use the requested permissions (such as reading emails or calendar events) to display that information directly to you within your workspace. We do not sell your Google data, nor do we use it for advertising purposes.
+              Specifically, when you connect your Google/Gmail account to WorkHub, we only use the requested permissions (such as reading emails or calendar events) to display that information directly to you within your workspace. We do not sell your Google data, nor do we use it for advertising purposes.
             </p>
 
             <h2 className="text-xl font-semibold text-slate-900 mt-8 mb-4">4. Security of Your Data</h2>
@@ -65,7 +65,7 @@ export default function PrivacyPolicy() {
 
       <footer className="bg-white border-t py-8 mt-auto">
         <div className="container mx-auto px-4 text-center text-sm text-slate-500">
-          © {new Date().getFullYear()} Workhub Inc. All rights reserved.
+          © {new Date().getFullYear()} WorkHub Inc. All rights reserved.
         </div>
       </footer>
     </div>

@@ -9,7 +9,7 @@ export default function TermsOfService() {
         <div className="container mx-auto px-4 h-16 flex items-center">
           <Link to="/home" className="flex items-center gap-2">
             <Layers className="h-6 w-6 text-indigo-600" />
-            <span className="font-bold text-xl tracking-tight text-slate-900">Workhub</span>
+            <span className="font-bold text-xl tracking-tight text-slate-900">WorkHub</span>
           </Link>
         </div>
       </header>
@@ -21,7 +21,7 @@ export default function TermsOfService() {
 
           <div className="prose prose-slate max-w-none space-y-6">
             <p>
-              Please read these Terms of Service ("Terms", "Terms of Service") carefully before using the Workhub platform (the "Service") operated by Workhub Inc ("us", "we", or "our").
+              Please read these Terms of Service ("Terms", "Terms of Service") carefully before using the WorkHub platform (the "Service") operated by WorkHub Inc ("us", "we", or "our").
             </p>
 
             <h2 className="text-xl font-semibold text-slate-900 mt-8 mb-4">1. Acceptance of Terms</h2>
@@ -49,7 +49,7 @@ export default function TermsOfService() {
             <ul className="list-disc pl-5 space-y-2">
               <li>In any way that violates any applicable national or international law or regulation.</li>
               <li>To transmit, or procure the sending of, any advertising or promotional material, including any "junk mail", "chain letter," "spam," or any other similar solicitation.</li>
-              <li>To impersonate or attempt to impersonate Workhub, a Workhub employee, another user, or any other person or entity.</li>
+              <li>To impersonate or attempt to impersonate WorkHub, a WorkHub employee, another user, or any other person or entity.</li>
             </ul>
 
             <h2 className="text-xl font-semibold text-slate-900 mt-8 mb-4">5. Termination</h2>
@@ -67,7 +67,7 @@ export default function TermsOfService() {
 
       <footer className="bg-white border-t py-8 mt-auto">
         <div className="container mx-auto px-4 text-center text-sm text-slate-500">
-          © {new Date().getFullYear()} Workhub Inc. All rights reserved.
+          © {new Date().getFullYear()} WorkHub Inc. All rights reserved.
         </div>
       </footer>
     </div>
