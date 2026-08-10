@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Pagination,
   PaginationContent,
@@ -26,6 +27,7 @@ import { Task } from "@/types/tasks";
 import { useAuth } from "@/context/AuthContext";
 import { apiClient } from "@/api/client";
 import { getMyDayDashboard } from "@/api/tasks";
+import { MEDIA_BASE } from "@/config";
 
 const priorityConfig: Record<string, { color: string; label: string }> = {
   P1: { color: "bg-destructive text-destructive-foreground", label: "P1 Critical" },
@@ -281,24 +283,69 @@ export default function MyDay() {
                               <span className="text-foreground">{task.createdBy?.name || (task as any).created_by_name || "System"}</span>
                             </span>
                             {viewMode !== 'my_tasks' && (
-                              <span className="flex items-center gap-1.5">
+                              <span className="flex items-center gap-2">
                                 <span className="font-semibold text-slate-500">Assigned to:</span> 
                                 {isSiteAdmin ? (
-                                  <Select value={task.assignees?.[0]?.id?.toString() || (task as any).assigned_to?.toString() || "unassigned"} onValueChange={(val) => {
-                                    updateTask(task.id, { assigned_to: val === "unassigned" ? null : parseInt(val) } as any);
-                                  }}>
-                                    <SelectTrigger onClick={e => e.stopPropagation()} className="h-6 text-xs bg-slate-50 border border-slate-200 p-0 focus:ring-0 w-auto shadow-sm text-foreground hover:bg-slate-100 rounded px-2">
-                                      <SelectValue placeholder="Unassigned" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="unassigned">Unassigned</SelectItem>
-                                      {employees.map(e => <SelectItem key={e.id} value={e.id.toString()}>{e.name}</SelectItem>)}
-                                    </SelectContent>
-                                  </Select>
+                                  <Popover>
+                                    <PopoverTrigger asChild>
+                                      <div onClick={(e) => e.stopPropagation()} className="flex -space-x-2 cursor-pointer hover:opacity-80 transition-opacity min-w-[60px] min-h-[24px]">
+                                        {(task.assignees && task.assignees.length > 0) ? (
+                                          task.assignees.map((assignee: any, idx: number) => (
+                                            <Avatar key={assignee.id || idx} className="h-6 w-6 border-2 border-background" title={assignee.name}>
+                                              {assignee.avatar ? (
+                                                <img src={assignee.avatar.startsWith('http') ? assignee.avatar : `${MEDIA_BASE}${assignee.avatar}`} alt={assignee.name} className="object-cover w-full h-full" />
+                                              ) : (
+                                                <AvatarFallback className="text-[9px] bg-primary/10 text-primary">{assignee.initials || (assignee.name ? assignee.name.substring(0,2).toUpperCase() : 'U')}</AvatarFallback>
+                                              )}
+                                            </Avatar>
+                                          ))
+                                        ) : (
+                                          <Badge variant="outline" className="text-[10px] bg-slate-50 text-slate-500 border-dashed">Unassigned</Badge>
+                                        )}
+                                      </div>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-[260px] p-2" align="start" onClick={(e) => e.stopPropagation()}>
+                                      <div className="space-y-2">
+                                        <h4 className="font-medium text-xs text-muted-foreground uppercase tracking-wider mb-2">Assign Users</h4>
+                                        <div className="max-h-[200px] overflow-y-auto space-y-1 custom-scrollbar">
+                                          {employees.map(e => {
+                                            const isSelected = (task.assignees || []).some(a => a.id?.toString() === e.id.toString());
+                                            return (
+                                              <div 
+                                                key={e.id} 
+                                                className="flex items-center gap-3 p-1.5 rounded hover:bg-slate-100 cursor-pointer"
+                                                onClick={() => {
+                                                  const newAssignees = isSelected 
+                                                    ? (task.assignees || []).filter(a => a.id?.toString() !== e.id.toString()).map(a => parseInt(a.id as string))
+                                                    : [...(task.assignees || []).map(a => parseInt(a.id as string)), parseInt(e.id.toString())];
+                                                  updateTask(task.id, { assignee_ids: newAssignees } as any);
+                                                }}
+                                              >
+                                                <Checkbox checked={isSelected} className="h-4 w-4" />
+                                                <span className="text-sm">{e.name}</span>
+                                              </div>
+                                            )
+                                          })}
+                                        </div>
+                                      </div>
+                                    </PopoverContent>
+                                  </Popover>
                                 ) : (
-                                  <span className="text-foreground">
-                                    {task.assignees?.[0]?.name || (task as any).assigned_to_name || "Unassigned"}
-                                  </span>
+                                  <div className="flex -space-x-2 min-w-[60px] min-h-[24px]">
+                                    {(task.assignees && task.assignees.length > 0) ? (
+                                      task.assignees.map((assignee: any, idx: number) => (
+                                        <Avatar key={assignee.id || idx} className="h-6 w-6 border-2 border-background" title={assignee.name}>
+                                          {assignee.avatar ? (
+                                            <img src={assignee.avatar.startsWith('http') ? assignee.avatar : `${MEDIA_BASE}${assignee.avatar}`} alt={assignee.name} className="object-cover w-full h-full" />
+                                          ) : (
+                                            <AvatarFallback className="text-[9px] bg-primary/10 text-primary">{assignee.initials || (assignee.name ? assignee.name.substring(0,2).toUpperCase() : 'U')}</AvatarFallback>
+                                          )}
+                                        </Avatar>
+                                      ))
+                                    ) : (
+                                      <Badge variant="outline" className="text-[10px] bg-slate-50 text-slate-500 border-dashed">Unassigned</Badge>
+                                    )}
+                                  </div>
                                 )}
                               </span>
                             )}
@@ -481,7 +528,7 @@ export default function MyDay() {
                   <div key={b.id} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Avatar className="h-7 w-7 border border-amber-200">
-                        {b.avatar ? <img src={b.avatar} alt={b.name} className="object-cover" /> : <AvatarFallback className="bg-amber-100 text-amber-700 text-[10px]">{b.name.substring(0, 2).toUpperCase()}</AvatarFallback>}
+                        {b.avatar ? <img src={b.avatar.startsWith('http') ? b.avatar : `${MEDIA_BASE}${b.avatar}`} alt={b.name} className="object-cover" /> : <AvatarFallback className="bg-amber-100 text-amber-700 text-[10px]">{b.name.substring(0, 2).toUpperCase()}</AvatarFallback>}
                       </Avatar>
                       <div className="flex flex-col">
                         <span className="text-xs font-medium text-foreground">{b.name}</span>

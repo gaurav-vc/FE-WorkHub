@@ -11,9 +11,10 @@ export default function Home() {
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Layers className="h-6 w-6 text-indigo-600" />
-            <span className="font-bold text-xl tracking-tight text-slate-900">Workhub</span>
+            <span className="font-bold text-xl tracking-tight text-slate-900">WorkHub</span>
           </div>
           <nav className="hidden md:flex gap-6">
+            <a href="#about" className="text-sm font-medium text-slate-600 hover:text-indigo-600 transition-colors">About & Purpose</a>
             <a href="#features" className="text-sm font-medium text-slate-600 hover:text-indigo-600 transition-colors">Features</a>
             <a href="#security" className="text-sm font-medium text-slate-600 hover:text-indigo-600 transition-colors">Security</a>
           </nav>
@@ -47,6 +48,19 @@ export default function Home() {
                 </Button>
               </Link>
             </div>
+          </div>
+        </section>
+
+        {/* Application Purpose Section */}
+        <section id="about" className="py-24 bg-white border-t border-slate-100">
+          <div className="container mx-auto px-4 max-w-4xl text-center">
+            <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl mb-6">Our Purpose & Integration</h2>
+            <p className="text-lg text-slate-600 mb-8 leading-relaxed">
+              WorkHub is a comprehensive enterprise productivity platform designed to centralize tasks, internal communications, and HR processes. 
+              <strong> Why do we need Google access?</strong> To provide a seamless experience, WorkHub integrates directly with your Google Workspace. 
+              By securely authenticating with your Google account, WorkHub can read your Gmail messages to automatically surface important client communications 
+              and convert relevant emails directly into actionable tasks on your dashboard, saving you hours of manual data entry.
+            </p>
           </div>
         </section>
 
@@ -89,24 +103,26 @@ export default function Home() {
             <Shield className="h-16 w-16 text-indigo-600 mx-auto mb-6" />
             <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl mb-6">Bank-grade Security</h2>
             <p className="text-lg text-slate-600 mb-8">
-              Workhub is built from the ground up with enterprise security in mind. 
+              WorkHub is built from the ground up with enterprise security in mind. 
               We utilize advanced encryption, strict access controls, and regular independent security audits 
               to ensure your organization's data remains private and protected at all times.
             </p>
-            <div className="flex justify-center gap-4">
+            <div className="flex flex-col sm:flex-row justify-center gap-4 items-center">
               <Link to="/privacy-policy" className="text-indigo-600 font-medium hover:underline">Read our Privacy Policy &rarr;</Link>
+              <span className="hidden sm:inline text-slate-300">|</span>
+              <Link to="/terms-of-service" className="text-indigo-600 font-medium hover:underline">Terms of Service &rarr;</Link>
             </div>
           </div>
         </section>
       </main>
 
       {/* Footer */}
-      <footer className="bg-white border-t py-12">
+      <footer className="bg-white border-t py-8">
         <div className="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-2">
             <Layers className="h-5 w-5 text-indigo-600" />
-            <span className="font-semibold text-slate-900">Workhub</span>
-            <span className="text-sm text-slate-500 ml-4">© {new Date().getFullYear()} Workhub Inc.</span>
+            <span className="font-semibold text-slate-900">WorkHub</span>
+            <span className="text-sm text-slate-500 ml-4">© {new Date().getFullYear()} WorkHub Inc.</span>
           </div>
           <div className="flex gap-6 text-sm font-medium">
             <Link to="/privacy-policy" className="text-slate-500 hover:text-indigo-600 transition-colors">Privacy Policy</Link>

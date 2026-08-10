@@ -15,6 +15,7 @@ import { changePassword } from "@/api/auth";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { MEDIA_BASE } from "@/config";
 
 interface ProfileModalProps {
   open: boolean;
@@ -117,9 +118,9 @@ export function ProfileModal({ open, onOpenChange }: ProfileModalProps) {
       <DialogContent className="sm:max-w-[700px] p-0 overflow-hidden bg-background">
         <div className="flex flex-col md:flex-row h-full min-h-[500px]">
           {/* Sidebar Tabs */}
-          <div className="w-full md:w-48 bg-muted/30 border-r border-border p-4 flex flex-col gap-2 shrink-0">
+          <div className="w-full md:w-40 bg-muted/30 border-r border-border p-3 flex flex-col gap-2 shrink-0">
             <DialogHeader className="mb-4 text-left">
-              <DialogTitle className="text-xl">Settings</DialogTitle>
+              <DialogTitle className="text-lg">Settings</DialogTitle>
             </DialogHeader>
             <button
               onClick={() => setActiveTab("profile")}
@@ -153,7 +154,7 @@ export function ProfileModal({ open, onOpenChange }: ProfileModalProps) {
               <>
                 {activeTab === "profile" && (
                   <div className="flex flex-col gap-8 animate-in fade-in slide-in-from-right-4 duration-300 relative">
-                    <div className="absolute top-0 right-0 flex gap-2">
+                    <div className="absolute top-0 right-8 flex gap-2">
                       {isEditing ? (
                         <>
                           <Button variant="outline" size="sm" onClick={() => setIsEditing(false)}>Cancel</Button>
@@ -162,18 +163,17 @@ export function ProfileModal({ open, onOpenChange }: ProfileModalProps) {
                           </Button>
                         </>
                       ) : (
-                        <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
-                          <Edit2 className="h-4 w-4 mr-2" />
-                          Edit Profile
+                        <Button variant="outline" size="icon" onClick={() => setIsEditing(true)} title="Edit Profile">
+                          <Edit2 className="h-4 w-4" />
                         </Button>
                       )}
                     </div>
                     
                     <div className="flex items-center gap-6 mt-4">
                       <div className="relative group">
-                        <Avatar className="h-24 w-24 border-4 border-muted shrink-0">
+                        <Avatar className="h-24 w-24 border-4 border-muted shrink-0 relative">
                           {(!removePhoto && profile.photo_url) || editPhoto ? (
-                            <img src={editPhoto ? URL.createObjectURL(editPhoto) : profile.photo_url} alt={profile.full_name} className="object-cover w-full h-full" />
+                            <img src={editPhoto ? URL.createObjectURL(editPhoto) : (profile.photo_url.startsWith('http') ? profile.photo_url : `${MEDIA_BASE}${profile.photo_url}`)} alt={profile.full_name} className="object-cover w-full h-full" />
                           ) : (
                             <AvatarFallback className="text-3xl bg-primary/10 text-primary font-bold">
                               {profile.full_name?.substring(0, 2).toUpperCase() || profile.username.substring(0, 2).toUpperCase()}
@@ -181,18 +181,15 @@ export function ProfileModal({ open, onOpenChange }: ProfileModalProps) {
                           )}
                         </Avatar>
                         {isEditing && (
-                          <div className="absolute inset-0 bg-black/50 rounded-full flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <label className="cursor-pointer text-white text-xs text-center flex flex-col items-center p-1">
-                              <Upload className="h-4 w-4 mb-1" />
-                              Upload
-                              <input type="file" className="hidden" accept="image/*" onChange={(e) => {
-                                if (e.target.files && e.target.files[0]) {
-                                  setEditPhoto(e.target.files[0]);
-                                  setRemovePhoto(false);
-                                }
-                              }} />
-                            </label>
-                          </div>
+                          <label className="absolute bottom-0 right-0 h-8 w-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center cursor-pointer shadow-md hover:bg-primary/90 transition-colors z-10">
+                            <Edit2 className="h-4 w-4" />
+                            <input type="file" className="hidden" accept="image/*" onChange={(e) => {
+                              if (e.target.files && e.target.files[0]) {
+                                setEditPhoto(e.target.files[0]);
+                                setRemovePhoto(false);
+                              }
+                            }} />
+                          </label>
                         )}
                       </div>
                       <div className="space-y-1">
