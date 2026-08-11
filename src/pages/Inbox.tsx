@@ -28,13 +28,20 @@ export default function Inbox() {
   const [selectedAccountId, setSelectedAccountId] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
+  const [accountsLoaded, setAccountsLoaded] = useState(false);
+
   useEffect(() => {
     fetchAccounts();
   }, [token]);
 
   useEffect(() => {
-    fetchEmails(selectedAccountId);
-  }, [selectedAccountId, token]);
+    // Prevent double-fetching on initial load by waiting until accounts are resolved
+    if (accountsLoaded) {
+      if (accounts.length === 0 || selectedAccountId) {
+        fetchEmails(selectedAccountId);
+      }
+    }
+  }, [selectedAccountId, token, accountsLoaded]);
 
   const fetchAccounts = async () => {
     try {
@@ -50,6 +57,8 @@ export default function Inbox() {
       }
     } catch (e) {
       console.error(e);
+    } finally {
+      setAccountsLoaded(true);
     }
   };
 
