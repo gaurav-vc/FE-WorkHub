@@ -137,21 +137,25 @@ export default function ResourcePlanning() {
 
     return teamMembers.map(member => {
       const assignedTasks = allTasks.filter(t => {
-        const isAssigned = t.assignees.some((a: any) => (a.name === member.name || a.initials === member.initials));
+        const isAssigned = (t.assignees || []).some((a: any) => (
+          (a.id && member.id && a.id.toString() === member.id.toString()) ||
+          (a.name && member.name && a.name.toLowerCase() === member.name.toLowerCase()) ||
+          (a.name && member.username && a.name.toLowerCase() === member.username.toLowerCase()) ||
+          (a.initials && member.initials && a.initials.toUpperCase() === member.initials.toUpperCase())
+        ));
         if (!isAssigned || t.status === "done") return false;
 
-        // Check if task falls in the current week
+        // Check if task falls in the current week or is active / overdue
         const start = new Date(t.startDate);
         const due = new Date(t.dueDate);
         
-        // If neither start nor due date exists, assume it's active
+        // If neither start nor due date exists, include active task
         if (isNaN(start.getTime()) && isNaN(due.getTime())) return true;
         
-        // Task overlaps with the current week if it starts before week end AND ends after week start
         const effectiveStart = isNaN(start.getTime()) ? new Date(due) : start;
-        const effectiveDue = isNaN(due.getTime()) ? new Date(start) : due;
         
-        return effectiveStart <= weekEnd && effectiveDue >= weekStart;
+        // Include tasks starting on or before current week end (includes overdue & current week tasks)
+        return effectiveStart <= weekEnd;
       });
       const totalEffortHours = assignedTasks.reduce((sum, t) => {
         const hours = t.effortUnit === "days" ? t.estimatedEffort * 8 : t.estimatedEffort;

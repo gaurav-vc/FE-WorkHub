@@ -678,6 +678,15 @@ export default function CalendarMeetings() {
                           const data = await res.json();
                           if (data.link) {
                             setForm({ ...form, meetingLink: data.link });
+                            if (data.source === 'jitsi_fallback' && data.note) {
+                              toast.info(`Using Jitsi fallback. ${data.note}`);
+                            } else if (data.source === 'google_calendar_api') {
+                              toast.success("Real Google Meet link generated!");
+                            } else if (data.source === 'teams_graph_api') {
+                              toast.success("Real Microsoft Teams link generated!");
+                            } else {
+                              toast.success("Meeting link generated!");
+                            }
                           }
                         } catch (err) {
                           toast.error("Failed to generate link");

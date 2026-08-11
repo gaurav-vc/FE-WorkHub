@@ -36,14 +36,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
+import { PagedPagination } from "@/components/ui/PagedPagination";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { getProjects, createProject, updateProject, deleteProject as deleteProjectApi, getDepartments, getTemplates, importTemplate, duplicateProject, exportProject } from "@/api/projects";
@@ -147,6 +140,7 @@ export default function Projects() {
         dueDate: p.dueDate,
         tasks: p.tasks || { total: 0, completed: 0 },
         imported_tasks: p.imported_tasks || [],
+        created_by_name: p.created_by_name,
       })));
       if (data.count !== undefined) {
         setTotalPages(Math.ceil(data.count / 12));
@@ -504,27 +498,12 @@ export default function Projects() {
         </div>
       )}
 
-      {totalPages > 1 && (
-        <div className="mt-8 mb-4">
-          <Pagination>
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious onClick={() => setCurrentPage(p => Math.max(1, p - 1))} className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"} />
-              </PaginationItem>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                <PaginationItem key={p}>
-                  <PaginationLink isActive={p === currentPage} onClick={() => setCurrentPage(p)} className="cursor-pointer">
-                    {p}
-                  </PaginationLink>
-                </PaginationItem>
-              ))}
-              <PaginationItem>
-                <PaginationNext onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"} />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-        </div>
-      )}
+      <PagedPagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        className="mt-8 mb-4"
+      />
 
       {/* Expanded Dialog size max-w-2xl */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
