@@ -8,6 +8,8 @@ import { toast } from "sonner";
 import { safeFormat as format, safeFormatDistanceToNow as formatDistanceToNow } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/context/AuthContext";
 import { ImageViewerModal } from "@/components/shared/ImageViewerModal";
 import { API_BASE, MEDIA_BASE } from "@/config";
@@ -258,19 +260,62 @@ export function TaskDetailsModal({ taskId, open, onOpenChange, onTaskUpdate, pro
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-sm">
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Assign To</label>
-                <Select value={task.assigned_to?.id?.toString() || task.assigned_to?.toString() || "unassigned"} onValueChange={(val) => updateTaskField("assigned_to", val === "unassigned" ? null : val)}>
-                  <SelectTrigger className="bg-white border border-slate-200 text-slate-700 h-9 px-3 rounded-md flex items-center gap-2 hover:bg-slate-50 focus:ring-0 shadow-sm">
-                    <UserPlus className="h-4 w-4 text-primary shrink-0" />
-                    <SelectValue placeholder="Unassigned" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white text-slate-900 border-slate-200">
-                    {globalUsers.find((u:any) => u.username === username) && (
-                      <SelectItem value={globalUsers.find((u:any) => u.username === username).id.toString()}>Self Assign</SelectItem>
-                    )}
-                    <SelectItem value="unassigned">Unassigned</SelectItem>
-                    {globalUsers.filter((u:any) => u.username !== username).map((m: any) => <SelectItem key={m.id} value={m.id.toString()}>{m.name || m.username}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <div className="bg-white border border-slate-200 text-slate-700 h-9 px-3 rounded-md flex items-center justify-between gap-2 hover:bg-slate-50 focus:ring-0 shadow-sm cursor-pointer">
+                      <div className="flex items-center gap-2 overflow-hidden">
+                        <UserPlus className="h-4 w-4 text-primary shrink-0" />
+                        <span className="truncate text-sm">
+                          {task.assignees_detail && task.assignees_detail.length > 0 
+                            ? task.assignees_detail.map((a: any) => a.name).join(", ") 
+                            : (task.assignee_detail?.name || "Unassigned")}
+                        </span>
+                      </div>
+                    </div>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[260px] p-2 bg-white" align="start">
+                    <div className="space-y-2">
+                      <h4 className="font-medium text-xs text-muted-foreground uppercase tracking-wider mb-2">Assign Users</h4>
+                      <div className="max-h-[200px] overflow-y-auto space-y-1 custom-scrollbar">
+                        {globalUsers.map(e => {
+                          const isSelected = isBoardCard 
+                            ? (task.assignee?.id?.toString() === e.id.toString() || task.assignee?.toString() === e.id.toString())
+                            : (task.assignees_detail || []).some((a: any) => a.id?.toString() === e.id.toString()) || 
+                              (task.assignees || []).some((id: any) => id.toString() === e.id.toString());
+                          
+                          return (
+                            <div 
+                              key={e.id} 
+                              className="flex items-center gap-3 p-1.5 rounded hover:bg-slate-100 cursor-pointer"
+                              onClick={async () => {
+                                if (isBoardCard) {
+                                  updateTaskField("assignee", isSelected ? null : e.id.toString());
+                                } else {
+                                  let currentAssignees = task.assignees || (task.assignees_detail || []).map((a: any) => a.id);
+                                  const newAssignees = isSelected 
+                                    ? currentAssignees.filter((id: any) => id.toString() !== e.id.toString()).map(Number)
+                                    : [...currentAssignees.map(Number), parseInt(e.id.toString())];
+                                  
+                                  // Update assignees
+                                  await updateTaskField("assignees", newAssignees);
+                                  // Update assigned_to for backward compatibility
+                                  if (newAssignees.length > 0) {
+                                      await updateTaskField("assigned_to", newAssignees[0]);
+                                  } else {
+                                      await updateTaskField("assigned_to", null);
+                                  }
+                                }
+                              }}
+                            >
+                              <Checkbox checked={isSelected} className="h-4 w-4" />
+                              <span className="text-sm">{e.name || e.username}</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
 
               <div className="space-y-1.5">
@@ -312,7 +357,7 @@ export function TaskDetailsModal({ taskId, open, onOpenChange, onTaskUpdate, pro
               <div className="flex"><span className="w-32 text-slate-500 font-medium">Created By :</span> <span>{task.created_by_name || "System"}</span></div>
               <div className="flex"><span className="w-32 text-slate-500 font-medium">Created Date :</span> <span>{task.created_at ? `${new Date(task.created_at).toLocaleDateString()} at ${new Date(task.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} (${formatDistanceToNow(new Date(task.created_at), { addSuffix: true })})` : ""}</span></div>
               <div className="flex"><span className="w-32 text-slate-500 font-medium">Due Date :</span> <span>{task.due_date ? format(new Date(task.due_date), "MMM d, yyyy") : ""}</span></div>
-              <div className="flex"><span className="w-32 text-slate-500 font-medium">Assign To :</span> <span>{task.assignee_detail?.name || "Unassigned"}</span></div>
+              <div className="flex"><span className="w-32 text-slate-500 font-medium">Assign To :</span> <span>{task.assignees_detail && task.assignees_detail.length > 0 ? task.assignees_detail.map((a: any) => a.name).join(", ") : (task.assignee_detail?.name || "Unassigned")}</span></div>
             </div>
 
             {/* Checklist Section */}

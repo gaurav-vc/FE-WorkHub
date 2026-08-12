@@ -371,7 +371,7 @@ export default function MyDay() {
                                                     const newAssignees = isSelected 
                                                       ? (task.assignees || []).filter(a => a.id?.toString() !== e.id.toString()).map(a => parseInt(a.id as string))
                                                       : [...(task.assignees || []).map(a => parseInt(a.id as string)), parseInt(e.id.toString())];
-                                                    updateTask(task.id, { assignee_ids: newAssignees } as any);
+                                                    updateTask(task.id, { assigneeIds: newAssignees } as any);
                                                   }}
                                                 >
                                                   <Checkbox checked={isSelected} className="h-4 w-4" />

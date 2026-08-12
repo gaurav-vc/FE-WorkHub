@@ -10,6 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { TaskDetailsModal } from "./TaskDetailsModal";
 import { CreateTaskModal } from "./CreateTaskModal";
@@ -28,6 +29,7 @@ interface Task {
   assigned_to?: any;
   assigned_to_name?: string;
   assignee_detail?: any;
+  assignees_detail?: any[];
   subtasks?: any[];
   healthStatus?: 'green' | 'yellow' | 'red';
   isQueued?: boolean;
@@ -536,9 +538,24 @@ export default function ProjectBoard({ projectId, onBack }: ProjectBoardProps) {
                                 </div>
                               )}
                               
-                              {/* Footer: Date and Delete Icon */}
-                              <div className="flex justify-between items-center text-muted-foreground text-[10px] font-medium pt-1 border-t border-border/40 mt-1">
-                                <span>{task.due_date ? new Date(task.due_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : ""}</span>
+                              {/* Footer: Date, Assignees and Delete Icon */}
+                              <div className="flex justify-between items-center text-muted-foreground text-[10px] font-medium pt-2 border-t border-border/40 mt-1">
+                                <div className="flex items-center gap-2">
+                                  <span>{task.due_date ? new Date(task.due_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : ""}</span>
+                                  <div className="flex -space-x-1.5 min-h-[16px] ml-1">
+                                    {(task.assignees_detail && task.assignees_detail.length > 0) ? (
+                                      task.assignees_detail.map((assignee: any, idx: number) => (
+                                        <Avatar key={assignee.id || idx} className="h-5 w-5 border border-background" title={assignee.name}>
+                                          <AvatarFallback className="text-[7px] bg-primary/10 text-primary">{assignee.name ? assignee.name.substring(0,2).toUpperCase() : 'U'}</AvatarFallback>
+                                        </Avatar>
+                                      ))
+                                    ) : task.assignee_detail ? (
+                                      <Avatar className="h-5 w-5 border border-background" title={task.assignee_detail.name}>
+                                        <AvatarFallback className="text-[7px] bg-primary/10 text-primary">{task.assignee_detail.name ? task.assignee_detail.name.substring(0,2).toUpperCase() : 'U'}</AvatarFallback>
+                                      </Avatar>
+                                    ) : null}
+                                  </div>
+                                </div>
                                 <Button 
                                   size="icon" 
                                   variant="ghost" 
