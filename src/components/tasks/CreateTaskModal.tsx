@@ -36,6 +36,9 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
   const [projectId, setProjectId] = useState("general");
   const [projects, setProjects] = useState<any[]>([]);
   
+  const [type, setType] = useState("none");
+  const [platform, setPlatform] = useState("none");
+  
   const [startDate, setStartDate] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [dueTime, setDueTime] = useState("");
@@ -101,6 +104,11 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
       toast.error("Please provide a Task Topic");
       return;
     }
+    
+    if (!projectId || projectId === "general") {
+      toast.error("Please select a Project");
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -131,6 +139,8 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
         timeIntervalMinutes,
         estimatedEffort: parsedEffort,
         effortUnit: effortUnit || "Hours",
+        type: type === "none" ? "" : type,
+        platform: platform === "none" ? "" : platform,
         isUrgent: !!isUrgent,
         tags: tags || [],
         is_queued: !!isQueued,
@@ -153,6 +163,8 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
       setIsUrgent(false);
       setTags([]);
       setTaskType("self");
+      setType("none");
+      setPlatform("none");
       setAssignedToIds([]);
       setIsQueued(false);
       setColor("bg-primary");
@@ -192,22 +204,57 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
           <div className="flex-1 overflow-y-auto px-6 py-5">
             <Tabs value={activeTab} className="w-full">
               <TabsContent value="details" className="space-y-6 mt-0">
-                {/* Task Type */}
-                <div className="flex items-center gap-6 border-b border-border/50 pb-4">
-                  <span className="font-semibold text-sm">Task Type</span>
-                  <div className="flex items-center bg-muted/50 rounded-xl p-1.5 shadow-inner">
-                    <button 
-                      onClick={() => setTaskType("self")}
-                      className={`px-8 py-2.5 rounded-lg text-base font-semibold transition-all ${taskType === 'self' ? 'bg-[#2563eb] text-white shadow-md' : 'text-muted-foreground hover:text-foreground'}`}
-                    >
-                      Self Task
-                    </button>
-                    <button 
-                      onClick={() => setTaskType("assign")}
-                      className={`px-8 py-2.5 rounded-lg text-base font-semibold transition-all ${taskType === 'assign' ? 'bg-[#2563eb] text-white shadow-md' : 'text-muted-foreground hover:text-foreground'}`}
-                    >
-                      Assign to Others
-                    </button>
+                {/* Task Type, Type & Platform */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-b border-border/50 pb-6">
+                  
+                  {/* Task Type Toggle */}
+                  <div className="space-y-2 md:col-span-2">
+                    <Label className="text-sm font-semibold">Task Type</Label>
+                    <div className="flex items-center bg-muted/50 rounded-xl p-1.5 shadow-inner w-full">
+                      <button 
+                        onClick={() => setTaskType("self")}
+                        className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${taskType === 'self' ? 'bg-[#2563eb] text-white shadow-md' : 'text-muted-foreground hover:text-foreground'}`}
+                      >
+                        Self Task
+                      </button>
+                      <button 
+                        onClick={() => setTaskType("assign")}
+                        className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${taskType === 'assign' ? 'bg-[#2563eb] text-white shadow-md' : 'text-muted-foreground hover:text-foreground'}`}
+                      >
+                        Assign to Others
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Type */}
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-semibold">Type</Label>
+                    <Select value={type} onValueChange={setType}>
+                      <SelectTrigger className="bg-muted/30 h-10">
+                        <SelectValue placeholder="Select type..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        <SelectItem value="Issue">Issue</SelectItem>
+                        <SelectItem value="Enhancement">Enhancement</SelectItem>
+                        <SelectItem value="Change Request">Change Request</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Platform */}
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-semibold">Platform</Label>
+                    <Select value={platform} onValueChange={setPlatform}>
+                      <SelectTrigger className="bg-muted/30 h-10">
+                        <SelectValue placeholder="Select platform..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        <SelectItem value="Web">Web</SelectItem>
+                        <SelectItem value="App">App</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
@@ -340,7 +387,7 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
                     </Select>
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-sm font-semibold">Project</Label>
+                    <Label className="text-sm font-semibold">Project <span className="text-destructive">*</span></Label>
                     <Popover open={projectPopoverOpen} onOpenChange={setProjectPopoverOpen}>
                       <PopoverTrigger asChild>
                         <Button variant="outline" role="combobox" aria-expanded={projectPopoverOpen} className="w-full justify-between bg-muted/30 h-10 font-normal">

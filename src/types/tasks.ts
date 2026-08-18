@@ -61,8 +61,10 @@ export interface Task {
   title: string;
   description: string;
   taskType: "self" | "assign";
+  type?: string;
+  platform?: string;
   priority: "P1" | "P2" | "P3" | "P4";
-  status: "todo" | "in-progress" | "done" | "blocked";
+  status: "Yet to Start" | "in-progress" | "done" | "blocked" | "delayed";
   project: string;
   assignees: Array<{ id?: string | number; name: string; initials: string }>;
   createdBy: { name: string; initials: string };
@@ -74,7 +76,7 @@ export interface Task {
   estimatedEffort: number;
   effortUnit: "hours" | "days";
   actualEffort: number;
-  
+
   // Dynamic queue & health properties
   timeIntervalMinutes?: number;
   startedAt?: string;

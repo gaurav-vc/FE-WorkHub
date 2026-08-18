@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
   X, Clock, Calendar, Users, Link2, Flag, CheckSquare, MessageSquare, Send,
-  Paperclip, ListTree, FileText, AlertTriangle, RotateCcw, Edit, Trash2,
+  Paperclip, ListTree, FileText, AlertTriangle, RotateCcw, Edit, Trash2, Monitor
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -30,7 +30,7 @@ const priorityConfig: Record<string, { color: string; label: string }> = {
 };
 
 const statusConfig: Record<string, { color: string; label: string }> = {
-  "todo": { color: "bg-muted text-muted-foreground", label: "To Do" },
+  "todo": { color: "bg-muted text-muted-foreground", label: "Yet to Start" },
   "in-progress": { color: "bg-primary/10 text-primary", label: "In Progress" },
   "done": { color: "bg-success/10 text-success", label: "Done" },
   "blocked": { color: "bg-destructive/10 text-destructive", label: "Blocked" },
@@ -125,7 +125,7 @@ export function TaskWorkspacePanel() {
               <Select value={task.status} onValueChange={v => updateTask(task.id, { status: v as Task["status"] })}>
                 <SelectTrigger className="w-[120px] h-8 text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="todo">To Do</SelectItem>
+                  <SelectItem value="todo">Yet to Start</SelectItem>
                   <SelectItem value="in-progress">In Progress</SelectItem>
                   <SelectItem value="done">Done</SelectItem>
                   <SelectItem value="blocked">Blocked</SelectItem>
@@ -153,6 +153,8 @@ export function TaskWorkspacePanel() {
               {task.description && <p className="text-sm text-muted-foreground">{task.description}</p>}
 
               <div className="grid grid-cols-2 gap-3">
+                <InfoRow icon={ListTree} label="Task Type" value={task.type || "—"} />
+                <InfoRow icon={Monitor} label="Platform" value={task.platform || "—"} />
                 <InfoRow icon={Calendar} label="Start Date" value={task.startDate || "—"} />
                 <InfoRow icon={Calendar} label="Due Date" value={task.dueDate || "—"} />
                 <InfoRow icon={Clock} label="Due Time" value={task.dueTime || "—"} />
@@ -287,7 +289,7 @@ export function TaskWorkspacePanel() {
                     <Select value={st.status} onValueChange={v => updateSubtaskStatus(i, v as "todo" | "in-progress" | "done")}>
                       <SelectTrigger className="w-[100px] h-7 text-[10px]"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="todo">To Do</SelectItem>
+                        <SelectItem value="todo">Yet to Start</SelectItem>
                         <SelectItem value="in-progress">In Progress</SelectItem>
                         <SelectItem value="done">Done</SelectItem>
                       </SelectContent>

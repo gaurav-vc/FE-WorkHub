@@ -68,6 +68,7 @@ const getNavGroups = (portalType: PortalType) => {
       items: [
         { title: "Dashboard", url: "/", icon: LayoutDashboard },
         { title: "My Day", url: "/tasks/my-day", icon: CheckSquare },
+        { title: "My Card", url: "/my-card", icon: FileText },
         { title: "Calendar", url: "/tasks/calendar", icon: CalendarDays },
         { title: "Inbox", url: "/inbox", icon: Mail },
         { title: "Projects", url: "/tasks/projects", icon: Kanban },

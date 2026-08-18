@@ -15,6 +15,7 @@ const MODULES_LIST = [
   { id: 'tasks-projects', label: 'Projects', group: 'Core Services' },
   { id: 'tasks-resources', label: 'Resource Planning', group: 'Core Services' },
   { id: 'tasks-templates', label: 'Template Marketplace', group: 'Core Services' },
+  { id: 'my-card', label: 'My Card', group: 'Core Services' },
   { id: 'mom-list', label: 'Minutes of Meeting', group: 'Core Services' },
   { id: 'team-chat', label: 'Team Chat', group: 'Collaboration' },
   { id: 'docs-notes', label: 'Docs & Notes', group: 'Collaboration' },

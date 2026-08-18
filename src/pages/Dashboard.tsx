@@ -271,7 +271,7 @@ export default function Dashboard() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent align="end">
-                              <SelectItem value="todo">To Do</SelectItem>
+                              <SelectItem value="todo">Yet to Start</SelectItem>
                               <SelectItem value="in-progress">In Progress</SelectItem>
                               <SelectItem value="done">Done</SelectItem>
                               <SelectItem value="blocked">Blocked</SelectItem>

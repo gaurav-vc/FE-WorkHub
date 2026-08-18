@@ -66,6 +66,7 @@ export default function MyDay() {
   const [filterAssignee, setFilterAssignee] = useState("");
   const [filterStartDate, setFilterStartDate] = useState("");
   const [filterEndDate, setFilterEndDate] = useState("");
+  const [filterDelayed, setFilterDelayed] = useState(false);
   const [viewMode, setViewMode] = useState<"my_tasks" | "team_tasks">("my_tasks");
   const [meetings, setMeetings] = useState<any[]>([]);
   const [birthdays, setBirthdays] = useState<any[]>([]);
@@ -100,6 +101,7 @@ export default function MyDay() {
           priority: filterPriority,
           status: filterStatus,
           assignee: filterAssignee,
+          is_delayed: filterDelayed,
           view_mode: viewMode,
           start_date: filterStartDate,
           end_date: filterEndDate,
@@ -108,11 +110,11 @@ export default function MyDay() {
       }, 300);
       return () => clearTimeout(delay);
     }
-  }, [searchQuery, filterPriority, filterStatus, filterAssignee, filterStartDate, filterEndDate, viewMode, currentPage, token]);
+  }, [searchQuery, filterPriority, filterStatus, filterAssignee, filterDelayed, filterStartDate, filterEndDate, viewMode, currentPage, token]);
 
 
   const toggleComplete = (task: Task) => {
-    updateTask(task.id, { status: task.status === "done" ? "todo" : "done" });
+    updateTask(task.id, { status: (task.status === "done" ? "todo" : "done") as any });
   };
 
   const today = new Date();
@@ -189,12 +191,16 @@ export default function MyDay() {
               <SelectTrigger className="w-[130px] h-8 text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="todo">To Do</SelectItem>
+                <SelectItem value="todo">Yet to Start</SelectItem>
                 <SelectItem value="in-progress">In Progress</SelectItem>
                 <SelectItem value="done">Done</SelectItem>
                 <SelectItem value="blocked">Blocked</SelectItem>
               </SelectContent>
             </Select>
+            <div className="flex items-center gap-1.5 border-l pl-3 ml-1 border-slate-200">
+              <Checkbox id="delayed-filter" checked={filterDelayed} onCheckedChange={(c) => setFilterDelayed(!!c)} />
+              <label htmlFor="delayed-filter" className="text-xs font-semibold text-slate-500 cursor-pointer">Delayed</label>
+            </div>
             {isSiteAdmin && viewMode === 'team_tasks' && (
               <>
                 <Select value={filterAssignee} onValueChange={setFilterAssignee}>
@@ -428,12 +434,12 @@ export default function MyDay() {
                       <div className="flex items-center shrink-0 gap-3 ml-auto">
                         {/* Status Dropdown */}
                         <div className="shrink-0" onClick={e => e.stopPropagation()}>
-                          <Select value={task.status} onValueChange={v => updateTask(task.id, { status: v as "todo" | "in-progress" | "done" | "blocked" })}>
+                          <Select value={task.status} onValueChange={v => updateTask(task.id, { status: v as any })}>
                             <SelectTrigger className={`w-[105px] h-7 text-[10px] font-semibold border-none ${task.status === 'done' ? 'bg-success/10 text-success' : task.status === 'in-progress' ? 'bg-primary/10 text-primary' : task.status === 'blocked' ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground'}`}>
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent align="end">
-                              <SelectItem value="todo">To Do</SelectItem>
+                              <SelectItem value="todo">Yet to Start</SelectItem>
                               <SelectItem value="in-progress">In Progress</SelectItem>
                               <SelectItem value="done">Done</SelectItem>
                               <SelectItem value="blocked">Blocked</SelectItem>
@@ -540,7 +546,7 @@ export default function MyDay() {
             </CardHeader>
             <CardContent className="space-y-2">
               {[
-                { label: "To Do", count: tasks.filter(t => t.status === "todo").length, color: "bg-muted" },
+                { label: "Yet to Start", count: tasks.filter(t => t.status === ("todo" as any)).length, color: "bg-muted" },
                 { label: "In Progress", count: tasks.filter(t => t.status === "in-progress").length, color: "bg-primary" },
                 { label: "Blocked", count: tasks.filter(t => t.status === "blocked").length, color: "bg-destructive" },
                 { label: "Done", count: tasks.filter(t => t.status === "done").length, color: "bg-success" },

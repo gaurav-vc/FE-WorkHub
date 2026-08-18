@@ -67,6 +67,7 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
 
   const defaultForm = {
     title: "", description: "", taskType: "self" as "self" | "assign",
+    type: "", platform: "",
     priority: "P3" as Task["priority"], project: "", dueDate: "", dueTime: "",
     startDate: "", estimatedEffort: 0, effortUnit: "hours" as "hours" | "days",
     timeIntervalMinutes: 60,
@@ -77,6 +78,7 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
 
   const [form, setForm] = useState(editTask ? {
     title: editTask.title, description: editTask.description, taskType: editTask.taskType,
+    type: editTask.type || "", platform: editTask.platform || "",
     priority: editTask.priority, project: editTask.project, dueDate: editTask.dueDate,
     dueTime: editTask.dueTime, startDate: editTask.startDate,
     estimatedEffort: editTask.estimatedEffort, effortUnit: editTask.effortUnit,
@@ -103,6 +105,7 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
       if (editTask) {
         setForm({
           title: editTask.title || "", description: editTask.description || "", taskType: editTask.taskType || "self",
+          type: editTask.type || "", platform: editTask.platform || "",
           priority: editTask.priority || "P3", project: editTask.project || "", dueDate: editTask.dueDate || "",
           dueTime: editTask.dueTime || "", startDate: editTask.startDate || "",
           estimatedEffort: editTask.estimatedEffort || 0, effortUnit: editTask.effortUnit || "hours",
@@ -127,7 +130,9 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
     }
   }, [open, editTask, teamMembers]);
 
-  const handleSave = () => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSave = async () => {
     if (!form.title.trim()) {
       toast.error("Task title is required");
       return;
@@ -150,6 +155,7 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
     const taskData: Task = {
       id: editTask?.id || `task-${Date.now()}`,
       title: form.title, description: form.description, taskType: form.taskType,
+      type: form.type, platform: form.platform,
       priority: form.priority, status: editTask?.status || "todo",
       project: form.project, assignees, createdBy: { name: username || "User", initials: username ? username.substring(0, 2).toUpperCase() : "U" },
       createdDate: editTask?.createdDate || new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
@@ -167,12 +173,25 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
       assigneeIds: form.assigneeIds, // Pass assigneeIds for the backend
     } as any;
 
-    if (editTask) {
-      updateTask(editTask.id, taskData);
-    } else {
-      addTask(taskData);
+    setIsSubmitting(true);
+    try {
+      // Map 'none' back to empty string for backend
+      if (taskData.type === "none") taskData.type = "";
+      if (taskData.platform === "none") taskData.platform = "";
+      
+      let success = true;
+      if (editTask) {
+        success = (await updateTask(editTask.id, taskData)) !== false;
+      } else {
+        success = (await addTask(taskData)) !== false;
+      }
+      
+      if (success) {
+        onOpenChange(false);
+      }
+    } finally {
+      setIsSubmitting(false);
     }
-    onOpenChange(false);
   };
 
   const addChecklistItem = () => {
@@ -228,6 +247,33 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
                 <div className="flex bg-muted/40 p-1 rounded-lg w-full sm:w-[360px]">
                   <Button size="sm" variant={form.taskType === "self" ? "default" : "ghost"} onClick={() => setForm(f => ({ ...f, taskType: "self" }))} className={`flex-1 text-base h-10 ${form.taskType === "self" ? "shadow-sm" : ""}`}>Self Task</Button>
                   <Button size="sm" variant={form.taskType === "assign" ? "default" : "ghost"} onClick={() => setForm(f => ({ ...f, taskType: "assign" }))} className={`flex-1 text-base h-10 ${form.taskType === "assign" ? "shadow-sm" : ""}`}>Assign to Others</Button>
+                </div>
+              </div>
+
+              {/* Type & Platform */}
+              <div className="grid grid-cols-2 gap-3 mb-2">
+                <div className="space-y-1.5">
+                  <Label className="text-sm">Type</Label>
+                  <Select value={form.type || "none"} onValueChange={v => setForm(f => ({ ...f, type: v === "none" ? "" : v }))}>
+                    <SelectTrigger><SelectValue placeholder="Select type..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      <SelectItem value="Issue">Issue</SelectItem>
+                      <SelectItem value="Enhancement">Enhancement</SelectItem>
+                      <SelectItem value="Change Request">Change Request</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-sm">Platform</Label>
+                  <Select value={form.platform || "none"} onValueChange={v => setForm(f => ({ ...f, platform: v === "none" ? "" : v }))}>
+                    <SelectTrigger><SelectValue placeholder="Select platform..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      <SelectItem value="Web">Web</SelectItem>
+                      <SelectItem value="App">App</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
@@ -636,9 +682,9 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
         </ScrollArea>
 
         <DialogFooter className="mt-4 pt-4 border-t">
-          <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
-          <Button className="gradient-primary text-primary-foreground" onClick={handleSave}>
-            {editTask ? "Save Changes" : "Create Task"}
+          <DialogClose asChild><Button variant="outline" disabled={isSubmitting}>Cancel</Button></DialogClose>
+          <Button className="gradient-primary text-primary-foreground" onClick={handleSave} disabled={isSubmitting}>
+            {isSubmitting ? "Saving..." : (editTask ? "Save Changes" : "Create Task")}
           </Button>
         </DialogFooter>
       </DialogContent>

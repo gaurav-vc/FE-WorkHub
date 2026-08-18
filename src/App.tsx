@@ -9,6 +9,7 @@ import { TaskProvider } from "@/context/TaskContext";
 import Dashboard from "@/pages/Dashboard";
 import MyDay from "@/pages/MyDay";
 import Inbox from "@/pages/Inbox";
+import MyCard from "@/pages/MyCard";
 import CalendarMeetings from "@/pages/CalendarMeetings";
 import TeamChat from "@/pages/TeamChat";
 import KnowledgeBase from "@/pages/KnowledgeBase";
@@ -73,6 +74,7 @@ export const APP_ROUTES = [
   // My Work
   { id: "dashboard", path: "/", title: "Dashboard", category: "My Work" },
   { id: "tasks-my-day", path: "/tasks/my-day", title: "My Day", category: "My Work" },
+  { id: "my-card", path: "/my-card", title: "My Card", category: "My Work" },
   { id: "tasks-inbox", path: "/inbox", title: "Inbox", category: "My Work" },
   { id: "tasks-calendar", path: "/tasks/calendar", title: "Calendar", category: "My Work" },
   { id: "tasks-projects", path: "/tasks/projects", title: "Projects", category: "My Work" },
@@ -138,6 +140,7 @@ const App = () => (
               
               {/* Task & Project Management */}
               <Route path="/tasks/my-day" element={<ProtectedRoute route="/tasks/my-day"><MyDay /></ProtectedRoute>} />
+              <Route path="/my-card" element={<ProtectedRoute route="/my-card"><MyCard /></ProtectedRoute>} />
               <Route path="/tasks/calendar" element={<ProtectedRoute route="/tasks/calendar"><CalendarMeetings /></ProtectedRoute>} />
               <Route path="/inbox" element={<ProtectedRoute route="/inbox"><Inbox /></ProtectedRoute>} />
               <Route path="/tasks/projects" element={<ProtectedRoute route="/tasks/projects"><Projects /></ProtectedRoute>} />

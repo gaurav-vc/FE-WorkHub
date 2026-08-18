@@ -9,9 +9,9 @@ import { toast } from "sonner";
 interface TaskContextType {
   tasks: Task[];
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
-  addTask: (task: Task) => void;
-  updateTask: (id: string, updates: Partial<Task>) => void;
-  deleteTask: (id: string) => void;
+  addTask: (task: Task) => Promise<boolean | void>;
+  updateTask: (id: string, updates: Partial<Task>) => Promise<boolean | void>;
+  deleteTask: (id: string) => Promise<boolean | void>;
   notifications: Notification[];
   setNotifications: React.Dispatch<React.SetStateAction<Notification[]>>;
   markNotificationRead: (id: string) => void;
@@ -207,9 +207,11 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       const newTask = await createTask(apiPayload);
       setTasks((prev) => [...prev, { ...task, ...mapTaskFromApi(newTask), id: newTask.id || task.id }]);
       toast.success("Task created");
+      return true;
     } catch (err) {
       toast.error("Failed to create task");
       console.error(err);
+      return false;
     }
   };
 
@@ -265,10 +267,12 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       await updatePromise;
       console.log("Update successful, refetch scheduled...");
       // Re-fetch is handled by tasks-updated event which is already debounced
+      return true;
     } catch (err: any) {
       console.error("Update task failed:", err);
       if (fetchTimeout) clearTimeout(fetchTimeout);
       fetchTimeout = setTimeout(() => fetchTasks(), 500);
+      return false;
     }
   };
 
