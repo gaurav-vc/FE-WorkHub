@@ -237,8 +237,8 @@ export default function MyCard() {
 
         {/* Camera Modal */}
         <Dialog open={isCameraOpen} onOpenChange={(open) => !open && stopCamera()}>
-          <DialogContent className="sm:max-w-[800px] p-0 overflow-hidden bg-black border-none rounded-2xl">
-            <div className="relative w-full aspect-video sm:aspect-[4/3] max-h-[85vh] bg-black flex flex-col justify-end">
+          <DialogContent className="sm:max-w-[800px] p-0 overflow-hidden bg-black border-none rounded-2xl w-[95vw] max-w-[95vw]">
+            <div className="relative w-full aspect-[3/4] sm:aspect-[4/3] max-h-[85vh] bg-black flex flex-col justify-end">
               <video 
                 ref={videoRef} 
                 className="absolute inset-0 w-full h-full object-cover" 
@@ -247,7 +247,7 @@ export default function MyCard() {
               />
               
               {/* Dynamic Scanner Overlay */}
-              <div className="absolute inset-0 border-[40px] border-black/50 pointer-events-none flex items-center justify-center z-10">
+              <div className="absolute inset-0 border-[20px] sm:border-[40px] border-black/50 pointer-events-none flex items-center justify-center z-10">
                 <div className="w-full h-full border-2 border-indigo-500/80 rounded-xl relative shadow-[inset_0_0_20px_rgba(99,102,241,0.2)] overflow-hidden">
                   {/* Scanner laser effect */}
                   <div className="absolute left-0 right-0 h-1 bg-indigo-400 shadow-[0_0_15px_rgba(129,140,248,1)] animate-pulse rounded-full opacity-70" style={{
