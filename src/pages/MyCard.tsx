@@ -7,8 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+import { apiClient } from "@/api/client";
 
 interface BusinessCardData {
   id?: number;
@@ -21,40 +20,24 @@ interface BusinessCardData {
 }
 
 const fetchCards = async () => {
-  const token = localStorage.getItem("token") || sessionStorage.getItem("token");
-  const response = await fetch(`${API_BASE_URL}/directory/business-cards/`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!response.ok) throw new Error("Failed to fetch cards");
-  return response.json();
+  return apiClient("/directory/business-cards/");
 };
 
 const scanCard = async (file: File) => {
-  const token = localStorage.getItem("token") || sessionStorage.getItem("token");
   const formData = new FormData();
   formData.append("image", file);
   
-  const response = await fetch(`${API_BASE_URL}/directory/business-cards/scan/`, {
+  return apiClient("/directory/business-cards/scan/", {
     method: "POST",
-    headers: { Authorization: `Bearer ${token}` },
-    body: formData,
+    data: formData,
   });
-  if (!response.ok) throw new Error("Failed to scan card");
-  return response.json();
 };
 
 const saveCard = async (data: BusinessCardData) => {
-  const token = localStorage.getItem("token") || sessionStorage.getItem("token");
-  const response = await fetch(`${API_BASE_URL}/directory/business-cards/`, {
+  return apiClient("/directory/business-cards/", {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(data),
+    data,
   });
-  if (!response.ok) throw new Error("Failed to save card");
-  return response.json();
 };
 
 export default function MyCard() {
