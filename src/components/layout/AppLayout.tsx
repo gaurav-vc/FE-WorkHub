@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Bot, Sparkles, Loader2 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import { useAIAgent } from "@/context/AIAgentContext";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -14,6 +15,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { isLoading } = useAuth();
+  const { openAgent } = useAIAgent();
   
   const isAIAssistantPage = location.pathname === "/ai/assistant";
   const path = location.pathname.replace(/\/$/, "") || "/";
@@ -46,7 +48,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         {!isAIAssistantPage && (
           <div className="fixed bottom-24 right-6 z-50 animate-bounce-subtle">
             <Button
-              onClick={() => navigate("/ai/assistant")}
+              onClick={openAgent}
               className="h-14 w-14 rounded-full shadow-xl bg-gradient-to-br from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 hover:scale-105 transition-all p-0 flex items-center justify-center border-[3px] border-white/20 group"
               title="Open AI Assistant"
             >

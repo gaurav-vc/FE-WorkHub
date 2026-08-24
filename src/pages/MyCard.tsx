@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Upload, Camera, FileText, Check, Loader2, Building, Mail, Phone, User, X, ScanFace, FileUp } from "lucide-react";
+import { Upload, Camera, FileText, Check, Loader2, Building, Mail, Phone, User, X, ScanFace, FileUp, Trash2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -40,6 +40,19 @@ const saveCard = async (data: BusinessCardData) => {
   });
 };
 
+const updateCard = async (id: number, data: BusinessCardData) => {
+  return apiClient(`/directory/business-cards/${id}/`, {
+    method: "PUT",
+    data,
+  });
+};
+
+const deleteCard = async (id: number) => {
+  return apiClient(`/directory/business-cards/${id}/`, {
+    method: "DELETE",
+  });
+};
+
 export default function MyCard() {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -73,6 +86,26 @@ export default function MyCard() {
       setFormData({ name: "", email: "", phone: "", company: "", job_title: "" });
     },
     onError: () => toast.error("Failed to save business card"),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: (data: BusinessCardData) => updateCard(data.id!, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["business-cards"] });
+      toast.success("Business card updated successfully");
+      setIsFormOpen(false);
+      setFormData({ name: "", email: "", phone: "", company: "", job_title: "" });
+    },
+    onError: () => toast.error("Failed to update business card"),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteCard,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["business-cards"] });
+      toast.success("Business card deleted successfully");
+    },
+    onError: () => toast.error("Failed to delete business card"),
   });
 
   // --- Auto-Scan Camera Logic ---
@@ -324,9 +357,9 @@ export default function MyCard() {
             
             <DialogFooter className="p-4 bg-slate-50/50 border-t border-slate-100 flex gap-2">
               <Button variant="outline" onClick={() => setIsFormOpen(false)} disabled={isManualScanning} className="rounded-xl border-slate-200 hover:bg-slate-100 text-slate-600 font-bold h-11">Cancel</Button>
-              <Button onClick={() => saveMutation.mutate(formData)} disabled={isManualScanning || saveMutation.isPending} className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-11 px-8">
-                {saveMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
-                Save Card
+              <Button onClick={() => formData.id ? updateMutation.mutate(formData) : saveMutation.mutate(formData)} disabled={isManualScanning || saveMutation.isPending || updateMutation.isPending} className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-11 px-8">
+                {(saveMutation.isPending || updateMutation.isPending) ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
+                {formData.id ? "Update Card" : "Save Card"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -341,7 +374,15 @@ export default function MyCard() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {cards && cards.length > 0 ? (
               cards.map((card: BusinessCardData) => (
-                <div key={card.id} className="bg-white rounded-3xl border border-slate-200/60 shadow-sm overflow-hidden hover:shadow-md transition-all hover:-translate-y-1">
+                <div key={card.id} className="bg-white rounded-3xl border border-slate-200/60 shadow-sm overflow-hidden hover:shadow-md transition-all hover:-translate-y-1 relative group cursor-pointer" onClick={() => { setFormData(card); setIsFormOpen(true); }}>
+                  <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                    <Button variant="outline" size="icon" className="h-8 w-8 rounded-full bg-white/90 shadow-sm hover:bg-indigo-50 hover:text-indigo-600 border-transparent transition-colors" onClick={(e) => { e.stopPropagation(); setFormData(card); setIsFormOpen(true); }}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" size="icon" className="h-8 w-8 rounded-full bg-white/90 shadow-sm hover:bg-red-50 hover:text-red-600 border-transparent transition-colors" onClick={(e) => { e.stopPropagation(); if(window.confirm('Are you sure you want to delete this card?')) deleteMutation.mutate(card.id!); }}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                   <div className="h-2 bg-gradient-to-r from-indigo-500 to-violet-500"></div>
                   <div className="p-6">
                     <div className="flex items-start gap-4 mb-6">

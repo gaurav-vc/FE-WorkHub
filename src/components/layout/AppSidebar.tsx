@@ -46,6 +46,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { useBranding } from "@/context/BrandingContext";
 import { PortalType } from "@/lib/auth-utils";
+import { useAIAgent } from "@/context/AIAgentContext";
 
 const getNavGroups = (portalType: PortalType) => {
   if (portalType === 'super_user') {
@@ -133,6 +134,7 @@ export function AppSidebar() {
   const location = useLocation();
   const { portalType, accessRoutes, role, token } = useAuth();
   const { branding } = useBranding();
+  const { openAgent } = useAIAgent();
 
   const rawNavGroups = getNavGroups(portalType);
 
@@ -217,18 +219,31 @@ export function AppSidebar() {
                         tooltip={item.title}
                         isActive={isActive}
                       >
-                        <NavLink
-                          to={item.url}
-                          end={item.url === "/"}
-                          className={cn(
-                            "flex items-center gap-3 w-full rounded-md transition-colors px-2 py-1.5",
-                            isActive && "bg-sidebar-accent text-sidebar-primary font-medium"
-                          )}
-                          activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
-                        >
-                          <item.icon className="h-4 w-4 shrink-0" />
-                          <span className="truncate">{item.title}</span>
-                        </NavLink>
+                        {item.url === '/ai/agents' ? (
+                          <button
+                            onClick={openAgent}
+                            className={cn(
+                              "flex items-center gap-3 w-full rounded-md transition-colors px-2 py-1.5",
+                              isActive && "bg-sidebar-accent text-sidebar-primary font-medium"
+                            )}
+                          >
+                            <item.icon className="h-4 w-4 shrink-0" />
+                            <span className="truncate">{item.title}</span>
+                          </button>
+                        ) : (
+                          <NavLink
+                            to={item.url}
+                            end={item.url === "/"}
+                            className={cn(
+                              "flex items-center gap-3 w-full rounded-md transition-colors px-2 py-1.5",
+                              isActive && "bg-sidebar-accent text-sidebar-primary font-medium"
+                            )}
+                            activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                          >
+                            <item.icon className="h-4 w-4 shrink-0" />
+                            <span className="truncate">{item.title}</span>
+                          </NavLink>
+                        )}
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   );

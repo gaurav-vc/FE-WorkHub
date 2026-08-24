@@ -7,6 +7,7 @@ import {
   PaginationPrevious,
   PaginationEllipsis,
 } from "@/components/ui/pagination";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface PagedPaginationProps {
   currentPage: number;
@@ -26,7 +27,8 @@ export function PagedPagination({
   onPageChange,
   windowSize = 8,
   className = "",
-}: PagedPaginationProps) {
+  itemsPerPage = 10,
+}: PagedPaginationProps & { itemsPerPage?: number }) {
   if (totalPages <= 1) return null;
 
   const windowStart = Math.max(
@@ -81,6 +83,31 @@ export function PagedPagination({
               className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
             />
           </PaginationItem>
+          
+          {totalPages > 1 && (
+            <PaginationItem className="ml-2">
+              <Select 
+                value={currentPage.toString()} 
+                onValueChange={(val) => onPageChange(parseInt(val))}
+              >
+                <SelectTrigger className="h-9 min-w-[100px] border-border text-xs bg-background">
+                  <SelectValue placeholder="Select Range" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: totalPages }).map((_, i) => {
+                    const page = i + 1;
+                    const start = (page - 1) * itemsPerPage + 1;
+                    const end = page * itemsPerPage;
+                    return (
+                      <SelectItem key={page} value={page.toString()} className="text-xs">
+                        {start} to {end}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </PaginationItem>
+          )}
         </PaginationContent>
       </Pagination>
     </div>

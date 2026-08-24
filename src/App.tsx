@@ -114,6 +114,8 @@ export const APP_ROUTES = [
 
 import { AuthProvider } from "@/context/AuthContext";
 import { BrandingProvider } from "@/context/BrandingContext";
+import { AIAgentProvider } from "@/context/AIAgentContext";
+import { AIAgentSheet } from "@/components/ai/AIAgentSheet";
 
 const queryClient = new QueryClient();
 
@@ -126,8 +128,10 @@ const App = () => (
         <AuthProvider>
           <BrandingProvider>
             <TaskProvider>
-              <AppLayout>
-                <Routes>
+              <AIAgentProvider>
+                <AIAgentSheet />
+                <AppLayout>
+                  <Routes>
               <Route path="/" element={<ProtectedRoute route="/"><Dashboard /></ProtectedRoute>} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
@@ -196,8 +200,9 @@ const App = () => (
               
               <Route path="*" element={<NotFound />} />
             </Routes>
-            </AppLayout>
-          </TaskProvider>
+              </AppLayout>
+              </AIAgentProvider>
+            </TaskProvider>
           </BrandingProvider>
         </AuthProvider>
       </BrowserRouter>
