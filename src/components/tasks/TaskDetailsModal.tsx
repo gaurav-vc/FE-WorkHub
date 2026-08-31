@@ -49,6 +49,10 @@ export function TaskDetailsModal({ taskId, open, onOpenChange, onTaskUpdate, pro
   const [showSubtasks, setShowSubtasks] = useState(false);
   const [showChecklist, setShowChecklist] = useState(false);
   
+  // Title editing state
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  
   // Image Viewer State
   const [viewerImage, setViewerImage] = useState<{ url: string; alt: string } | null>(null);
 
@@ -257,7 +261,7 @@ export function TaskDetailsModal({ taskId, open, onOpenChange, onTaskUpdate, pro
             </div>
 
             {/* Card-based Action Panel */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-sm shrink-0">
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Assign To</label>
                 <Popover>
@@ -346,14 +350,55 @@ export function TaskDetailsModal({ taskId, open, onOpenChange, onTaskUpdate, pro
             </div>
 
             {/* Subheader */}
-            <div className="flex items-center gap-2 mb-6">
+            <div className="flex items-center gap-2 mb-6 shrink-0">
               <span className="text-muted-foreground font-mono text-sm bg-slate-100 px-2 py-0.5 rounded border border-slate-200">#{task.id}</span>
-              <h2 className="text-lg font-medium text-slate-800">{task.title}</h2>
-              <Pencil className="h-4 w-4 text-slate-400 cursor-pointer" />
+              {isEditingTitle ? (
+                <div className="flex items-center gap-2 flex-1">
+                  <Input 
+                    value={editTitle} 
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    className="h-8 py-1 px-2 text-lg font-medium flex-1 max-w-md"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        updateTaskField("title", editTitle);
+                        setIsEditingTitle(false);
+                      }
+                      if (e.key === 'Escape') {
+                        setIsEditingTitle(false);
+                      }
+                    }}
+                  />
+                  <Button 
+                    size="sm" 
+                    className="h-8 bg-indigo-600 hover:bg-indigo-700 text-white" 
+                    onClick={() => {
+                      updateTaskField("title", editTitle);
+                      setIsEditingTitle(false);
+                    }}
+                  >
+                    Save
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-8 px-2" onClick={() => setIsEditingTitle(false)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <h2 className="text-lg font-medium text-slate-800">{task.title}</h2>
+                  <Pencil 
+                    className="h-4 w-4 text-slate-400 cursor-pointer hover:text-slate-600 transition-colors" 
+                    onClick={() => {
+                      setEditTitle(task.title);
+                      setIsEditingTitle(true);
+                    }} 
+                  />
+                </>
+              )}
             </div>
 
             {/* Details List */}
-            <div className="space-y-2 text-sm mb-10 text-slate-700">
+            <div className="space-y-2 text-sm mb-10 text-slate-700 shrink-0">
               <div className="flex"><span className="w-32 text-slate-500 font-medium">Created By :</span> <span>{task.created_by_name || "System"}</span></div>
               <div className="flex"><span className="w-32 text-slate-500 font-medium">Created Date :</span> <span>{task.created_at ? `${new Date(task.created_at).toLocaleDateString()} at ${new Date(task.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} (${formatDistanceToNow(new Date(task.created_at), { addSuffix: true })})` : ""}</span></div>
               <div className="flex"><span className="w-32 text-slate-500 font-medium">Due Date :</span> <span>{task.due_date ? format(new Date(task.due_date), "MMM d, yyyy") : ""}</span></div>
@@ -361,7 +406,7 @@ export function TaskDetailsModal({ taskId, open, onOpenChange, onTaskUpdate, pro
             </div>
 
             {/* Checklist Section */}
-            <div className="mb-4 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm">
+            <div className="mb-4 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm shrink-0">
               <button 
                 onClick={() => setShowChecklist(!showChecklist)}
                 className="w-full flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100 transition-colors"
@@ -423,7 +468,7 @@ export function TaskDetailsModal({ taskId, open, onOpenChange, onTaskUpdate, pro
             </div>
 
             {/* Sub Task Section */}
-            <div className="mb-6 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm">
+            <div className="mb-6 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm shrink-0">
               <button 
                 onClick={() => setShowSubtasks(!showSubtasks)}
                 className="w-full flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100 transition-colors"
