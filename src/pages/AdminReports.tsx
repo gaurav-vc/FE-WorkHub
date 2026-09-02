@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -91,6 +92,47 @@ const AdminReports = () => {
     html2pdf().set(opt).from(element).save();
   };
 
+  const handleDownloadCsv = () => {
+    if (!reportData || !reportData.raw_tasks) return;
+    
+    const summaryHeaders = ['Metric', 'Count'];
+    const summaryRows = [
+      ['Total Assigned', reportData.kpis.total_assigned],
+      ['Total Completed', reportData.kpis.total_completed],
+      ['Total Delayed', reportData.kpis.total_delayed],
+      ['Total Issues', reportData.kpis.total_issues],
+      [],
+    ];
+
+    const headers = ['Task ID', 'Title', 'Assignee', 'Status', 'Priority', 'Created Date', 'Due Date'];
+    const rows = reportData.raw_tasks.map((task: any) => [
+      task.id,
+      `"${task.title.replace(/"/g, '""')}"`,
+      `"${task.assignee || 'Unassigned'}"`,
+      task.status.toUpperCase(),
+      task.priority,
+      `"\t${task.created_at}"`,
+      task.due_date ? `"\t${task.due_date}"` : '"N/A"'
+    ]);
+    
+    const csvContent = [
+      summaryHeaders.join(','),
+      ...summaryRows.map(row => row.join(',')),
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `employee_report_${selectedEmployees.join('_')}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
   return (
@@ -105,9 +147,21 @@ const AdminReports = () => {
         </div>
         
         {reportData && (
-          <Button onClick={handleDownloadPdf} className="flex items-center gap-2 shadow-md">
-            <Download className="h-4 w-4" /> Download PDF
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button className="flex items-center gap-2 shadow-md">
+                <Download className="h-4 w-4" /> Download Report
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleDownloadPdf}>
+                Download as PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleDownloadCsv}>
+                Download as CSV
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
       </div>
 
@@ -332,6 +386,7 @@ const AdminReports = () => {
                     <tr>
                       <th className="px-4 py-3 font-medium">Task ID</th>
                       <th className="px-4 py-3 font-medium">Title</th>
+                      <th className="px-4 py-3 font-medium">Assignee</th>
                       <th className="px-4 py-3 font-medium">Status</th>
                       <th className="px-4 py-3 font-medium">Priority</th>
                       <th className="px-4 py-3 font-medium">Created Date</th>
@@ -343,6 +398,7 @@ const AdminReports = () => {
                       <tr key={task.id} className="border-b border-border/50 hover:bg-muted/30">
                         <td className="px-4 py-3 text-muted-foreground">#{task.id}</td>
                         <td className="px-4 py-3 font-medium">{task.title}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{task.assignee || 'Unassigned'}</td>
                         <td className="px-4 py-3">
                           <span className={`px-2 py-1 rounded-full text-xs font-semibold
                             ${task.status === 'done' || task.status === 'completed' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
@@ -360,7 +416,7 @@ const AdminReports = () => {
                     ))}
                     {reportData.raw_tasks.length === 0 && (
                       <tr>
-                        <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                        <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
                           No tasks found for this period.
                         </td>
                       </tr>

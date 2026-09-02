@@ -1,12 +1,28 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Upload, Camera, FileText, Check, Loader2, Building, Mail, Phone, User, X, ScanFace, FileUp, Trash2, Pencil } from "lucide-react";
+import { Upload, Camera, FileText, Check, Loader2, Building, Mail, Phone, User, X, ScanFace, FileUp, Trash2, Pencil, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { apiClient } from "@/api/client";
 
 interface BusinessCardData {
@@ -71,6 +87,9 @@ export default function MyCard() {
   const [formData, setFormData] = useState<BusinessCardData>({
     name: "", email: "", phone: "", company: "", job_title: "",
   });
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const { data: cards, isLoading: isLoadingCards } = useQuery({
     queryKey: ["business-cards"],
@@ -230,6 +249,67 @@ export default function MyCard() {
     }
   };
 
+  const filteredCards = cards?.filter((card: BusinessCardData) => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      (card.name || "").toLowerCase().includes(query) ||
+      (card.email || "").toLowerCase().includes(query) ||
+      (card.phone || "").toLowerCase().includes(query) ||
+      (card.company || "").toLowerCase().includes(query) ||
+      (card.job_title || "").toLowerCase().includes(query)
+    );
+  });
+
+  // Pagination Logic
+  const totalCards = filteredCards?.length || 0;
+  const totalPages = Math.ceil(totalCards / itemsPerPage);
+  
+  // Ensure current page is valid when filtering changes total pages
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    } else if (totalPages === 0 && currentPage !== 1) {
+      setCurrentPage(1);
+    }
+  }, [totalPages, currentPage]);
+
+  const indexOfLastCard = currentPage * itemsPerPage;
+  const indexOfFirstCard = indexOfLastCard - itemsPerPage;
+  const currentCards = filteredCards?.slice(indexOfFirstCard, indexOfLastCard);
+
+  const getPageNumbers = () => {
+    const pages = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      if (currentPage <= 4) {
+        for (let i = 1; i <= 5; i++) {
+          pages.push(i);
+        }
+        pages.push('ellipsis');
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 3) {
+        pages.push(1);
+        pages.push('ellipsis');
+        for (let i = totalPages - 4; i <= totalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        pages.push(1);
+        pages.push('ellipsis');
+        pages.push(currentPage - 1);
+        pages.push(currentPage);
+        pages.push(currentPage + 1);
+        pages.push('ellipsis');
+        pages.push(totalPages);
+      }
+    }
+    return pages;
+  };
+
   return (
     <div className="min-h-screen bg-[#fafafa] relative overflow-hidden animate-fade-in">
       {/* Background Gradient */}
@@ -249,7 +329,16 @@ export default function MyCard() {
             </div>
           </div>
           
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+            <div className="relative w-full sm:w-64 shrink-0">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Search anything..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 h-11 bg-white border-slate-200 rounded-xl focus-visible:ring-indigo-500 w-full"
+              />
+            </div>
             <input
               type="file"
               accept="image/*"
@@ -371,10 +460,11 @@ export default function MyCard() {
             <Loader2 className="h-10 w-10 animate-spin text-indigo-500" />
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {cards && cards.length > 0 ? (
-              cards.map((card: BusinessCardData) => (
-                <div key={card.id} className="bg-white rounded-3xl border border-slate-200/60 shadow-sm overflow-hidden hover:shadow-md transition-all hover:-translate-y-1 relative group cursor-pointer" onClick={() => { setFormData(card); setIsFormOpen(true); }}>
+          <div className="space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {currentCards && currentCards.length > 0 ? (
+                currentCards.map((card: BusinessCardData) => (
+                  <div key={card.id} className="bg-white rounded-3xl border border-slate-200/60 shadow-sm overflow-hidden hover:shadow-md transition-all hover:-translate-y-1 relative group cursor-pointer" onClick={() => { setFormData(card); setIsFormOpen(true); }}>
                   <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                     <Button variant="outline" size="icon" className="h-8 w-8 rounded-full bg-white/90 shadow-sm hover:bg-indigo-50 hover:text-indigo-600 border-transparent transition-colors" onClick={(e) => { e.stopPropagation(); setFormData(card); setIsFormOpen(true); }}>
                       <Pencil className="h-4 w-4" />
@@ -416,18 +506,99 @@ export default function MyCard() {
                   </div>
                 </div>
               ))
-            ) : (
-              <div className="col-span-full text-center py-24 bg-white/60 backdrop-blur-sm rounded-3xl border border-dashed border-slate-300 shadow-sm">
-                <div className="mx-auto w-20 h-20 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 mb-6 relative">
-                  <div className="absolute inset-0 bg-indigo-50 rounded-2xl scale-110 -z-10 rotate-3"></div>
-                  <ScanFace className="h-10 w-10 text-indigo-400" />
+            ) : searchQuery ? (
+                <div className="col-span-full text-center py-24 bg-white/60 backdrop-blur-sm rounded-3xl border border-dashed border-slate-300 shadow-sm">
+                  <div className="mx-auto w-20 h-20 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 mb-6 relative">
+                    <Search className="h-10 w-10 text-slate-400" />
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-900 mb-2">No matching cards found</h3>
+                  <p className="text-slate-500 font-medium">Try adjusting your search query.</p>
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">Your network is empty</h3>
-                <p className="text-slate-500 mb-8 max-w-sm mx-auto font-medium">Build your digital rolodex. Use your camera to instantly scan and save a business card.</p>
-                <Button onClick={startCamera} className="h-12 rounded-xl px-8 bg-slate-900 hover:bg-slate-800 text-white font-bold shadow-md">
-                  <Camera className="mr-2 h-4 w-4" />
-                  Auto Scan First Card
-                </Button>
+              ) : (
+                <div className="col-span-full text-center py-24 bg-white/60 backdrop-blur-sm rounded-3xl border border-dashed border-slate-300 shadow-sm">
+                  <div className="mx-auto w-20 h-20 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 mb-6 relative">
+                    <div className="absolute inset-0 bg-indigo-50 rounded-2xl scale-110 -z-10 rotate-3"></div>
+                    <ScanFace className="h-10 w-10 text-indigo-400" />
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-900 mb-2">Your network is empty</h3>
+                  <p className="text-slate-500 mb-8 max-w-sm mx-auto font-medium">Build your digital rolodex. Use your camera to instantly scan and save a business card.</p>
+                  <Button onClick={startCamera} className="h-12 rounded-xl px-8 bg-slate-900 hover:bg-slate-800 text-white font-bold shadow-md">
+                    <Camera className="mr-2 h-4 w-4" />
+                    Auto Scan First Card
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white/50 p-4 rounded-2xl border border-slate-200/60 shadow-sm">
+                <div className="text-sm text-slate-500 font-medium">
+                  Showing {indexOfFirstCard + 1} to {Math.min(indexOfLastCard, totalCards)} of {totalCards} cards
+                </div>
+                
+                <div className="flex items-center gap-4">
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious 
+                          href="#" 
+                          onClick={(e) => {
+                            e.preventDefault();
+                            if (currentPage > 1) setCurrentPage(p => p - 1);
+                          }}
+                          className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
+                        />
+                      </PaginationItem>
+                      
+                      {getPageNumbers().map((pageNum, idx) => (
+                        <PaginationItem key={idx}>
+                          {pageNum === 'ellipsis' ? (
+                            <PaginationEllipsis />
+                          ) : (
+                            <PaginationLink
+                              href="#"
+                              isActive={currentPage === pageNum}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setCurrentPage(pageNum as number);
+                              }}
+                            >
+                              {pageNum}
+                            </PaginationLink>
+                          )}
+                        </PaginationItem>
+                      ))}
+
+                      <PaginationItem>
+                        <PaginationNext 
+                          href="#" 
+                          onClick={(e) => {
+                            e.preventDefault();
+                            if (currentPage < totalPages) setCurrentPage(p => p + 1);
+                          }}
+                          className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+
+                  <div className="hidden sm:flex items-center gap-2 border-l border-slate-200 pl-4">
+                    <Select value={itemsPerPage.toString()} onValueChange={(val) => {
+                      setItemsPerPage(Number(val));
+                      setCurrentPage(1);
+                    }}>
+                      <SelectTrigger className="w-[110px] h-9 bg-white">
+                        <SelectValue placeholder="10 per page" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="10">10 per page</SelectItem>
+                        <SelectItem value="20">20 per page</SelectItem>
+                        <SelectItem value="50">50 per page</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
               </div>
             )}
           </div>
