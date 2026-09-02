@@ -8,6 +8,15 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import { Download, FileText, CheckCircle, Clock, AlertTriangle, Users } from 'lucide-react';
 import { fetchEmployeeReport, EmployeeStats } from '@/api/reports';
@@ -23,6 +32,8 @@ const AdminReports = () => {
   const [dateFilter, setDateFilter] = useState('30d'); // '30d', '6m', '1y', 'custom'
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   useEffect(() => {
     const loadEmployees = async () => {
@@ -64,6 +75,7 @@ const AdminReports = () => {
       
       const data = await fetchEmployeeReport(selectedEmployees, filter, sDate, eDate);
       setReportData(data);
+      setCurrentPage(1);
     } catch (err) {
       toast.error("Failed to load report data");
     } finally {
@@ -134,6 +146,54 @@ const AdminReports = () => {
   };
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
+
+  // Pagination Logic
+  const totalTasks = reportData?.raw_tasks?.length || 0;
+  const totalPages = Math.ceil(totalTasks / itemsPerPage);
+  
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    } else if (totalPages === 0 && currentPage !== 1) {
+      setCurrentPage(1);
+    }
+  }, [totalPages, currentPage]);
+
+  const indexOfLastTask = currentPage * itemsPerPage;
+  const indexOfFirstTask = indexOfLastTask - itemsPerPage;
+  const currentTasks = reportData?.raw_tasks?.slice(indexOfFirstTask, indexOfLastTask) || [];
+
+  const getPageNumbers = () => {
+    const pages = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      if (currentPage <= 4) {
+        for (let i = 1; i <= 5; i++) {
+          pages.push(i);
+        }
+        pages.push('ellipsis');
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 3) {
+        pages.push(1);
+        pages.push('ellipsis');
+        for (let i = totalPages - 4; i <= totalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        pages.push(1);
+        pages.push('ellipsis');
+        pages.push(currentPage - 1);
+        pages.push(currentPage);
+        pages.push(currentPage + 1);
+        pages.push('ellipsis');
+        pages.push(totalPages);
+      }
+    }
+    return pages;
+  };
 
   return (
     <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
@@ -394,7 +454,7 @@ const AdminReports = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {reportData.raw_tasks.map((task: any) => (
+                    {currentTasks.map((task: any) => (
                       <tr key={task.id} className="border-b border-border/50 hover:bg-muted/30">
                         <td className="px-4 py-3 text-muted-foreground">#{task.id}</td>
                         <td className="px-4 py-3 font-medium">{task.title}</td>
@@ -414,7 +474,7 @@ const AdminReports = () => {
                         <td className="px-4 py-3 text-muted-foreground">{task.due_date || 'N/A'}</td>
                       </tr>
                     ))}
-                    {reportData.raw_tasks.length === 0 && (
+                    {currentTasks.length === 0 && (
                       <tr>
                         <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
                           No tasks found for this period.
@@ -424,6 +484,78 @@ const AdminReports = () => {
                   </tbody>
                 </table>
               </div>
+              
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-4 border-t border-border">
+                  <div className="text-sm text-muted-foreground font-medium">
+                    Showing {indexOfFirstTask + 1} to {Math.min(indexOfLastTask, totalTasks)} of {totalTasks} tasks
+                  </div>
+                  
+                  <div className="flex items-center gap-4">
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious 
+                            href="#" 
+                            onClick={(e) => {
+                              e.preventDefault();
+                              if (currentPage > 1) setCurrentPage(p => p - 1);
+                            }}
+                            className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
+                          />
+                        </PaginationItem>
+                        
+                        {getPageNumbers().map((pageNum, idx) => (
+                          <PaginationItem key={idx}>
+                            {pageNum === 'ellipsis' ? (
+                              <PaginationEllipsis />
+                            ) : (
+                              <PaginationLink
+                                href="#"
+                                isActive={currentPage === pageNum}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  setCurrentPage(pageNum as number);
+                                }}
+                              >
+                                {pageNum}
+                              </PaginationLink>
+                            )}
+                          </PaginationItem>
+                        ))}
+
+                        <PaginationItem>
+                          <PaginationNext 
+                            href="#" 
+                            onClick={(e) => {
+                              e.preventDefault();
+                              if (currentPage < totalPages) setCurrentPage(p => p + 1);
+                            }}
+                            className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+
+                    <div className="hidden sm:flex items-center gap-2 border-l border-border pl-4">
+                      <Select value={itemsPerPage.toString()} onValueChange={(val) => {
+                        setItemsPerPage(Number(val));
+                        setCurrentPage(1);
+                      }}>
+                        <SelectTrigger className="w-[110px] h-9 bg-background">
+                          <SelectValue placeholder="10 per page" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="10">10 per page</SelectItem>
+                          <SelectItem value="20">20 per page</SelectItem>
+                          <SelectItem value="50">50 per page</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
