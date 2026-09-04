@@ -6,7 +6,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { NotificationPanel } from "@/components/notifications/NotificationPanel";
 import { useAuth } from "@/context/AuthContext";
-import { LogOut, User } from "lucide-react";
+import { useNotifications } from "@/context/NotificationContext";
+import { LogOut, User, BellRing } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,6 +31,7 @@ import { ProfileModal } from "@/components/profile/ProfileModal";
 
 export function TopBar() {
   const { username, role, email, logout, portalType, siteName } = useAuth();
+  const { subscribeToPush } = useNotifications();
   const navigate = useNavigate();
   const { tasks, addTask } = useTaskContext();
   
@@ -136,6 +138,10 @@ export function TopBar() {
             <DropdownMenuItem className="cursor-pointer py-2" onClick={() => setShowProfile(true)}>
               <User className="mr-2 h-4 w-4" />
               <span>Profile</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem className="cursor-pointer py-2" onClick={() => subscribeToPush()}>
+              <BellRing className="mr-2 h-4 w-4" />
+              <span>Enable Notifications</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="text-destructive focus:bg-destructive/10 cursor-pointer py-2" onClick={logout}>
