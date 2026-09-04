@@ -43,6 +43,7 @@ import { useAuth } from "@/context/AuthContext";
 import { getCompanyPolicies, createCompanyPolicy, updateCompanyPolicy, deleteCompanyPolicy as deleteCompanyPolicyApi } from "@/api/hr";
 import { toast } from "sonner";
 import { PermissionGuard } from "@/components/auth/PermissionGuard";
+import { PagedPagination } from "@/components/ui/PagedPagination";
 
 interface Policy {
   id: string;
@@ -75,6 +76,10 @@ export default function CompanyPolicies() {
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
+  
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+  
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [editPolicy, setEditPolicy] = useState<Policy | null>(null);
@@ -111,6 +116,19 @@ export default function CompanyPolicies() {
     const matchSearch = !search || p.title.toLowerCase().includes(search.toLowerCase());
     return matchCat && matchSearch;
   });
+
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const currentPolicies = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearch(e.target.value);
+    setCurrentPage(1);
+  };
+
+  const handleCategoryChange = (val: string) => {
+    setCategory(val);
+    setCurrentPage(1);
+  };
 
   const openCreate = () => { setEditPolicy(null); setForm({ title: "", category: "General", content: "", version: "1.0" }); setAttachment(null); setShowCreate(true); };
   const openEdit = (p: Policy) => { setEditPolicy(p); setForm({ title: p.title, category: p.category, content: p.content, version: p.version }); setAttachment(null); setShowCreate(true); };
@@ -234,9 +252,9 @@ export default function CompanyPolicies() {
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search policies..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+          <Input placeholder="Search policies..." value={search} onChange={handleSearchChange} className="pl-9" />
         </div>
-        <Select value={category} onValueChange={setCategory}>
+        <Select value={category} onValueChange={handleCategoryChange}>
           <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
           <SelectContent>
             {policyCategories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
@@ -244,12 +262,12 @@ export default function CompanyPolicies() {
         </Select>
       </div>
 
-      <div className="space-y-2">
-        {filtered.map((policy) => (
-          <Card key={policy.id} className="shadow-card hover:shadow-md transition-all cursor-pointer group" onClick={() => setSelectedPolicy(policy)}>
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
-                <FileCheck className="h-5 w-5" />
+      <div className="space-y-3">
+        {currentPolicies.map((policy) => (
+          <Card key={policy.id} className="shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer group border-border hover:border-primary/30" onClick={() => setSelectedPolicy(policy)}>
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                <FileCheck className="h-6 w-6" />
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">{policy.title}</h3>
@@ -274,6 +292,13 @@ export default function CompanyPolicies() {
           </Card>
         ))}
       </div>
+
+      <PagedPagination 
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        itemsPerPage={itemsPerPage}
+      />
 
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">

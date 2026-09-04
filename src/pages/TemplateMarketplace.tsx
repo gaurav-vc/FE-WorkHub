@@ -47,6 +47,7 @@ import { API_BASE } from "@/config";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { PagedPagination } from "@/components/ui/PagedPagination";
 
 const categoryIcons: Record<string, any> = {
   "Team Management": Users, "Productivity": Zap, "Business": Briefcase,
@@ -66,6 +67,10 @@ export default function TemplateMarketplace() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
+  
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+  
   const [tab, setTab] = useState("marketplace");
   const [myTemplates, setMyTemplates] = useState<ProjectTemplate[]>([]);
   const [backendTemplates, setBackendTemplates] = useState<any[]>([]);
@@ -249,6 +254,19 @@ export default function TemplateMarketplace() {
     });
   }, [search, activeCategory, normalizedTemplates]);
 
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const currentTemplates = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearch(e.target.value);
+    setCurrentPage(1);
+  };
+
+  const handleCategoryChange = (cat: string) => {
+    setActiveCategory(cat);
+    setCurrentPage(1);
+  };
+
   const handleUseTemplate = async (template: any) => {
     setPreviewTemplate(template);
     setShowUseModal(true);
@@ -312,7 +330,7 @@ export default function TemplateMarketplace() {
           {/* Search */}
           <div className="relative max-w-md">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search templates..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+            <Input placeholder="Search templates..." value={search} onChange={handleSearchChange} className="pl-9" />
           </div>
 
           <div className="flex gap-6">
@@ -322,7 +340,7 @@ export default function TemplateMarketplace() {
                 const Icon = categoryIcons[cat] || LayoutTemplate;
                 const count = cat === "All" ? normalizedTemplates.length : normalizedTemplates.filter(t => t.category === cat).length;
                 return (
-                  <button key={cat} onClick={() => setActiveCategory(cat)}
+                  <button key={cat} onClick={() => handleCategoryChange(cat)}
                     className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-left transition-colors ${activeCategory === cat ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground hover:bg-muted"}`}>
                     <Icon className="h-3.5 w-3.5" />
                     <span className="flex-1">{cat}</span>
@@ -337,31 +355,31 @@ export default function TemplateMarketplace() {
               <div className="lg:hidden flex gap-1.5 overflow-x-auto pb-2">
                 {categories.map(cat => (
                   <Badge key={cat} variant={activeCategory === cat ? "default" : "outline"}
-                    className="cursor-pointer whitespace-nowrap text-xs" onClick={() => setActiveCategory(cat)}>
+                    className="cursor-pointer whitespace-nowrap text-xs" onClick={() => handleCategoryChange(cat)}>
                     {cat}
                   </Badge>
                 ))}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                {filtered.slice(0, 30).map(tmpl => {
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {currentTemplates.map(tmpl => {
                   const CatIcon = categoryIcons[tmpl.category] || LayoutTemplate;
                   return (
-                    <Card key={tmpl.id} className="shadow-card hover:shadow-md transition-all cursor-pointer group" onClick={() => handlePreviewClick(tmpl)}>
-                      <CardContent className="p-4">
-                        <div className="flex items-start gap-3">
-                          <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                            <CatIcon className="h-5 w-5 text-primary" />
+                    <Card key={tmpl.id} className="shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer group hover:border-primary/40 border-border bg-card/60 backdrop-blur-sm" onClick={() => handlePreviewClick(tmpl)}>
+                      <CardContent className="p-5">
+                        <div className="flex items-start gap-4">
+                          <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                            <CatIcon className="h-6 w-6 text-primary group-hover:text-primary-foreground transition-colors" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <h3 className="text-sm font-semibold truncate">{tmpl.name}</h3>
-                              {tmpl.popular && <Star className="h-3 w-3 text-warning fill-warning shrink-0" />}
+                            <div className="flex items-center gap-2">
+                              <h3 className="text-base font-semibold truncate group-hover:text-primary transition-colors">{tmpl.name}</h3>
+                              {tmpl.popular && <Star className="h-3.5 w-3.5 text-warning fill-warning shrink-0" />}
                             </div>
-                            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{tmpl.description}</p>
-                            <div className="flex items-center gap-2 mt-2">
-                              <Badge variant="secondary" className="text-[10px]">{tmpl.category}</Badge>
-                              <span className="text-[10px] text-muted-foreground">{tmpl.tasks} tasks</span>
+                            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{tmpl.description}</p>
+                            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50">
+                              <Badge variant="secondary" className="text-[10px] font-medium">{tmpl.category}</Badge>
+                              <span className="text-[11px] text-muted-foreground font-medium flex items-center gap-1"><CheckSquare className="h-3 w-3" /> {tmpl.tasks} tasks</span>
                             </div>
                           </div>
                         </div>
@@ -370,8 +388,14 @@ export default function TemplateMarketplace() {
                   );
                 })}
               </div>
-              {filtered.length > 30 && (
-                <p className="text-xs text-center text-muted-foreground">Showing 30 of {filtered.length} templates. Use search to narrow down.</p>
+              
+              {filtered.length > 0 && (
+                <PagedPagination 
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                  itemsPerPage={itemsPerPage}
+                />
               )}
             </div>
           </div>

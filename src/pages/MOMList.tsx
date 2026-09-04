@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { API_BASE } from "@/config";
 import { PermissionGuard } from "@/components/auth/PermissionGuard";
+import { PagedPagination } from "@/components/ui/PagedPagination";
 
 interface MOM {
   id: number;
@@ -26,6 +27,9 @@ interface MOM {
 
 export default function MOMList() {
   const [moms, setMoms] = useState<MOM[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+  
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newDesc, setNewDesc] = useState('');
@@ -159,6 +163,9 @@ export default function MOMList() {
     }
   };
 
+  const totalPages = Math.ceil(moms.length / itemsPerPage);
+  const currentMoms = moms.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
   return (
     <div className="space-y-6 animate-fade-in p-2 md:p-6 w-full">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -177,9 +184,9 @@ export default function MOMList() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {moms.map(mom => (
-          <Card key={mom.id} className="shadow-card hover:shadow-md transition-all cursor-pointer overflow-hidden border-border group" onClick={() => navigate(`/collaboration/moms/${mom.id}`)}>
-            <div className="h-1.5 w-full gradient-primary"></div>
+        {currentMoms.map(mom => (
+          <Card key={mom.id} className="shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden border-border group hover:border-primary/30 bg-card/50 backdrop-blur-sm" onClick={() => navigate(`/collaboration/moms/${mom.id}`)}>
+            <div className="h-1.5 w-full gradient-primary opacity-80 group-hover:opacity-100 transition-opacity"></div>
             <CardHeader className="pb-3">
               <CardTitle className="text-lg font-display flex justify-between items-start group-hover:text-primary transition-colors">
                 <span className="truncate pr-2">{mom.title}</span>
@@ -226,6 +233,13 @@ export default function MOMList() {
           </div>
         )}
       </div>
+
+      <PagedPagination 
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        itemsPerPage={itemsPerPage}
+      />
     </div>
   );
 }

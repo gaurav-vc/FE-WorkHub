@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { TaskProvider } from "@/context/TaskContext";
+import { NotificationProvider } from "@/context/NotificationContext";
 import Dashboard from "@/pages/Dashboard";
 import MyDay from "@/pages/MyDay";
 import Inbox from "@/pages/Inbox";
@@ -128,6 +129,7 @@ const App = () => (
         <AuthProvider>
           <BrandingProvider>
             <TaskProvider>
+              <NotificationProvider>
               <AIAgentProvider>
                 <AIAgentSheet />
                 <AppLayout>
@@ -202,6 +204,7 @@ const App = () => (
             </Routes>
               </AppLayout>
               </AIAgentProvider>
+              </NotificationProvider>
             </TaskProvider>
           </BrandingProvider>
         </AuthProvider>

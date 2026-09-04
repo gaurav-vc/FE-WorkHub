@@ -15,6 +15,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { getKbArticles, createKbArticle, toggleKbHelpful, toggleKbSave } from "@/api/collaboration";
 import { cn } from "@/lib/utils";
+import { PagedPagination } from "@/components/ui/PagedPagination";
 
 interface Article {
   id: string | number;
@@ -51,6 +52,8 @@ export default function KnowledgeBase() {
   const [activeCategory, setActiveCategory] = useState("all");
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [articles, setArticles] = useState<Article[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   const [loading, setLoading] = useState(true);
 
   // Upload Form
@@ -163,6 +166,19 @@ export default function KnowledgeBase() {
       (a.tags || []).some((t) => t.toLowerCase().includes(searchLower));
     return matchCategory && matchSearch;
   });
+
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const currentArticles = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearch(e.target.value);
+    setCurrentPage(1);
+  };
+
+  const handleCategoryChange = (catId: string) => {
+    setActiveCategory(catId);
+    setCurrentPage(1);
+  };
 
   if (selectedArticle) {
     return (
@@ -336,7 +352,7 @@ export default function KnowledgeBase() {
         <Input
           placeholder="Search articles, guides, policies..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={handleSearchChange}
           className="pl-9 h-10 border-slate-200"
         />
       </div>
@@ -348,7 +364,7 @@ export default function KnowledgeBase() {
           return (
             <button
               key={cat.id}
-              onClick={() => setActiveCategory(cat.id)}
+              onClick={() => handleCategoryChange(cat.id)}
               className={cn(
                 "px-4 py-1.5 rounded-full text-xs font-semibold transition-colors border",
                 activeCategory === cat.id
@@ -367,27 +383,27 @@ export default function KnowledgeBase() {
         <div className="py-20 text-center text-slate-400">Loading knowledge base...</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filtered.map((article) => (
+          {currentArticles.map((article) => (
             <Card
               key={article.id}
-              className="shadow-sm border-slate-200 hover:border-indigo-300 hover:shadow-md transition-all cursor-pointer group flex flex-col h-full"
+              className="shadow-sm border-slate-200 hover:border-indigo-400 hover:shadow-xl transition-all duration-300 cursor-pointer group flex flex-col h-full bg-white backdrop-blur-sm"
               onClick={() => setSelectedArticle(article)}
             >
               <CardContent className="p-5 flex flex-col flex-1">
                 <div className="flex flex-wrap gap-1.5 mb-3">
                   {article.category && (
-                    <Badge variant="secondary" className="text-[10px] bg-slate-100 text-slate-600 border-none capitalize">{article.category.replace('-', ' ')}</Badge>
+                    <Badge variant="secondary" className="text-[10px] bg-indigo-50/50 text-indigo-700 border-none capitalize">{article.category.replace('-', ' ')}</Badge>
                   )}
                   {article.file_url && (
-                    <Badge variant="secondary" className="text-[10px] bg-indigo-50 text-indigo-600 border-none flex items-center gap-1"><FileText className="h-3 w-3" /> Attachment</Badge>
+                    <Badge variant="secondary" className="text-[10px] bg-slate-100 text-slate-600 border-none flex items-center gap-1"><FileText className="h-3 w-3" /> Attachment</Badge>
                   )}
                 </div>
                 <h3 className="text-base font-bold text-slate-800 group-hover:text-indigo-600 transition-colors leading-snug">{article.title}</h3>
                 <p className="text-sm text-slate-500 mt-2 line-clamp-2 leading-relaxed flex-1">{article.excerpt || 'Click to view details'}</p>
                 
-                <div className="flex items-center justify-between mt-5 pt-4 border-t border-slate-100">
+                <div className="flex items-center justify-between mt-5 pt-4 border-t border-slate-100/60">
                   <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
-                    <Avatar className="h-5 w-5"><AvatarFallback className="text-[8px] bg-indigo-100 text-indigo-700 font-bold">{article.author?.initials || 'A'}</AvatarFallback></Avatar>
+                    <Avatar className="h-6 w-6 border border-indigo-100"><AvatarFallback className="text-[9px] bg-gradient-to-br from-indigo-100 to-indigo-50 text-indigo-700 font-bold">{article.author?.initials || 'A'}</AvatarFallback></Avatar>
                     {article.author?.name || 'Anonymous'}
                   </div>
                   <div className="flex items-center gap-3 text-xs text-slate-400">
@@ -399,6 +415,14 @@ export default function KnowledgeBase() {
             </Card>
           ))}
         </div>
+      )}
+      {!loading && filtered.length > 0 && (
+        <PagedPagination 
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          itemsPerPage={itemsPerPage}
+        />
       )}
       {!loading && filtered.length === 0 && (
         <div className="text-center py-16 bg-white border border-dashed border-slate-200 rounded-2xl">

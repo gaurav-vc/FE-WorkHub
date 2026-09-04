@@ -309,94 +309,109 @@ export default function TeamChat() {
     <div className="h-[calc(100vh-8rem)] flex animate-fade-in">
       {/* Channel List */}
       <div className={cn(
-        "w-64 shrink-0 border-r border-border bg-card flex flex-col rounded-l-lg",
-        showChannels ? "block" : "hidden md:block"
+        "w-72 shrink-0 border-r border-border/60 bg-card/40 backdrop-blur-xl flex flex-col shadow-[1px_0_10px_rgba(0,0,0,0.02)] z-10",
+        showChannels ? "block" : "hidden md:flex"
       )}>
-        <div className="p-3 border-b border-border">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="font-display font-bold text-sm text-foreground">Chat</h2>
+        <div className="p-4 border-b border-border/40">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
+              <MessageCircle className="h-5 w-5 text-primary" /> Messages
+            </h2>
           </div>
-          <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+          <div className="relative group">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
             <Input 
               placeholder="Search chats..." 
-              className="pl-8 h-8 text-xs" 
+              className="pl-9 h-9 text-sm bg-muted/50 border-transparent focus-visible:ring-1 focus-visible:bg-background transition-all" 
               value={channelSearch}
               onChange={(e) => setChannelSearch(e.target.value)}
             />
           </div>
         </div>
         <ScrollArea className="flex-1">
-          <div className="p-2 space-y-4">
+          <div className="p-3 space-y-6">
             
             {/* Direct Messages */}
-            <div className="space-y-1">
-              <div className="flex items-center justify-between px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+            <div>
+              <div className="flex items-center justify-between px-2 text-[11px] font-bold text-muted-foreground/80 uppercase tracking-widest mb-2">
                 <span>Direct Messages</span>
-                <Button size="icon" variant="ghost" className="h-5 w-5 hover:text-foreground" onClick={() => setShowStartDM(true)}>
+                <Button size="icon" variant="ghost" className="h-6 w-6 rounded-full hover:bg-primary/10 hover:text-primary transition-colors" onClick={() => setShowStartDM(true)} title="New DM">
                   <Plus className="h-3.5 w-3.5" />
                 </Button>
               </div>
-              {dmChannels.map((ch) => (
-                <button
-                  key={ch.id}
-                  onClick={() => { setActiveChannel(ch.id); setShowChannels(false); }}
-                  className={cn(
-                    "w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-sm transition-colors text-left",
-                    activeChannel === ch.id
-                      ? "bg-primary/10 text-primary font-medium"
-                      : "text-foreground hover:bg-muted"
-                  )}
-                >
-                  <Avatar className="h-5 w-5">
-                    <AvatarFallback className="text-[9px] bg-primary/10 text-primary">
-                      {ch.display_name?.substring(0,2).toUpperCase() || "DM"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="flex-1 truncate">{ch.display_name || ch.name}</span>
-                  {ch.unread > 0 && (
-                    <Badge className="h-4 min-w-4 px-1 text-[9px] gradient-primary text-primary-foreground border-0">
-                      {ch.unread}
-                    </Badge>
-                  )}
-                </button>
-              ))}
-              {dmChannels.length === 0 && (
-                <p className="text-xs text-muted-foreground px-2 py-1">No direct messages</p>
-              )}
+              <div className="space-y-0.5">
+                {dmChannels.map((ch) => (
+                  <button
+                    key={ch.id}
+                    onClick={() => { setActiveChannel(ch.id); setShowChannels(false); }}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-2 py-2 rounded-lg text-sm transition-all text-left group",
+                      activeChannel === ch.id
+                        ? "bg-primary/10 text-primary font-semibold"
+                        : "text-foreground/80 hover:bg-muted/60 hover:text-foreground font-medium"
+                    )}
+                  >
+                    <div className="relative">
+                      <Avatar className="h-6 w-6">
+                        <AvatarFallback className={cn("text-[10px] font-bold", activeChannel === ch.id ? "bg-primary text-primary-foreground" : "bg-muted-foreground/20 text-muted-foreground group-hover:text-foreground")}>
+                          {ch.display_name?.substring(0,2).toUpperCase() || "DM"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-500 border-2 border-background ring-1 ring-emerald-500/20"></span>
+                    </div>
+                    <span className="flex-1 truncate">{ch.display_name || ch.name}</span>
+                    {ch.unread > 0 && (
+                      <Badge className="h-5 min-w-5 px-1.5 flex items-center justify-center text-[10px] bg-primary text-primary-foreground shadow-sm shadow-primary/20 border-0 rounded-full animate-in zoom-in duration-300">
+                        {ch.unread}
+                      </Badge>
+                    )}
+                  </button>
+                ))}
+                {dmChannels.length === 0 && (
+                  <div className="px-3 py-4 text-center border border-dashed border-border/50 rounded-lg mx-2 bg-muted/10">
+                    <p className="text-xs text-muted-foreground italic">No direct messages yet.</p>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Groups */}
-            <div className="space-y-1">
-              <div className="flex items-center justify-between px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+            <div>
+              <div className="flex items-center justify-between px-2 text-[11px] font-bold text-muted-foreground/80 uppercase tracking-widest mb-2">
                 <span>Groups</span>
-                <Button size="icon" variant="ghost" className="h-5 w-5 hover:text-foreground" onClick={() => setShowCreateChannel(true)}>
+                <Button size="icon" variant="ghost" className="h-6 w-6 rounded-full hover:bg-primary/10 hover:text-primary transition-colors" onClick={() => setShowCreateChannel(true)} title="Create Group">
                   <Plus className="h-3.5 w-3.5" />
                 </Button>
               </div>
-              {groupChannels.map((ch) => (
-                <button
-                  key={ch.id}
-                  onClick={() => { setActiveChannel(ch.id); setShowChannels(false); }}
-                  className={cn(
-                    "w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-sm transition-colors text-left",
-                    activeChannel === ch.id
-                      ? "bg-primary/10 text-primary font-medium"
-                      : "text-foreground hover:bg-muted"
-                  )}
-                >
-                  <Users className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                  <span className="flex-1 truncate">{ch.name}</span>
-                  {ch.unread > 0 && (
-                    <Badge className="h-4 min-w-4 px-1 text-[9px] gradient-primary text-primary-foreground border-0">
-                      {ch.unread}
-                    </Badge>
-                  )}
-                </button>
-              ))}
-              {groupChannels.length === 0 && (
-                <p className="text-xs text-muted-foreground px-2 py-1">No groups</p>
-              )}
+              <div className="space-y-0.5">
+                {groupChannels.map((ch) => (
+                  <button
+                    key={ch.id}
+                    onClick={() => { setActiveChannel(ch.id); setShowChannels(false); }}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-2 py-2 rounded-lg text-sm transition-all text-left group",
+                      activeChannel === ch.id
+                        ? "bg-primary/10 text-primary font-semibold"
+                        : "text-foreground/80 hover:bg-muted/60 hover:text-foreground font-medium"
+                    )}
+                  >
+                    <div className={cn("flex items-center justify-center h-6 w-6 rounded border", activeChannel === ch.id ? "border-primary/30 bg-primary/20" : "border-border/60 bg-muted/50 group-hover:bg-muted group-hover:border-border")}>
+                      <Hash className="h-3.5 w-3.5 opacity-70" />
+                    </div>
+                    <span className="flex-1 truncate">{ch.name}</span>
+                    {ch.unread > 0 && (
+                      <Badge className="h-5 min-w-5 px-1.5 flex items-center justify-center text-[10px] bg-primary text-primary-foreground shadow-sm shadow-primary/20 border-0 rounded-full animate-in zoom-in duration-300">
+                        {ch.unread}
+                      </Badge>
+                    )}
+                  </button>
+                ))}
+                {groupChannels.length === 0 && (
+                  <div className="px-3 py-4 text-center border border-dashed border-border/50 rounded-lg mx-2 bg-muted/10">
+                    <p className="text-xs text-muted-foreground italic">No groups available.</p>
+                  </div>
+                )}
+              </div>
             </div>
 
           </div>
@@ -404,23 +419,23 @@ export default function TeamChat() {
       </div>
 
       {/* Chat Area */}
-      <div className="flex-1 flex flex-col bg-card rounded-r-lg">
+      <div className="flex-1 flex flex-col bg-background/95 backdrop-blur-sm rounded-r-lg shadow-[-4px_0_15px_rgba(0,0,0,0.01)] z-0 relative">
         {/* Channel Header */}
-        <div className="px-4 py-3 border-b border-border flex items-center gap-3">
-          <button className="md:hidden" onClick={() => setShowChannels(true)}>
-            <MessageCircle className="h-5 w-5 text-muted-foreground" />
+        <div className="px-5 py-4 border-b border-border/40 flex items-center gap-4 bg-card/30">
+          <button className="md:hidden p-2 -ml-2 rounded-md hover:bg-muted/60 text-muted-foreground" onClick={() => setShowChannels(true)}>
+            <MessageCircle className="h-5 w-5" />
           </button>
-          {channel.is_group ? (
-            <Users className="h-4 w-4 text-muted-foreground" />
-          ) : (
-            <Avatar className="h-6 w-6">
-              <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
-                {channel.display_name?.substring(0,2).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-          )}
-          <div className="flex-1">
-            <h3 className="text-sm font-semibold text-foreground cursor-pointer hover:underline" onClick={() => {
+          
+          <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 text-primary shrink-0 shadow-sm border border-primary/10">
+            {channel.is_group ? (
+              <Hash className="h-5 w-5" />
+            ) : (
+              <span className="text-sm font-bold tracking-wider">{channel.display_name?.substring(0,2).toUpperCase()}</span>
+            )}
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <h3 className="text-base font-bold text-foreground cursor-pointer hover:text-primary transition-colors flex items-center gap-2" onClick={() => {
               if (channel.is_group) {
                 setEditingGroupName(channel.name);
                 fetch(`${API_BASE}/chat/channels/${activeChannel}/`, {
@@ -434,11 +449,16 @@ export default function TeamChat() {
                 });
                 setShowGroupInfo(true);
               }
-            }}>{channel.display_name || channel.name}</h3>
-            <p className="text-[11px] text-muted-foreground">{channel.description || (channel.is_group ? "" : "Direct Message")}</p>
+            }}>
+              {channel.display_name || channel.name}
+            </h3>
+            <p className="text-xs text-muted-foreground/80 font-medium truncate">
+              {channel.description || (channel.is_group ? "Team discussion" : "Direct Message")}
+            </p>
           </div>
+          
           {channel.is_group && (
-            <Button variant="ghost" size="sm" className="flex items-center gap-1 text-xs text-muted-foreground h-7" onClick={() => setShowAddMember(true)}>
+            <Button variant="outline" size="sm" className="hidden sm:flex items-center gap-1.5 text-xs h-8 rounded-full border-border/60 hover:bg-primary/5 hover:text-primary hover:border-primary/30 transition-all" onClick={() => setShowAddMember(true)}>
               <Users className="h-3.5 w-3.5" />
               <span>Add Member</span>
             </Button>
@@ -593,20 +613,21 @@ export default function TeamChat() {
               <Send className="h-4 w-4" />
               </Button>
             </div>
+             {/* Typing Indicator */}
+          <div className="max-w-4xl mx-auto mt-2 h-4 px-2">
+            {activeChannel && typingUsers[activeChannel] && Object.keys(typingUsers[activeChannel]).length > 0 && (
+              <div className="text-[11px] text-muted-foreground/80 flex items-center gap-1.5 animate-fade-in font-medium">
+                <span className="flex gap-0.5 items-center">
+                  <span className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce"></span>
+                  <span className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: "0.15s" }}></span>
+                  <span className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: "0.3s" }}></span>
+                </span>
+                {Object.keys(typingUsers[activeChannel]).join(", ")} {Object.keys(typingUsers[activeChannel]).length > 1 ? "are" : "is"} typing
+              </div>
+            )}
           </div>
-          
-          {/* Typing Indicator */}
-          {activeChannel && typingUsers[activeChannel] && Object.keys(typingUsers[activeChannel]).length > 0 && (
-            <div className="px-4 pb-2 text-[10px] text-muted-foreground italic flex items-center gap-1 border-t border-border bg-muted/20 pt-1">
-              <span className="flex gap-0.5">
-                <span className="w-1 h-1 bg-muted-foreground rounded-full animate-bounce"></span>
-                <span className="w-1 h-1 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></span>
-                <span className="w-1 h-1 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: "0.4s" }}></span>
-              </span>
-              {Object.keys(typingUsers[activeChannel]).join(", ")} {Object.keys(typingUsers[activeChannel]).length > 1 ? "are" : "is"} typing...
-            </div>
-          )}
         </div>
+      </div>
       
       {/* Create Channel Modal */}
       <Dialog open={showCreateChannel} onOpenChange={setShowCreateChannel}>
