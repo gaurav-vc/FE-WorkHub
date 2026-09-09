@@ -3,7 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Plus, Copy, Trash2, Calendar, MapPin, Clock } from 'lucide-react';
+import { FileText, Plus, Copy, Trash2, Calendar, MapPin, Clock, Search } from 'lucide-react';
 import { safeFormat as format } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -27,6 +27,7 @@ interface MOM {
 
 export default function MOMList() {
   const [moms, setMoms] = useState<MOM[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   
@@ -163,12 +164,17 @@ export default function MOMList() {
     }
   };
 
-  const totalPages = Math.ceil(moms.length / itemsPerPage);
-  const currentMoms = moms.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const filteredMoms = moms.filter(m => 
+    m.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    (m.description && m.description.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  const totalPages = Math.ceil(filteredMoms.length / itemsPerPage) || 1;
+  const currentMoms = filteredMoms.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
     <div className="space-y-6 animate-fade-in p-2 md:p-6 w-full">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-2">
         <div>
           <h1 className="text-2xl font-display font-bold text-foreground flex items-center gap-2">
             <FileText className="h-6 w-6 text-primary" /> Minutes of Meeting
@@ -176,11 +182,22 @@ export default function MOMList() {
           <p className="text-muted-foreground mt-1">Track and manage meeting outcomes and action items.</p>
         </div>
         
-        <PermissionGuard requires="create">
-          <Button className="gap-1.5 gradient-primary text-primary-foreground shadow-sm hover:shadow-md transition-shadow" onClick={() => navigate('/collaboration/moms/create')}>
-            <Plus className="h-4 w-4" /> New MOM
-          </Button>
-        </PermissionGuard>
+        <div className="flex items-center gap-3">
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input 
+              placeholder="Search MOMs..." 
+              value={searchQuery} 
+              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }} 
+              className="pl-9 bg-card shadow-sm h-10" 
+            />
+          </div>
+          <PermissionGuard requires="create">
+            <Button className="gap-1.5 gradient-primary text-primary-foreground shadow-sm hover:shadow-md transition-shadow h-10" onClick={() => navigate('/collaboration/moms/create')}>
+              <Plus className="h-4 w-4" /> New MOM
+            </Button>
+          </PermissionGuard>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -223,7 +240,7 @@ export default function MOMList() {
           </Card>
         ))}
         
-        {moms.length === 0 && (
+        {filteredMoms.length === 0 && (
           <div className="col-span-full py-16 text-center text-muted-foreground border border-dashed rounded-xl bg-muted/20">
             <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
               <FileText className="h-8 w-8 text-primary" />

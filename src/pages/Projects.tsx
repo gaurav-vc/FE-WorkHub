@@ -7,6 +7,7 @@ import {
   Trash2,
   Edit,
   Calendar,
+  Download,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -36,10 +37,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Checkbox } from "@/components/ui/checkbox";
 import { PagedPagination } from "@/components/ui/PagedPagination";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { getProjects, createProject, updateProject, deleteProject as deleteProjectApi, getDepartments, getTemplates, importTemplate, duplicateProject, exportProject } from "@/api/projects";
+import { getProjects, createProject, updateProject, deleteProject as deleteProjectApi, getDepartments, getTemplates, importTemplate, duplicateProject, exportProject, exportProjectsExcel } from "@/api/projects";
 import { toast } from "sonner";
 import { PermissionGuard } from "@/components/auth/PermissionGuard";
 
@@ -119,6 +121,10 @@ export default function Projects() {
   const [departments, setDepartments] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [showExportDialog, setShowExportDialog] = useState(false);
+  const [selectedExportProjects, setSelectedExportProjects] = useState<string[]>([]);
+  const [exportSearch, setExportSearch] = useState("");
+  const [isExporting, setIsExporting] = useState(false);
 
   const navigate = useNavigate();
   const { token } = useAuth();
@@ -262,6 +268,24 @@ export default function Projects() {
     }
   };
 
+  const handleBulkExport = async () => {
+    if (selectedExportProjects.length === 0) {
+      toast.error("Please select at least one project");
+      return;
+    }
+    try {
+      setIsExporting(true);
+      await exportProjectsExcel(selectedExportProjects);
+      toast.success("Projects exported successfully");
+      setShowExportDialog(false);
+      setSelectedExportProjects([]);
+    } catch (err) {
+      toast.error("Failed to export projects");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -272,9 +296,14 @@ export default function Projects() {
           <p className="text-muted-foreground mt-1">Track project progress, teams, and milestones</p>
         </div>
         <PermissionGuard requires="create">
-          <Button className="gradient-primary text-primary-foreground gap-1.5 px-6 py-5 text-base shadow-md hover:shadow-lg transition-all" onClick={openCreate}>
-            <Plus className="h-5 w-5" /> New Project
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" className="gap-1.5 px-4 shadow-sm" onClick={() => { setSelectedExportProjects([]); setShowExportDialog(true); }}>
+              <Download className="h-4 w-4" /> Download
+            </Button>
+            <Button className="gradient-primary text-primary-foreground gap-1.5 px-6 py-5 text-base shadow-md hover:shadow-lg transition-all" onClick={openCreate}>
+              <Plus className="h-5 w-5" /> New Project
+            </Button>
+          </div>
         </PermissionGuard>
       </div>
 
@@ -561,6 +590,81 @@ export default function Projects() {
           <DialogFooter className="mt-8">
             <DialogClose asChild><Button variant="outline" className="px-5">Cancel</Button></DialogClose>
             <Button className="gradient-primary text-primary-foreground px-6" onClick={saveProject}>{editProject ? "Save Changes" : "Create Project"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={showExportDialog} onOpenChange={setShowExportDialog}>
+        <DialogContent className="sm:max-w-md p-6 flex flex-col max-h-[85vh]">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-foreground flex items-center gap-2">
+              <Download className="h-5 w-5 text-primary" /> Export Projects
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="mt-4 relative">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input 
+              placeholder="Search projects to export..." 
+              value={exportSearch} 
+              onChange={(e) => setExportSearch(e.target.value)} 
+              className="pl-9 bg-muted/50" 
+            />
+          </div>
+
+          <div className="space-y-4 mt-4 overflow-y-auto pr-2 flex-1 min-h-[200px]">
+            <div className="flex items-center space-x-2 mb-4 pb-2 border-b sticky top-0 bg-background z-10 pt-1">
+              <Checkbox 
+                id="select-all-export" 
+                checked={selectedExportProjects.length === projects.filter(p => p.name.toLowerCase().includes(exportSearch.toLowerCase())).length && projects.filter(p => p.name.toLowerCase().includes(exportSearch.toLowerCase())).length > 0}
+                onCheckedChange={(checked) => {
+                  const filtered = projects.filter(p => p.name.toLowerCase().includes(exportSearch.toLowerCase()));
+                  if (checked) {
+                    const newSelected = new Set([...selectedExportProjects, ...filtered.map(p => p.id)]);
+                    setSelectedExportProjects(Array.from(newSelected));
+                  } else {
+                    const filteredIds = new Set(filtered.map(p => p.id));
+                    setSelectedExportProjects(selectedExportProjects.filter(id => !filteredIds.has(id)));
+                  }
+                }}
+              />
+              <label htmlFor="select-all-export" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer">
+                Select All
+              </label>
+            </div>
+            {projects.filter(p => p.name.toLowerCase().includes(exportSearch.toLowerCase())).map(p => (
+              <div key={p.id} className="flex items-center space-x-2">
+                <Checkbox 
+                  id={`project-export-${p.id}`} 
+                  checked={selectedExportProjects.includes(p.id)}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      setSelectedExportProjects([...selectedExportProjects, p.id]);
+                    } else {
+                      setSelectedExportProjects(selectedExportProjects.filter(id => id !== p.id));
+                    }
+                  }}
+                />
+                <label htmlFor={`project-export-${p.id}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer">
+                  {p.name}
+                </label>
+              </div>
+            ))}
+            {projects.filter(p => p.name.toLowerCase().includes(exportSearch.toLowerCase())).length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4">No projects found.</p>
+            )}
+          </div>
+          <DialogFooter className="mt-6 pt-4 border-t">
+            <DialogClose asChild>
+              <Button variant="outline" className="px-5">Cancel</Button>
+            </DialogClose>
+            <Button 
+              className="gradient-primary text-primary-foreground px-6 gap-2" 
+              onClick={handleBulkExport}
+              disabled={selectedExportProjects.length === 0 || isExporting}
+            >
+              {isExporting ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" /> : <Download className="h-4 w-4" />}
+              {isExporting ? "Exporting..." : "Download Excel"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

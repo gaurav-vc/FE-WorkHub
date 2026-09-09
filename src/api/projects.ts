@@ -65,3 +65,18 @@ export const importTemplate = (templateType: string, projectId: string) => {
     data: { project_id: projectId },
   });
 };
+
+export const exportProjectsExcel = async (projectIds: string[]) => {
+  return apiClient(`/projects/export-multiple/?ids=${projectIds.join(',')}`, {
+    method: "GET",
+    responseType: 'blob'
+  }).then((data: any) => {
+    const url = window.URL.createObjectURL(new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'exported_projects.xlsx');
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  });
+};
