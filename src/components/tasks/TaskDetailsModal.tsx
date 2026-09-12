@@ -398,12 +398,22 @@ export function TaskDetailsModal({ taskId, open, onOpenChange, onTaskUpdate, pro
             </div>
 
             {/* Details List */}
-            <div className="space-y-2 text-sm mb-10 text-slate-700 shrink-0">
+            <div className="space-y-2 text-sm mb-6 text-slate-700 shrink-0">
               <div className="flex"><span className="w-32 text-slate-500 font-medium">Created By :</span> <span>{task.created_by_name || "System"}</span></div>
               <div className="flex"><span className="w-32 text-slate-500 font-medium">Created Date :</span> <span>{task.created_at ? `${new Date(task.created_at).toLocaleDateString()} at ${new Date(task.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} (${formatDistanceToNow(new Date(task.created_at), { addSuffix: true })})` : ""}</span></div>
               <div className="flex"><span className="w-32 text-slate-500 font-medium">Due Date :</span> <span>{task.due_date ? format(new Date(task.due_date), "MMM d, yyyy") : ""}</span></div>
               <div className="flex"><span className="w-32 text-slate-500 font-medium">Assign To :</span> <span>{task.assignees_detail && task.assignees_detail.length > 0 ? task.assignees_detail.map((a: any) => a.name).join(", ") : (task.assignee_detail?.name || "Unassigned")}</span></div>
             </div>
+
+            {/* Description Section */}
+            {task.description && (
+              <div className="mb-6 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm shrink-0 p-4">
+                <h3 className="text-slate-800 text-sm font-semibold mb-3">Description</h3>
+                <div className="text-sm text-slate-700 max-h-[250px] overflow-y-auto whitespace-pre-wrap custom-scrollbar pr-2">
+                  {task.description}
+                </div>
+              </div>
+            )}
 
             {/* Checklist Section */}
             <div className="mb-4 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm shrink-0">

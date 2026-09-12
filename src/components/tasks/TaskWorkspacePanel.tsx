@@ -150,7 +150,12 @@ export function TaskWorkspacePanel() {
           <ScrollArea className="flex-1 p-4">
             {/* Info Tab */}
             <TabsContent value="info" className="mt-0 space-y-4">
-              {task.description && <p className="text-sm text-muted-foreground">{task.description}</p>}
+              <div className="mb-2">
+                <p className="text-xs font-medium text-muted-foreground mb-1.5">Description</p>
+                <div className="text-sm text-slate-700 bg-muted/30 p-3 rounded-md max-h-[250px] overflow-y-auto whitespace-pre-wrap custom-scrollbar">
+                  {task.description || <span className="text-muted-foreground italic">No description provided.</span>}
+                </div>
+              </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <InfoRow icon={ListTree} label="Task Type" value={task.type || "—"} />
