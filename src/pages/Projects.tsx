@@ -8,7 +8,9 @@ import {
   Edit,
   Calendar,
   Download,
+  LineChart as LineChartIcon,
 } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -41,7 +43,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { PagedPagination } from "@/components/ui/PagedPagination";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { getProjects, createProject, updateProject, deleteProject as deleteProjectApi, getDepartments, getTemplates, importTemplate, duplicateProject, exportProject, exportProjectsExcel } from "@/api/projects";
+import { getProjects, createProject, updateProject, deleteProject as deleteProjectApi, getDepartments, getTemplates, importTemplate, duplicateProject, exportProject, exportProjectsExcel, getAllProjectsAnalytics, getProjectAnalytics } from "@/api/projects";
 import { toast } from "sonner";
 import { PermissionGuard } from "@/components/auth/PermissionGuard";
 
@@ -125,6 +127,16 @@ export default function Projects() {
   const [selectedExportProjects, setSelectedExportProjects] = useState<string[]>([]);
   const [exportSearch, setExportSearch] = useState("");
   const [isExporting, setIsExporting] = useState(false);
+
+  // Analytics
+  const [masterAnalyticsOpen, setMasterAnalyticsOpen] = useState(false);
+  const [masterAnalyticsData, setMasterAnalyticsData] = useState<any[]>([]);
+  const [masterAnalyticsSearch, setMasterAnalyticsSearch] = useState("");
+  const [masterAnalyticsSelected, setMasterAnalyticsSelected] = useState<string[]>([]);
+
+  const [projectAnalyticsOpen, setProjectAnalyticsOpen] = useState(false);
+  const [projectAnalyticsData, setProjectAnalyticsData] = useState<any>(null);
+  const [projectAnalyticsName, setProjectAnalyticsName] = useState("");
 
   const navigate = useNavigate();
   const { token } = useAuth();
@@ -286,6 +298,26 @@ export default function Projects() {
     }
   };
 
+  const openMasterAnalytics = async () => {
+    setMasterAnalyticsSearch("");
+    setMasterAnalyticsSelected([]);
+    setMasterAnalyticsOpen(true);
+    try {
+      const data = await getAllProjectsAnalytics();
+      setMasterAnalyticsData(data);
+    } catch(e) { console.error(e); }
+  };
+
+  const openProjectAnalytics = async (e: React.MouseEvent, id: string, name: string) => {
+    e.stopPropagation();
+    setProjectAnalyticsName(name);
+    setProjectAnalyticsOpen(true);
+    try {
+      const data = await getProjectAnalytics(id);
+      setProjectAnalyticsData(data);
+    } catch(e) { console.error(e); }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -297,6 +329,9 @@ export default function Projects() {
         </div>
         <PermissionGuard requires="create">
           <div className="flex gap-2">
+            <Button variant="outline" className="gap-1.5 px-4 shadow-sm" onClick={openMasterAnalytics}>
+              <LineChartIcon className="h-4 w-4 text-primary" /> Analytics
+            </Button>
             <Button variant="outline" className="gap-1.5 px-4 shadow-sm" onClick={() => { setSelectedExportProjects([]); setShowExportDialog(true); }}>
               <Download className="h-4 w-4" /> Download
             </Button>
@@ -366,6 +401,9 @@ export default function Projects() {
                         <PermissionGuard requires="edit">
                           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEdit(e as any, project); }}>
                             Edit Project
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => openProjectAnalytics(e as any, project.id, project.name)}>
+                            Analyze Project
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={(e) => handleDuplicate(e as any, project.id)}>
                             Duplicate
@@ -666,6 +704,191 @@ export default function Projects() {
               {isExporting ? "Exporting..." : "Download Excel"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Master Analytics Modal */}
+      <Dialog open={masterAnalyticsOpen} onOpenChange={setMasterAnalyticsOpen}>
+        <DialogContent className="sm:max-w-6xl p-0 overflow-hidden flex flex-col h-[85vh]">
+          <DialogHeader className="px-6 py-4 border-b border-slate-100 shrink-0">
+            <DialogTitle className="text-xl font-bold text-slate-800 flex items-center gap-2">
+              <LineChartIcon className="h-6 w-6 text-indigo-500" /> Global Project Analytics
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="flex flex-1 overflow-hidden">
+            {/* Sidebar for Project Selection */}
+            <div className="w-80 border-r border-slate-100 bg-slate-50/50 flex flex-col h-full">
+              <div className="p-4 border-b border-slate-100">
+                <div className="relative">
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                  <Input 
+                    placeholder="Search projects..." 
+                    className="pl-9 bg-white border-slate-200 focus-visible:ring-indigo-500" 
+                    value={masterAnalyticsSearch}
+                    onChange={(e) => setMasterAnalyticsSearch(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="p-4 flex-1 overflow-y-auto custom-scrollbar">
+                <div className="flex items-center justify-between mb-3 px-1">
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Select Projects</span>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-6 text-[11px] text-indigo-500 hover:text-indigo-600 hover:bg-indigo-50 px-2"
+                    onClick={() => {
+                      if (masterAnalyticsSelected.length === masterAnalyticsData.length) {
+                        setMasterAnalyticsSelected([]);
+                      } else {
+                        setMasterAnalyticsSelected(masterAnalyticsData.map(p => p.id.toString()));
+                      }
+                    }}
+                  >
+                    {masterAnalyticsSelected.length === masterAnalyticsData.length ? 'Deselect All' : 'Select All'}
+                  </Button>
+                </div>
+                <div className="space-y-1.5">
+                  {masterAnalyticsData
+                    .filter(p => p.projectName.toLowerCase().includes(masterAnalyticsSearch.toLowerCase()))
+                    .map(p => (
+                    <label 
+                      key={p.id} 
+                      className={`flex items-center gap-3 p-2.5 rounded-lg cursor-pointer transition-colors border ${masterAnalyticsSelected.includes(p.id.toString()) ? 'bg-indigo-50 border-indigo-200' : 'bg-white border-transparent hover:border-slate-200 hover:bg-slate-100'}`}
+                    >
+                      <Checkbox 
+                        checked={masterAnalyticsSelected.includes(p.id.toString())}
+                        onCheckedChange={(c) => {
+                          if (c) setMasterAnalyticsSelected(prev => [...prev, p.id.toString()]);
+                          else setMasterAnalyticsSelected(prev => prev.filter(id => id !== p.id.toString()));
+                        }}
+                        className="data-[state=checked]:bg-indigo-500 data-[state=checked]:border-indigo-500"
+                      />
+                      <span className={`text-sm font-medium ${masterAnalyticsSelected.includes(p.id.toString()) ? 'text-indigo-900' : 'text-slate-700'}`}>{p.projectName}</span>
+                    </label>
+                  ))}
+                  {masterAnalyticsData.filter(p => p.projectName.toLowerCase().includes(masterAnalyticsSearch.toLowerCase())).length === 0 && (
+                    <div className="text-center py-8 text-slate-400 text-sm">No projects found.</div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Chart Area */}
+            <div className="flex-1 p-6 bg-white flex flex-col h-full overflow-hidden">
+              {masterAnalyticsSelected.length === 0 ? (
+                <div className="flex-1 flex flex-col items-center justify-center text-center px-4">
+                  <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                    <LineChartIcon className="h-10 w-10 text-slate-300" />
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-700 mb-2">No Projects Selected</h3>
+                  <p className="text-slate-500 text-sm max-w-md">Please select one or more projects from the list on the left to view their detailed graphical analytics.</p>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-lg font-bold text-slate-800">Task Breakdown</h3>
+                    <div className="flex items-center gap-4 text-sm font-medium">
+                      <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-orange-400"></div> Open</div>
+                      <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-blue-500"></div> In Progress</div>
+                      <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-emerald-500"></div> Completed</div>
+                    </div>
+                  </div>
+                  <div className="flex-1 min-h-0 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart 
+                        data={masterAnalyticsData.filter(p => masterAnalyticsSelected.includes(p.id.toString()))} 
+                        margin={{ top: 20, right: 30, left: 0, bottom: 40 }}
+                        barSize={60}
+                      >
+                        <XAxis 
+                          dataKey="projectName" 
+                          stroke="#94a3b8" 
+                          fontSize={12} 
+                          tickLine={false} 
+                          axisLine={false}
+                          tick={{ fill: '#64748b', fontWeight: 500 }}
+                          dy={10}
+                        />
+                        <YAxis 
+                          stroke="#94a3b8" 
+                          fontSize={12} 
+                          tickLine={false} 
+                          axisLine={false} 
+                          allowDecimals={false}
+                          tick={{ fill: '#64748b' }}
+                          dx={-10}
+                        />
+                        <Tooltip 
+                          cursor={{fill: '#f8fafc'}} 
+                          contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)', padding: '12px' }} 
+                          itemStyle={{ fontSize: '13px', fontWeight: 500 }}
+                          labelStyle={{ fontSize: '14px', fontWeight: 700, color: '#1e293b', marginBottom: '8px' }}
+                        />
+                        <Bar dataKey="open" name="Open" stackId="a" fill="#fb923c" radius={[0, 0, 0, 0]} />
+                        <Bar dataKey="inProgress" name="In Progress" stackId="a" fill="#3b82f6" radius={[0, 0, 0, 0]} />
+                        <Bar dataKey="completed" name="Completed" stackId="a" fill="#10b981" radius={[6, 6, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Project Analytics Modal */}
+      <Dialog open={projectAnalyticsOpen} onOpenChange={setProjectAnalyticsOpen}>
+        <DialogContent className="sm:max-w-md p-6">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-foreground flex items-center gap-2">
+              <LineChartIcon className="h-5 w-5 text-primary" /> {projectAnalyticsName} - Analysis
+            </DialogTitle>
+          </DialogHeader>
+          {projectAnalyticsData && (
+            <div className="flex flex-col items-center justify-center mt-4 space-y-6">
+              <div className="h-[250px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={[
+                        { name: 'Open', value: projectAnalyticsData.open, color: '#f59e0b' },
+                        { name: 'In Progress', value: projectAnalyticsData.inProgress, color: '#3b82f6' },
+                        { name: 'Completed', value: projectAnalyticsData.completed, color: '#10b981' }
+                      ].filter(d => d.value > 0)}
+                      cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={5} dataKey="value"
+                    >
+                      {
+                        [
+                          { name: 'Open', value: projectAnalyticsData.open, color: '#f59e0b' },
+                          { name: 'In Progress', value: projectAnalyticsData.inProgress, color: '#3b82f6' },
+                          { name: 'Completed', value: projectAnalyticsData.completed, color: '#10b981' }
+                        ].filter(d => d.value > 0).map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))
+                      }
+                    </Pie>
+                    <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="flex gap-4 w-full justify-center">
+                <div className="flex flex-col items-center bg-slate-50 p-3 rounded-lg border border-slate-100 min-w-[80px]">
+                  <span className="text-xs font-semibold text-slate-500">Open</span>
+                  <span className="text-lg font-bold text-amber-500">{projectAnalyticsData.open}</span>
+                </div>
+                <div className="flex flex-col items-center bg-slate-50 p-3 rounded-lg border border-slate-100 min-w-[80px]">
+                  <span className="text-xs font-semibold text-slate-500">In Progress</span>
+                  <span className="text-lg font-bold text-blue-500">{projectAnalyticsData.inProgress}</span>
+                </div>
+                <div className="flex flex-col items-center bg-slate-50 p-3 rounded-lg border border-slate-100 min-w-[80px]">
+                  <span className="text-xs font-semibold text-slate-500">Completed</span>
+                  <span className="text-lg font-bold text-emerald-500">{projectAnalyticsData.completed}</span>
+                </div>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

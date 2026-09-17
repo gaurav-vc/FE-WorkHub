@@ -21,7 +21,7 @@ import { TaskWorkspacePanel } from "@/components/tasks/TaskWorkspacePanel";
 import { Task } from "@/types/tasks";
 import { useAuth } from "@/context/AuthContext";
 import { apiClient } from "@/api/client";
-import { getMyDayDashboard } from "@/api/tasks";
+import { getMyDayDashboard, getAdminTaskSummary } from "@/api/tasks";
 import { MEDIA_BASE } from "@/config";
 
 const priorityConfig: Record<string, { color: string; label: string }> = {
@@ -72,6 +72,12 @@ export default function MyDay() {
   const [birthdays, setBirthdays] = useState<any[]>([]);
   const [employees, setEmployees] = useState<{id: number, name: string}[]>([]);
 
+  const [adminSummary, setAdminSummary] = useState({ totalTasks: 0, completed: 0, inProgress: 0, open: 0 });
+  const [adminFilterCreatedBy, setAdminFilterCreatedBy] = useState("all");
+  const [adminFilterAssignedTo, setAdminFilterAssignedTo] = useState("all");
+  const [adminFilterStartDate, setAdminFilterStartDate] = useState("");
+  const [adminFilterEndDate, setAdminFilterEndDate] = useState("");
+
   useEffect(() => {
     if (token) {
       getMyDayDashboard()
@@ -92,6 +98,17 @@ export default function MyDay() {
         .catch(console.error);
     }
   }, [token]);
+
+  useEffect(() => {
+    if (token && isSiteAdmin) {
+      getAdminTaskSummary({
+        created_by: adminFilterCreatedBy,
+        assigned_to: adminFilterAssignedTo,
+        start_date: adminFilterStartDate,
+        end_date: adminFilterEndDate
+      }).then((res: any) => setAdminSummary(res)).catch(console.error);
+    }
+  }, [token, isSiteAdmin, adminFilterCreatedBy, adminFilterAssignedTo, adminFilterStartDate, adminFilterEndDate]);
 
   useEffect(() => {
     if (token) {
@@ -117,6 +134,17 @@ export default function MyDay() {
     updateTask(task.id, { status: (task.status === "done" ? "todo" : "done") as any });
   };
 
+  const handleCardClick = (status: string) => {
+    setViewMode("team_tasks");
+    setFilterStatus(status);
+    setFilterAssignee(adminFilterAssignedTo);
+    setFilterStartDate(adminFilterStartDate);
+    setFilterEndDate(adminFilterEndDate);
+    
+    // Scroll to the task list so user sees the update
+    window.scrollTo({ top: document.body.scrollHeight / 2, behavior: 'smooth' });
+  };
+
   const today = new Date();
   const dayName = today.toLocaleDateString("en-US", { weekday: "long" });
   const dateStr = today.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
@@ -130,7 +158,6 @@ export default function MyDay() {
         <div>
           <h1 className="text-2xl font-display font-bold text-foreground">My Tasks</h1>
           <p className="text-muted-foreground mt-1">{dayName}, {dateStr}</p>
-          <p className="text-sm font-medium text-slate-500 mt-1">Overview of all your tasks</p>
         </div>
         <div className="flex items-center gap-3">
           <Button className="gradient-primary text-primary-foreground gap-1.5 rounded-full px-5" onClick={() => { setEditTask(null); setShowCreate(true); }}>
@@ -138,6 +165,101 @@ export default function MyDay() {
           </Button>
         </div>
       </div>
+
+      {isSiteAdmin && (
+        <div className="space-y-4 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Card className="shadow-sm border-0 bg-[#F4F7F9] hover:bg-slate-100 transition-colors cursor-pointer" onClick={() => handleCardClick("all")}>
+              <CardContent className="p-4">
+                <p className="text-sm font-bold text-slate-500">Total Tasks</p>
+                <p className="text-2xl font-bold text-slate-800 mt-2">{adminSummary.totalTasks}</p>
+              </CardContent>
+            </Card>
+            <Card className="shadow-sm border-0 bg-[#E8F5EE] hover:bg-emerald-100/50 transition-colors cursor-pointer" onClick={() => handleCardClick("done")}>
+              <CardContent className="p-4">
+                <p className="text-sm font-bold text-emerald-400">Completed</p>
+                <p className="text-2xl font-bold text-emerald-500 mt-2">{adminSummary.completed}</p>
+              </CardContent>
+            </Card>
+            <Card className="shadow-sm border-0 bg-[#EEF2FC] hover:bg-blue-100/50 transition-colors cursor-pointer" onClick={() => handleCardClick("in-progress")}>
+              <CardContent className="p-4">
+                <p className="text-sm font-bold text-indigo-300">In Progress</p>
+                <p className="text-2xl font-bold text-indigo-500 mt-2">{adminSummary.inProgress}</p>
+              </CardContent>
+            </Card>
+            <Card className="shadow-sm border-0 bg-[#FDF5E6] hover:bg-orange-100/50 transition-colors cursor-pointer" onClick={() => handleCardClick("todo")}>
+              <CardContent className="p-4">
+                <p className="text-sm font-bold text-orange-200">Open</p>
+                <p className="text-2xl font-bold text-orange-500 mt-2">{adminSummary.open}</p>
+              </CardContent>
+            </Card>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 bg-white p-2 rounded-lg border-0 shadow-sm mt-2">
+            <div className="flex items-center gap-1.5 px-2">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Admin Filters</span>
+            </div>
+            <Select value={adminFilterCreatedBy} onValueChange={setAdminFilterCreatedBy}>
+              <SelectTrigger className="w-[150px] h-9 text-xs bg-slate-50 border-slate-200">
+                <SelectValue placeholder="Created By" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Creators</SelectItem>
+                {employees.map(e => <SelectItem key={e.id} value={e.id.toString()}>{e.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={adminFilterAssignedTo} onValueChange={setAdminFilterAssignedTo}>
+              <SelectTrigger className="w-[150px] h-9 text-xs bg-slate-50 border-slate-200">
+                <SelectValue placeholder="Assigned To" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Assignees</SelectItem>
+                {employees.map(e => <SelectItem key={e.id} value={e.id.toString()}>{e.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <div className="flex flex-wrap items-center gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={`h-9 text-xs px-3 w-[130px] justify-start text-left font-normal bg-slate-50 border-slate-200 ${!adminFilterStartDate && "text-muted-foreground"}`}>
+                    <Calendar className="mr-2 h-3.5 w-3.5 shrink-0" />
+                    {adminFilterStartDate ? format(new Date(adminFilterStartDate), "MMM d, yyyy") : <span>Start date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={adminFilterStartDate ? new Date(adminFilterStartDate) : undefined}
+                    onSelect={(d) => setAdminFilterStartDate(d ? format(d, "yyyy-MM-dd") : "")}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+              <span className="text-xs text-muted-foreground font-medium px-1">to</span>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={`h-9 text-xs px-3 w-[130px] justify-start text-left font-normal bg-slate-50 border-slate-200 ${!adminFilterEndDate && "text-muted-foreground"}`}>
+                    <Calendar className="mr-2 h-3.5 w-3.5 shrink-0" />
+                    {adminFilterEndDate ? format(new Date(adminFilterEndDate), "MMM d, yyyy") : <span>End date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={adminFilterEndDate ? new Date(adminFilterEndDate) : undefined}
+                    onSelect={(d) => setAdminFilterEndDate(d ? format(d, "yyyy-MM-dd") : "")}
+                    initialFocus
+                    disabled={(date) => adminFilterStartDate ? date < new Date(adminFilterStartDate) : false}
+                  />
+                </PopoverContent>
+              </Popover>
+              {(adminFilterStartDate || adminFilterEndDate) && (
+                <Button variant="ghost" size="sm" onClick={() => { setAdminFilterStartDate(""); setAdminFilterEndDate(""); }} className="h-9 px-2 text-xs text-muted-foreground hover:text-foreground">
+                  Clear
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-4">
@@ -197,7 +319,8 @@ export default function MyDay() {
                 <SelectItem value="blocked">Blocked</SelectItem>
               </SelectContent>
             </Select>
-            <div className="flex items-center gap-1.5 border-l pl-3 ml-1 border-slate-200">
+            <div className="flex items-center gap-2 px-1">
+              <div className="hidden sm:block w-px h-5 bg-slate-200 mx-1"></div>
               <Checkbox id="delayed-filter" checked={filterDelayed} onCheckedChange={(c) => setFilterDelayed(!!c)} />
               <label htmlFor="delayed-filter" className="text-xs font-semibold text-slate-500 cursor-pointer">Delayed</label>
             </div>
@@ -213,7 +336,8 @@ export default function MyDay() {
                     {employees.map(e => <SelectItem key={e.id} value={e.id.toString()}>{e.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
-                <div className="flex items-center gap-2 border-l pl-3 ml-1 border-slate-200">
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="hidden sm:block w-px h-5 bg-slate-200 mx-1"></div>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button variant="outline" className={`h-8 text-xs px-2.5 w-[130px] justify-start text-left font-normal ${!filterStartDate && "text-muted-foreground"}`}>

@@ -80,3 +80,11 @@ export const exportProjectsExcel = async (projectIds: string[]) => {
     link.remove();
   });
 };
+
+export const getAllProjectsAnalytics = () => {
+  return apiClient('/projects/analytics/all/');
+};
+
+export const getProjectAnalytics = (projectId: string) => {
+  return apiClient(`/projects/analytics/${projectId}/`);
+};

@@ -18,11 +18,13 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
-import { Download, FileText, CheckCircle, Clock, AlertTriangle, Users } from 'lucide-react';
+import { Download, FileText, CheckCircle, Clock, AlertTriangle, Users, LineChart as LineChartIcon } from 'lucide-react';
 import { fetchEmployeeReport, EmployeeStats } from '@/api/reports';
+import { getUserTaskGraph } from '@/api/tasks';
 import { apiClient } from '@/api/client';
 import html2pdf from 'html2pdf.js';
 import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const AdminReports = () => {
   const [employees, setEmployees] = useState<{id: number, name: string}[]>([]);
@@ -34,6 +36,32 @@ const AdminReports = () => {
   const [endDate, setEndDate] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  // Graph Modal State
+  const [graphModalOpen, setGraphModalOpen] = useState(false);
+  const [graphUser, setGraphUser] = useState<{id: string, name: string} | null>(null);
+  const [graphData, setGraphData] = useState<any[]>([]);
+  const [graphStartDate, setGraphStartDate] = useState('');
+  const [graphEndDate, setGraphEndDate] = useState('');
+
+  const openEmployeeGraph = async (id: string, name: string, sDate = graphStartDate, eDate = graphEndDate) => {
+    setGraphUser({ id, name });
+    setGraphModalOpen(true);
+    try {
+      const res: any = await getUserTaskGraph(id, { start_date: sDate, end_date: eDate });
+      setGraphData([
+        { name: 'Completed', value: res.completed, fill: '#10b981' }, // success
+        { name: 'In Progress', value: res.in_progress, fill: '#3b82f6' }, // primary
+        { name: 'Open', value: res.open, fill: '#f59e0b' } // warning
+      ]);
+    } catch(e) { console.error(e); }
+  };
+
+  useEffect(() => {
+    if (graphModalOpen && graphUser) {
+      openEmployeeGraph(graphUser.id, graphUser.name, graphStartDate, graphEndDate);
+    }
+  }, [graphStartDate, graphEndDate]);
 
   useEffect(() => {
     const loadEmployees = async () => {
@@ -280,6 +308,28 @@ const AdminReports = () => {
                   </div>
                 </PopoverContent>
               </Popover>
+              {selectedEmployees.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-3">
+                  {selectedEmployees.map(id => {
+                    const emp = employees.find(e => e.id.toString() === id);
+                    if (!emp) return null;
+                    return (
+                      <Badge key={id} variant="outline" className="flex items-center gap-1 bg-slate-50 border-slate-200 text-slate-700 py-1 pl-2 pr-1 shadow-sm">
+                        <span className="text-xs">{emp.name}</span>
+                        <Button 
+                          size="icon" 
+                          variant="ghost" 
+                          className="h-5 w-5 ml-1 p-0 hover:bg-primary/10 rounded-full group" 
+                          onClick={() => openEmployeeGraph(id, emp.name)}
+                          title="Analyze via Graph"
+                        >
+                          <LineChartIcon className="h-3 w-3 text-primary group-hover:scale-110 transition-transform" />
+                        </Button>
+                      </Badge>
+                    )
+                  })}
+                </div>
+              )}
             </div>
             
             <div className="space-y-2 md:col-span-1">
@@ -560,6 +610,45 @@ const AdminReports = () => {
           </Card>
         </div>
       )}
+
+      {/* User-Wise Task Analysis Graph Modal */}
+      <Dialog open={graphModalOpen} onOpenChange={setGraphModalOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <LineChartIcon className="h-5 w-5 text-primary" />
+              Task Analysis: {graphUser?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="flex flex-wrap items-center gap-4 bg-muted/50 p-3 rounded-md">
+              <div className="space-y-1">
+                <Label className="text-xs">Start Date</Label>
+                <Input type="date" className="h-8 text-xs" value={graphStartDate} onChange={e => setGraphStartDate(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">End Date</Label>
+                <Input type="date" className="h-8 text-xs" value={graphEndDate} onChange={e => setGraphEndDate(e.target.value)} />
+              </div>
+              <div className="mt-5">
+                {(graphStartDate || graphEndDate) && (
+                  <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => { setGraphStartDate(''); setGraphEndDate(''); }}>Clear</Button>
+                )}
+              </div>
+            </div>
+            <div className="h-[300px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={graphData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                  <XAxis dataKey="name" stroke="#888" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#888" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
+                  <Tooltip cursor={{fill: 'transparent'}} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                  <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={50} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

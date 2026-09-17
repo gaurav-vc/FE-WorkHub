@@ -97,3 +97,13 @@ export const addTaskChat = (taskId: string, text: string) => {
     data: { text },
   });
 };
+
+export const getAdminTaskSummary = (params: any = {}) => {
+  const query = new URLSearchParams(params).toString();
+  return apiClient(`/myday/admin-summary/${query ? `?${query}` : ''}`);
+};
+
+export const getUserTaskGraph = (userId: string, params: any = {}) => {
+  const query = new URLSearchParams(params).toString();
+  return apiClient(`/myday/user-graph/${userId}/${query ? `?${query}` : ''}`);
+};
