@@ -43,7 +43,7 @@ const scanCard = async (file: File) => {
   const formData = new FormData();
   formData.append("image", file);
   
-  return apiClient("/directory/business-cards/scan/", {
+  return apiClient("/directory/business-cards/advanced_scan/", {
     method: "POST",
     data: formData,
   });
@@ -77,13 +77,12 @@ export default function MyCard() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
   const streamRef = useRef<MediaStream | null>(null);
-  const scanIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const isScanningSilentlyRef = useRef(false);
   const consecutiveErrorsRef = useRef(0);
   
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isManualScanning, setIsManualScanning] = useState(false); // Used for file upload scanning
+  const [isCapturing, setIsCapturing] = useState(false);
   const [formData, setFormData] = useState<BusinessCardData>({
     name: "", email: "", phone: "", company: "", job_title: "",
   });
@@ -127,7 +126,7 @@ export default function MyCard() {
     onError: () => toast.error("Failed to delete business card"),
   });
 
-  // --- Auto-Scan Camera Logic ---
+  // --- Manual Camera Scan Logic ---
   const startCamera = async () => {
     try {
       setIsCameraOpen(true);
@@ -139,7 +138,6 @@ export default function MyCard() {
         if (videoRef.current) {
           videoRef.current.srcObject = mediaStream;
           videoRef.current.play();
-          startAutoScan(); // Begin polling the frames
         }
       }, 100);
     } catch (err) {
@@ -149,7 +147,6 @@ export default function MyCard() {
   };
 
   const stopCamera = () => {
-    stopAutoScan();
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
@@ -157,23 +154,9 @@ export default function MyCard() {
     setIsCameraOpen(false);
   };
 
-  const startAutoScan = () => {
-    if (scanIntervalRef.current) return;
-    // Check every 5 seconds to see if a card is in frame
-    scanIntervalRef.current = setInterval(() => {
-      if (isScanningSilentlyRef.current) return;
-      attemptAutoCapture();
-    }, 5000);
-  };
-
-  const stopAutoScan = () => {
-    if (scanIntervalRef.current) {
-      clearInterval(scanIntervalRef.current);
-      scanIntervalRef.current = null;
-    }
-  };
-
-  const attemptAutoCapture = () => {
+  const handleManualCapture = () => {
+    if (isCapturing) return;
+    
     if (videoRef.current && canvasRef.current) {
       const context = canvasRef.current.getContext('2d');
       if (context) {
@@ -184,13 +167,12 @@ export default function MyCard() {
         canvasRef.current.toBlob(async (blob) => {
           if (blob) {
             const file = new File([blob], "capture.jpg", { type: "image/jpeg" });
-            isScanningSilentlyRef.current = true;
+            setIsCapturing(true);
             try {
               const result = await scanCard(file);
               consecutiveErrorsRef.current = 0; // Success, reset error count
               
-              // If we extracted at least an email or phone, we consider it a successful auto-detect
-              if (result.email || result.phone || result.name || result.company) {
+              if (result.email || result.phone || result.name || result.company || result.job_title) {
                 stopCamera();
                 setFormData({
                   name: result.name || "",
@@ -200,16 +182,14 @@ export default function MyCard() {
                   job_title: result.job_title || "",
                 });
                 setIsFormOpen(true);
-                toast.success("Business card automatically detected!");
+                toast.success("Business card successfully scanned!");
+              } else {
+                toast.error("Could not find enough details. Please try capturing again.");
               }
             } catch (error) {
-              consecutiveErrorsRef.current += 1;
-              if (consecutiveErrorsRef.current >= 3) {
-                stopCamera();
-                toast.error("Scanner backend is repeatedly failing (Is Tesseract OCR installed on the server?). Please use manual upload.");
-              }
+              toast.error("Failed to scan card. Please try again or use manual upload.");
             } finally {
-              isScanningSilentlyRef.current = false;
+              setIsCapturing(false);
             }
           }
         }, 'image/jpeg');
@@ -325,7 +305,7 @@ export default function MyCard() {
             </div>
             <div>
               <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900">My Cards</h1>
-              <p className="text-slate-500 mt-1 text-sm font-medium">Auto-scan, save, and manage your business connections easily.</p>
+              <p className="text-slate-500 mt-1 text-sm font-medium">Scan, save, and manage your business connections easily.</p>
             </div>
           </div>
           
@@ -352,7 +332,7 @@ export default function MyCard() {
             </Button>
             <Button onClick={startCamera} className="h-11 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white shadow-lg shadow-indigo-200 transition-all hover:scale-105 font-bold gap-2">
               <Camera className="h-4 w-4" />
-              Auto Scan Card
+              Scan Card
             </Button>
           </div>
         </div>
@@ -378,12 +358,25 @@ export default function MyCard() {
                 </div>
               </div>
 
-              {/* Status indicator */}
-              <div className="absolute bottom-6 left-0 right-0 flex justify-center z-20">
-                  <div className="bg-black/60 backdrop-blur-md text-white px-5 py-2.5 rounded-full flex items-center gap-3 shadow-2xl border border-white/10">
-                      <Loader2 className="h-4 w-4 animate-spin text-indigo-400" />
-                      <span className="font-medium text-sm tracking-wide text-slate-100">Hold card in frame to auto-detect...</span>
-                  </div>
+              {/* Capture Button */}
+              <div className="absolute bottom-8 left-0 right-0 flex justify-center z-20">
+                <Button 
+                  onClick={handleManualCapture} 
+                  disabled={isCapturing}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-6 rounded-full flex items-center gap-3 shadow-2xl border-2 border-indigo-400 transition-all hover:scale-105 disabled:opacity-70 disabled:hover:scale-100"
+                >
+                  {isCapturing ? (
+                    <>
+                      <Loader2 className="h-6 w-6 animate-spin text-white" />
+                      <span className="font-bold text-lg tracking-wide">Scanning...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Camera className="h-6 w-6" />
+                      <span className="font-bold text-lg tracking-wide">Capture Image</span>
+                    </>
+                  )}
+                </Button>
               </div>
 
               <Button 
@@ -461,7 +454,7 @@ export default function MyCard() {
           </div>
         ) : (
           <div className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {currentCards && currentCards.length > 0 ? (
                 currentCards.map((card: BusinessCardData) => (
                   <div key={card.id} className="bg-white rounded-3xl border border-slate-200/60 shadow-sm overflow-hidden hover:shadow-md transition-all hover:-translate-y-1 relative group cursor-pointer" onClick={() => { setFormData(card); setIsFormOpen(true); }}>
@@ -474,31 +467,31 @@ export default function MyCard() {
                     </Button>
                   </div>
                   <div className="h-2 bg-gradient-to-r from-indigo-500 to-violet-500"></div>
-                  <div className="p-6">
-                    <div className="flex items-start gap-4 mb-6">
-                      <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200 text-xl font-bold text-indigo-600">
-                        {card.name ? card.name.charAt(0).toUpperCase() : <User className="h-5 w-5 text-slate-400" />}
+                  <div className="p-4">
+                    <div className="flex items-start gap-3 mb-4">
+                      <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200 text-lg font-bold text-indigo-600">
+                        {card.name ? card.name.charAt(0).toUpperCase() : <User className="h-4 w-4 text-slate-400" />}
                       </div>
                       <div>
-                        <h3 className="font-bold text-lg text-slate-900 leading-tight">{card.name || 'Unnamed Contact'}</h3>
-                        <p className="text-sm font-medium text-indigo-600 mt-1 flex items-center gap-1.5">
+                        <h3 className="font-bold text-base text-slate-900 leading-tight">{card.name || 'Unnamed Contact'}</h3>
+                        <p className="text-xs font-medium text-indigo-600 mt-0.5 flex items-center gap-1.5">
                           {card.job_title ? `${card.job_title}` : 'Professional'}
                           <span className="text-slate-300">•</span> 
-                          <span className="text-slate-600">{card.company || 'Unknown Company'}</span>
+                          <span className="text-slate-600 truncate max-w-[150px] inline-block align-bottom">{card.company || 'Unknown Company'}</span>
                         </p>
                       </div>
                     </div>
                     
-                    <div className="space-y-3 pt-4 border-t border-slate-100">
+                    <div className="space-y-2 pt-3 border-t border-slate-100">
                       {card.email && (
-                        <div className="flex items-center gap-3 text-sm font-medium text-slate-600">
-                          <div className="bg-indigo-50 p-2 rounded-lg"><Mail className="h-4 w-4 text-indigo-600" /></div>
+                        <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
+                          <div className="bg-indigo-50 p-1.5 rounded-md"><Mail className="h-3.5 w-3.5 text-indigo-600" /></div>
                           <a href={`mailto:${card.email}`} className="hover:text-indigo-600 transition-colors truncate">{card.email}</a>
                         </div>
                       )}
                       {card.phone && (
-                        <div className="flex items-center gap-3 text-sm font-medium text-slate-600">
-                          <div className="bg-violet-50 p-2 rounded-lg"><Phone className="h-4 w-4 text-violet-600" /></div>
+                        <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
+                          <div className="bg-violet-50 p-1.5 rounded-md"><Phone className="h-3.5 w-3.5 text-violet-600" /></div>
                           <a href={`tel:${card.phone}`} className="hover:text-violet-600 transition-colors">{card.phone}</a>
                         </div>
                       )}
@@ -524,7 +517,7 @@ export default function MyCard() {
                   <p className="text-slate-500 mb-8 max-w-sm mx-auto font-medium">Build your digital rolodex. Use your camera to instantly scan and save a business card.</p>
                   <Button onClick={startCamera} className="h-12 rounded-xl px-8 bg-slate-900 hover:bg-slate-800 text-white font-bold shadow-md">
                     <Camera className="mr-2 h-4 w-4" />
-                    Auto Scan First Card
+                    Scan First Card
                   </Button>
                 </div>
               )}
@@ -583,21 +576,7 @@ export default function MyCard() {
                     </PaginationContent>
                   </Pagination>
 
-                  <div className="hidden sm:flex items-center gap-2 border-l border-slate-200 pl-4">
-                    <Select value={itemsPerPage.toString()} onValueChange={(val) => {
-                      setItemsPerPage(Number(val));
-                      setCurrentPage(1);
-                    }}>
-                      <SelectTrigger className="w-[110px] h-9 bg-white">
-                        <SelectValue placeholder="10 per page" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="10">10 per page</SelectItem>
-                        <SelectItem value="20">20 per page</SelectItem>
-                        <SelectItem value="50">50 per page</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {/* Removed Items Per Page Selector (Fixed at 10) */}
                 </div>
               </div>
             )}

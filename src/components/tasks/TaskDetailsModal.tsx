@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { safeFormat as format, safeFormatDistanceToNow as formatDistanceToNow } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -623,6 +624,77 @@ export function TaskDetailsModal({ taskId, open, onOpenChange, onTaskUpdate, pro
                   No attachments yet.
                 </div>
               )}
+            </div>
+            {/* Comments Section */}
+            <div className="mb-6 border border-slate-200 rounded-lg bg-white shadow-sm p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-slate-800 text-sm font-semibold flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4 text-slate-400" />
+                  Comments
+                  <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full">{task.comments?.length || 0}</span>
+                </h3>
+              </div>
+
+              {task.comments && task.comments.length > 0 ? (
+                <div className="space-y-4 mb-4 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
+                  {task.comments.map((c: any, idx: number) => (
+                    <div key={c.id || idx} className="flex gap-3">
+                      <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs shrink-0">
+                        {c.user_name ? c.user_name.charAt(0).toUpperCase() : "U"}
+                      </div>
+                      <div className="flex-1 bg-slate-50 p-3 rounded-lg rounded-tl-none border border-slate-100">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-bold text-slate-700">{c.user_name}</span>
+                          <span className="text-[10px] text-slate-400">
+                            {c.created_at ? formatDistanceToNow(new Date(c.created_at), { addSuffix: true }) : ""}
+                          </span>
+                        </div>
+                        <p className="text-sm text-slate-600 whitespace-pre-wrap">{c.text}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6 text-slate-400 text-xs border border-dashed border-slate-200 rounded-lg bg-slate-50/50 mb-4">
+                  No comments yet. Start the discussion!
+                </div>
+              )}
+
+              <div className="flex gap-2 relative">
+                <Textarea 
+                  value={commentInput}
+                  onChange={(e) => setCommentInput(e.target.value)}
+                  placeholder="Write a comment..." 
+                  className="min-h-[40px] text-sm bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400 focus-visible:ring-1 focus-visible:ring-primary py-2 pr-12 resize-none"
+                  onKeyDown={async (e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      if (!commentInput.trim()) return;
+                      await fetch(`${baseUrl}/${currentTaskId}/add_comment/`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                        body: JSON.stringify({ text: commentInput })
+                      });
+                      fetchTaskDetails(currentTaskId);
+                      setCommentInput("");
+                    }
+                  }}
+                />
+                <Button 
+                  onClick={async () => {
+                    if (!commentInput.trim()) return;
+                    await fetch(`${baseUrl}/${currentTaskId}/add_comment/`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                      body: JSON.stringify({ text: commentInput })
+                    });
+                    fetchTaskDetails(currentTaskId);
+                    setCommentInput("");
+                  }} 
+                  className="absolute right-2 bottom-2 h-7 w-7 rounded-full p-0 bg-primary hover:bg-primary/90 text-white shrink-0">
+                  <Send className="h-3 w-3" />
+                </Button>
+              </div>
             </div>
             </div>
           </ErrorBoundary>

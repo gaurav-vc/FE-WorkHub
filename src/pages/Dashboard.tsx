@@ -144,6 +144,12 @@ export default function Dashboard() {
       setData((prev: any) => {
         if (!prev) return prev;
         const updatedMyTasks = prev.todayTasks.map((t: any) => t.id === taskId ? { ...t, status: newStatus } : t);
+        updatedMyTasks.sort((a: any, b: any) => {
+          const aDone = a.status === 'completed' || a.status === 'done' ? 1 : 0;
+          const bDone = b.status === 'completed' || b.status === 'done' ? 1 : 0;
+          if (aDone !== bDone) return aDone - bDone;
+          return 0; // maintain relative order
+        });
         return { ...prev, todayTasks: updatedMyTasks };
       });
       await updateTask(taskId, { status: newStatus as any });

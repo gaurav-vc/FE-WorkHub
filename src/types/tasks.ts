@@ -64,7 +64,7 @@ export interface Task {
   type?: string;
   platform?: string;
   priority: "P1" | "P2" | "P3" | "P4";
-  status: "Yet to Start" | "in-progress" | "done" | "blocked" | "delayed";
+  status: string;
   project: string;
   assignees: Array<{ id?: string | number; name: string; initials: string }>;
   createdBy: { name: string; initials: string };

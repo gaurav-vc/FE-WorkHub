@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode, Context } from "react";
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode, Context } from "react";
 import { Task, Notification } from "@/types/tasks";
 import { getTasks, createTask, updateTask as updateTaskApi, deleteTask as deleteTaskApi } from "@/api/tasks";
 import { apiClient } from "@/api/client";
@@ -92,7 +92,10 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     return mappedTask;
   };
 
+  const lastFiltersRef = React.useRef<any>({});
+  
   const fetchTasks = async (filters: any = {}) => {
+    lastFiltersRef.current = filters;
     setIsLoadingTasks(true);
     try {
       const data = await getTasks(filters);
@@ -143,7 +146,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       const handleSync = () => {
         if (fetchTimeout) clearTimeout(fetchTimeout);
         fetchTimeout = setTimeout(() => {
-          fetchTasks();
+          fetchTasks(lastFiltersRef.current);
         }, 800);
       };
       
@@ -216,7 +219,18 @@ export function TaskProvider({ children }: { children: ReactNode }) {
   };
 
   const updateTask = async (id: string, updates: Partial<Task>) => {
-    setTasks((prev) => prev.map((t) => (t.id.toString() === id.toString() ? { ...t, ...updates } : t)));
+    setTasks((prev) => {
+      const updated = prev.map((t) => (t.id.toString() === id.toString() ? { ...t, ...updates } : t));
+      if (updates.status) {
+        return updated.sort((a, b) => {
+          const aDone = a.status === 'completed' || a.status === 'done' ? 1 : 0;
+          const bDone = b.status === 'completed' || b.status === 'done' ? 1 : 0;
+          if (aDone !== bDone) return aDone - bDone;
+          return 0; // maintain relative order
+        });
+      }
+      return updated;
+    });
     if (selectedTask?.id.toString() === id.toString()) {
       setSelectedTask((prev) => prev ? { ...prev, ...updates } : prev);
     }
@@ -250,7 +264,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     if (updates.status === "todo") apiPayload.status = "pending";
     else if (updates.status === "in-progress") apiPayload.status = "in_progress";
     else if (updates.status === "blocked") apiPayload.status = "delayed";
-    else if (updates.status === "done") apiPayload.status = "done";
+    else if (updates.status === "done") apiPayload.status = "completed";
     
     console.log("Sending update to backend:", id, apiPayload);
     

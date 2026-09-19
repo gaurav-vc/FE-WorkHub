@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { cn } from "@/lib/utils";
 
 interface FloatingAIBubbleProps {
@@ -6,7 +6,7 @@ interface FloatingAIBubbleProps {
 }
 
 export function FloatingAIBubble({ children }: FloatingAIBubbleProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true); // Default to fully visible
   const containerRef = useRef<HTMLDivElement>(null);
   
   // Calculate initial position equivalent to bottom-24 (96px) + some buffer
@@ -17,17 +17,6 @@ export function FloatingAIBubble({ children }: FloatingAIBubbleProps) {
   const dragStartY = useRef(0);
   const dragStartPosY = useRef(0);
 
-  // Close on outside click
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setIsExpanded(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
   const handlePointerDown = (e: React.PointerEvent) => {
     setIsDragging(false);
     dragStartY.current = e.clientY;
@@ -36,11 +25,13 @@ export function FloatingAIBubble({ children }: FloatingAIBubbleProps) {
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
-    if (e.buttons !== 1) return; // Only track when left mouse button / touch is active
+    // Only track if left mouse button is pressed (or if it's a touch event)
+    if (e.pointerType === 'mouse' && e.buttons !== 1) return; 
+    
     const dy = e.clientY - dragStartY.current;
     
     // Threshold to distinguish click from drag
-    if (Math.abs(dy) > 5) {
+    if (Math.abs(dy) > 10) {
       setIsDragging(true);
     }
     
@@ -56,17 +47,13 @@ export function FloatingAIBubble({ children }: FloatingAIBubbleProps) {
 
   const handlePointerUp = (e: React.PointerEvent) => {
     e.currentTarget.releasePointerCapture(e.pointerId);
-    if (!isDragging) {
-      // If it wasn't a drag, toggle the expanded state
-      setIsExpanded(!isExpanded);
-    }
   };
 
   return (
     <div
       ref={containerRef}
       className={cn(
-        "fixed right-0 z-50 touch-none cursor-pointer flex items-center justify-center animate-bounce-subtle",
+        "fixed right-0 z-50 touch-none flex items-center justify-center animate-bounce-subtle",
         isExpanded ? "translate-x-[-24px]" : "translate-x-[50%] hover:translate-x-[40%] opacity-80 hover:opacity-100"
       )}
       style={{ 
@@ -77,20 +64,23 @@ export function FloatingAIBubble({ children }: FloatingAIBubbleProps) {
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
+      onDoubleClick={() => setIsExpanded(prev => !prev)}
+      onClickCapture={(e) => {
+        // Prevent click events on the children ONLY if the user was dragging the bubble
+        if (isDragging) {
+          e.stopPropagation();
+          e.preventDefault();
+        }
+      }}
     >
       <div 
         className={cn(
-          "transition-all duration-300 ease-out",
+          "transition-all duration-300 ease-out cursor-pointer",
           isExpanded ? "scale-100" : "scale-90"
         )}
       >
-        {/* 
-          Intercept clicks when collapsed so the child button's onClick doesn't fire.
-          When expanded, pointer events are enabled allowing the button to be clicked.
-        */}
-        <div className={cn("transition-all", !isExpanded && "pointer-events-none")}>
-           {children}
-        </div>
+        {/* Let the child handle its own single-clicks natively! */}
+        {children}
       </div>
     </div>
   );
