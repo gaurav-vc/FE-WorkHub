@@ -6,6 +6,15 @@ export const getTasks = (params: any = {}) => {
   return apiClient(`/tasks/${query ? `?${query}` : ''}`);
 };
 
+export const getTaskById = async (id: string) => {
+  const isBoardCard = id.toString().startsWith("board_card_");
+  if (isBoardCard) {
+    const cardId = id.replace('board_card_', '');
+    return await apiClient(`/boards/cards/${cardId}/`);
+  }
+  return await apiClient(`/tasks/${id}/`);
+};
+
 const triggerSync = () => {
   window.dispatchEvent(new Event('tasks-updated'));
 };

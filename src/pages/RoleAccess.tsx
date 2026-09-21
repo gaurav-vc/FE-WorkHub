@@ -155,7 +155,7 @@ const RoleBaseAccessPage: React.FC = () => {
     else toast.error('Failed to remove user');
   };
 
-  const toggleAccess = async (mapping: RoleAccessData, permissionType: 'view' | 'create' | 'edit' | 'delete') => {
+  const toggleAccess = async (mapping: RoleAccessData, permissionType: 'view' | 'create' | 'edit' | 'delete' | 'view_team') => {
     const newPermissions = { ...mapping.permissions, [permissionType]: !mapping.permissions[permissionType] };
     const res = await fetch(`${API_BASE}/rbac/role-access/${mapping.id}/`, { method: 'PATCH', headers, body: JSON.stringify({ permissions: newPermissions }) });
     if (res.ok) {
@@ -285,7 +285,7 @@ const RoleBaseAccessPage: React.FC = () => {
                               </div>
                             </TableCell>
 
-                            {mapping.frontend_site_id === 'hr-requests' ? (
+                            {['hr-requests'].includes(mapping.frontend_site_id) ? (
                               <>
                                 <TableCell className="text-center">
                                   <div className="flex items-center justify-center gap-2">
@@ -373,6 +373,40 @@ const RoleBaseAccessPage: React.FC = () => {
                                         </SelectContent>
                                       </Select>
                                     )}
+                                  </div>
+                                </TableCell>
+                              </>
+                            ) : mapping.frontend_site_id === 'tasks-my-day' ? (
+                              <>
+                                <TableCell className="text-center">
+                                  <div className="flex flex-col items-center justify-center gap-1.5 py-1">
+                                    <Switch checked={mapping.permissions?.view === true} onCheckedChange={() => toggleAccess(mapping, 'view')} disabled={selectedRole === 'admin'} className="data-[state=checked]:bg-emerald-500" />
+                                    {mapping.permissions?.view === true && (
+                                      <div className="flex items-center gap-2 mt-1 bg-indigo-50/50 px-2 py-0.5 rounded border border-indigo-100">
+                                        <span className="text-[9px] text-indigo-700 font-bold uppercase tracking-widest">Team</span>
+                                        <Switch 
+                                          checked={mapping.permissions?.view_team === true} 
+                                          onCheckedChange={() => toggleAccess(mapping, 'view_team')} 
+                                          disabled={selectedRole === 'admin'} 
+                                          className="data-[state=checked]:bg-indigo-500 scale-[0.6] origin-center -ml-1 -mr-1" 
+                                        />
+                                      </div>
+                                    )}
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  <div className="flex justify-center">
+                                    <Switch checked={mapping.permissions?.create === true} onCheckedChange={() => toggleAccess(mapping, 'create')} disabled={selectedRole === 'admin'} className="data-[state=checked]:bg-blue-500" />
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  <div className="flex justify-center">
+                                    <Switch checked={mapping.permissions?.edit === true} onCheckedChange={() => toggleAccess(mapping, 'edit')} disabled={selectedRole === 'admin'} className="data-[state=checked]:bg-amber-500" />
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  <div className="flex justify-center">
+                                    <Switch checked={mapping.permissions?.delete === true} onCheckedChange={() => toggleAccess(mapping, 'delete')} disabled={selectedRole === 'admin'} className="data-[state=checked]:bg-red-500" />
                                   </div>
                                 </TableCell>
                               </>

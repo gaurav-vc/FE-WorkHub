@@ -31,7 +31,10 @@ const MODULES_LIST = [
   { id: 'workflow-automation', label: 'Workflow Automation', group: 'AI & Automation' },
   { id: 'predictive-insights', label: 'Predictive Insights', group: 'AI & Automation' },
   { id: 'ai-agents', label: 'AI Agents', group: 'AI & Automation' },
-  { id: 'admin-reports', label: 'Employee Reports', group: 'Site Admin' },
+  { id: 'admin-setup', label: 'Setup', group: 'Site Admin' },
+  { id: 'admin-branding', label: 'Branding', group: 'Site Admin' },
+  { id: 'admin-integrations', label: 'Integrations', group: 'Site Admin' },
+  { id: 'admin-reports', label: 'Employee Reports', group: 'Reports' },
 ];
 
 export default function AddSite() {

@@ -293,6 +293,10 @@ export default function SitesList() {
                           'workflow-automation': 'Workflow Automation',
                           'predictive-insights': 'Predictive Insights',
                           'ai-agents': 'AI Agents',
+                          'admin-setup': 'Setup',
+                          'admin-branding': 'Branding',
+                          'admin-integrations': 'Integrations',
+                          'admin-reports': 'Employee Reports',
                         };
                         const displayMod = moduleMap[mod] || mod;
                         return (

@@ -110,7 +110,9 @@ export const APP_ROUTES = [
   { id: "admin-setup", path: "/admin/setup", title: "Setup", category: "Site Admin" },
   { id: "admin-branding", path: "/admin/branding", title: "Branding", category: "Site Admin" },
   { id: "admin-integrations", path: "/admin/integrations", title: "Integrations", category: "Site Admin" },
-  { id: "admin-reports", path: "/admin/reports", title: "Employee Reports", category: "Site Admin" },
+  
+  // Reports
+  { id: "admin-reports", path: "/admin/reports", title: "Employee Reports", category: "Reports" },
 ];
 
 import { AuthProvider } from "@/context/AuthContext";

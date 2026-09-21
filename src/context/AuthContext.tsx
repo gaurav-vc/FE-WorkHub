@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getCurrentPortal, PortalType } from '../lib/auth-utils';
@@ -103,6 +103,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const accessRoutesRef = useRef(accessRoutes);
+  useEffect(() => {
+    accessRoutesRef.current = accessRoutes;
+  }, [accessRoutes]);
+
   useEffect(() => {
     const originalFetch = window.fetch;
     window.fetch = async function (...args) {
@@ -110,9 +115,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Determine module ID based on current pathname and accessRoutes
       const currentPath = window.location.pathname;
-      let accessObj = accessRoutes.find(r => r.site_name === currentPath);
+      let accessObj = accessRoutesRef.current.find((r: any) => r.site_name === currentPath);
       if (!accessObj) {
-        accessObj = accessRoutes.find(r => r.site_name !== '/' && currentPath.startsWith(r.site_name));
+        accessObj = accessRoutesRef.current.find((r: any) => r.site_name !== '/' && currentPath.startsWith(r.site_name));
       }
       
       if (accessObj) {
@@ -127,7 +132,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       window.fetch = originalFetch;
     };
-  }, [accessRoutes]);
+  }, []);
 
   const login = (newToken: string, user_id: string, newRole?: string, newUserType?: string) => {
     // Clear stale role/userType from previous session before setting new values

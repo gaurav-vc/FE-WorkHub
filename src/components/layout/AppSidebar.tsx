@@ -114,12 +114,17 @@ const getNavGroups = (portalType: PortalType) => {
     return [
       ...employeeGroups,
       {
+        label: "Reports",
+        items: [
+          { title: "Employee Reports", url: "/admin/reports", icon: BarChart3 },
+        ],
+      },
+      {
         label: "Site Admin",
         items: [
           { title: "Setup", url: "/admin/setup", icon: Settings },
           { title: "Branding", url: "/admin/branding", icon: Palette },
           { title: "Integrations", url: "/admin/integrations", icon: Plug },
-          { title: "Employee Reports", url: "/admin/reports", icon: BarChart3 },
         ],
       }
     ];

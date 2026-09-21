@@ -53,9 +53,14 @@ const getDueColor = (dueDateStr: string | null, isDelayed: boolean, isDone: bool
 };
 
 export default function MyDay() {
-  const { token, username, fullName, portalType, role, isLoading: isAuthLoading } = useAuth();
-  const isAdmin = portalType === 'site_admin' || portalType === 'super_user' || role === 'admin' || role?.toLowerCase().includes('admin');
-  const isSiteAdmin = portalType === 'site_admin' || portalType === 'super_user';
+  const { token, username, fullName, portalType, role, isLoading: isAuthLoading, accessRoutes } = useAuth();
+  
+  const myDayAccess = accessRoutes?.find((r: any) => r.site_id === 'tasks-my-day' || r.site_name === '/tasks/my-day');
+  const hasSpecialAccess = myDayAccess?.permissions?.view_team === true || String(myDayAccess?.permissions?.view_team) === 'true' || myDayAccess?.permissions?.view === 'team' || myDayAccess?.permissions?.view === 'all';
+  const hasAdminAccess = myDayAccess?.permissions?.view === 'all';
+
+  const isAdmin = portalType === 'site_admin' || portalType === 'super_user' || role === 'admin' || role?.toLowerCase().includes('admin') || hasSpecialAccess;
+  const isSiteAdmin = portalType === 'site_admin' || portalType === 'super_user' || hasAdminAccess || hasSpecialAccess;
   const { tasks, addTask, updateTask, deleteTask, setSelectedTask, isLoadingTasks, fetchTasks, totalTasks, totalPages } = useTaskContext();
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");

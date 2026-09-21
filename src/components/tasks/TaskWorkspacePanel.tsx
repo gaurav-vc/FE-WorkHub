@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   X, Clock, Calendar, Users, Link2, Flag, CheckSquare, MessageSquare, Send,
   Paperclip, ListTree, FileText, AlertTriangle, RotateCcw, Edit, Trash2, Monitor
@@ -37,11 +37,17 @@ const statusConfig: Record<string, { color: string; label: string }> = {
 };
 
 export function TaskWorkspacePanel() {
-  const { selectedTask, setSelectedTask, updateTask, tasks } = useTaskContext();
+  const { selectedTask, setSelectedTask, updateTask, tasks, fetchTaskDetails } = useTaskContext();
   const { token, username } = useAuth();
   const [chatInput, setChatInput] = useState("");
   const [commentInput, setCommentInput] = useState("");
   const [showEdit, setShowEdit] = useState(false);
+
+  useEffect(() => {
+    if (selectedTask?.id) {
+      fetchTaskDetails(selectedTask.id.toString());
+    }
+  }, [selectedTask?.id]);
 
   const meName = username || "Me";
   const meInitials = meName.substring(0, 2).toUpperCase();

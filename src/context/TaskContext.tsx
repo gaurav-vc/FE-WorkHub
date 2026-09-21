@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode, Context } from "react";
 import { Task, Notification } from "@/types/tasks";
-import { getTasks, createTask, updateTask as updateTaskApi, deleteTask as deleteTaskApi } from "@/api/tasks";
+import { getTasks, createTask, updateTask as updateTaskApi, deleteTask as deleteTaskApi, getTaskById } from "@/api/tasks";
 import { apiClient } from "@/api/client";
 import { useAuth } from "./AuthContext";
 import { API_BASE } from "@/config";
@@ -21,6 +21,7 @@ interface TaskContextType {
   setSelectedTask: (task: Task | null) => void;
   isLoadingTasks: boolean;
   fetchTasks: (filters?: any) => Promise<void>;
+  fetchTaskDetails: (id: string) => Promise<void>;
   totalTasks: number;
   totalPages: number;
 }
@@ -117,6 +118,21 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const fetchTaskDetails = async (id: string) => {
+    try {
+      const res = await getTaskById(id);
+      if (res) {
+        const mapped = mapTaskFromApi(res);
+        setTasks((prev) => prev.map((t) => (t.id.toString() === id.toString() ? { ...t, ...mapped } : t)));
+        if (selectedTask?.id.toString() === id.toString()) {
+          setSelectedTask((prev) => prev ? { ...prev, ...mapped } : mapped);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch task details:", err);
+    }
+  };
+
   const fetchNotifications = async () => {
     try {
       const data = await apiClient('/workspace/notifications/');
@@ -184,9 +200,6 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       
       // Clean up frontend-only fields
       delete apiPayload.assignees;
-      delete apiPayload.subtasks;
-      delete apiPayload.checklists;
-      delete apiPayload.checklist;
       delete apiPayload.comments;
       delete apiPayload.chat;
       delete apiPayload.dependent_tasks_legacy;
@@ -239,9 +252,6 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     
     // Clean up frontend-only fields
     delete apiPayload.assignees;
-    delete apiPayload.subtasks;
-    delete apiPayload.checklists;
-    delete apiPayload.checklist;
     delete apiPayload.comments;
     delete apiPayload.chat;
     delete apiPayload.dependent_tasks_legacy;
@@ -349,6 +359,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       setSelectedTask,
       isLoadingTasks,
       fetchTasks,
+      fetchTaskDetails,
       totalTasks,
       totalPages,
     }}>
