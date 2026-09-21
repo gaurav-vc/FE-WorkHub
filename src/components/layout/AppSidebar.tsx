@@ -107,18 +107,18 @@ const getNavGroups = (portalType: PortalType) => {
         { title: "Insights", url: "/ai/insights", icon: BarChart3 },
         { title: "AI Agents", url: "/ai/agents", icon: Bot },
       ],
+    },
+    {
+      label: "Reports",
+      items: [
+        { title: "Employee Reports", url: "/reports", icon: BarChart3 },
+      ],
     }
   ];
 
   if (portalType === 'site_admin') {
     return [
       ...employeeGroups,
-      {
-        label: "Reports",
-        items: [
-          { title: "Employee Reports", url: "/admin/reports", icon: BarChart3 },
-        ],
-      },
       {
         label: "Site Admin",
         items: [

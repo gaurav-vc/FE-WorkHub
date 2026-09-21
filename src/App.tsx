@@ -112,7 +112,7 @@ export const APP_ROUTES = [
   { id: "admin-integrations", path: "/admin/integrations", title: "Integrations", category: "Site Admin" },
   
   // Reports
-  { id: "admin-reports", path: "/admin/reports", title: "Employee Reports", category: "Reports" },
+  { id: "admin-reports", path: "/reports", title: "Employee Reports", category: "Reports" },
 ];
 
 import { AuthProvider } from "@/context/AuthContext";
@@ -190,7 +190,7 @@ const App = () => (
               <Route path="/admin/setup" element={<ProtectedRoute route="/admin/setup"><Setup /></ProtectedRoute>} />
               <Route path="/admin/branding" element={<ProtectedRoute route="/admin/branding"><Branding /></ProtectedRoute>} />
               <Route path="/admin/integrations" element={<ProtectedRoute route="/admin/integrations"><Integrations /></ProtectedRoute>} />
-              <Route path="/admin/reports" element={<ProtectedRoute route="/admin/reports"><AdminReports /></ProtectedRoute>} />
+              <Route path="/reports" element={<ProtectedRoute route="/reports"><AdminReports /></ProtectedRoute>} />
               
               {/* Super Admin */}
               <Route path="/superadmin" element={<ProtectedRoute route="/superadmin"><SuperAdminDashboard /></ProtectedRoute>} />
