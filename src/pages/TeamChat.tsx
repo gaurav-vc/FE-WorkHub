@@ -26,8 +26,10 @@ import { getChatChannels, getAllUsersChannels, getChatMessages, sendChatMessage,
 import { toast } from "sonner";
 import { API_BASE } from "@/config";
 import { Download } from "lucide-react";
+import { useLocation } from "react-router-dom";
 export default function TeamChat() {
   const { token, username, fullName } = useAuth();
+  const location = useLocation();
   const [activeChannel, setActiveChannel] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [showChannels, setShowChannels] = useState(true);
@@ -67,7 +69,10 @@ export default function TeamChat() {
         const data = await getChatChannels();
         const channels = data.results || data;
         setChatChannels(channels);
-        if (channels.length > 0 && !activeChannel) {
+        
+        if (location.state?.activeChannelId) {
+          setActiveChannel(location.state.activeChannelId);
+        } else if (channels.length > 0 && !activeChannel) {
           setActiveChannel(channels[0].id);
         }
       } catch (err) {
@@ -85,6 +90,12 @@ export default function TeamChat() {
         .catch(console.error);
     }
   }, [token]);
+
+  useEffect(() => {
+    if (location.state?.activeChannelId) {
+      setActiveChannel(location.state.activeChannelId);
+    }
+  }, [location.state]);
 
   useEffect(() => {
     if (!token) return;

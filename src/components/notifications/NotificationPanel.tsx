@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useTaskContext } from "@/context/TaskContext";
 import { Notification } from "@/types/tasks";
 import { safeFormatDistanceToNow as formatDistanceToNow } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
 
 const iconMap: Record<string, any> = {
   "task-assigned": CheckCircle2,
@@ -28,6 +29,36 @@ const colorMap: Record<string, string> = {
 
 export function NotificationPanel() {
   const { notifications, unreadCount, markNotificationRead, markAllNotificationsRead } = useTaskContext();
+  const navigate = useNavigate();
+
+  const handleNavigation = (link: string) => {
+    if (!link) return;
+    
+    let frontendLink = link;
+    let navState: any = {};
+
+    if (link.startsWith("/chat/")) {
+       frontendLink = "/collaboration/chat";
+       const id = link.split("/")[2];
+       if (id) navState = { activeChannelId: id };
+    } else if (link.startsWith("/tasks/mom/")) {
+       frontendLink = "/collaboration/moms";
+       const id = link.split("/")[3];
+       if (id) frontendLink = `/collaboration/moms/${id}`;
+    } else if (link.startsWith("/meetings/")) {
+       frontendLink = "/tasks/calendar";
+       const id = link.split("/")[2];
+       if (id) navState = { activeMeetingId: id };
+    } else if (link.startsWith("/tasks/") && !link.includes("my-day") && !link.includes("projects") && !link.includes("timeline") && !link.includes("resources") && !link.includes("templates")) {
+       frontendLink = "/tasks/my-day"; 
+       const id = link.split("/")[2];
+       if (id) navState = { selectedTaskId: id };
+    } else if (link === "/workflow-automation") {
+       frontendLink = "/ai/workflows";
+    }
+
+    navigate(frontendLink, { state: navState });
+  };
 
   return (
     <Popover>
@@ -65,7 +96,7 @@ export function NotificationPanel() {
                   <div className={`h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0 ${color}`}>
                     <Icon className="h-4 w-4" />
                   </div>
-                  <div className="flex-1 min-w-0 cursor-pointer" onClick={() => { if(n.link) window.location.href = n.link; }}>
+                  <div className="flex-1 min-w-0 cursor-pointer" onClick={() => { if(n.link) handleNavigation(n.link); }}>
                     <p className={`text-xs font-medium ${!n.read ? "text-foreground" : "text-muted-foreground"}`}>{n.title}</p>
                     <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{n.message}</p>
                     <p className="text-[10px] text-muted-foreground mt-1">

@@ -14,6 +14,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { format } from "date-fns";
+import { useLocation } from "react-router-dom";
 import { PagedPagination } from "@/components/ui/PagedPagination";
 import { useTaskContext } from "@/context/TaskContext";
 import { TaskCreateDialog } from "@/components/tasks/TaskCreateDialog";
@@ -53,6 +54,7 @@ const getDueColor = (dueDateStr: string | null, isDelayed: boolean, isDone: bool
 };
 
 export default function MyDay() {
+  const location = useLocation();
   const { token, username, fullName, portalType, role, isLoading: isAuthLoading, accessRoutes } = useAuth();
   
   const myDayAccess = accessRoutes?.find((r: any) => r.site_id === 'tasks-my-day' || r.site_name === '/tasks/my-day');
@@ -61,8 +63,15 @@ export default function MyDay() {
 
   const isAdmin = portalType === 'site_admin' || portalType === 'super_user' || role === 'admin' || role?.toLowerCase().includes('admin') || hasSpecialAccess;
   const isSiteAdmin = portalType === 'site_admin' || portalType === 'super_user' || hasAdminAccess || hasSpecialAccess;
-  const { tasks, addTask, updateTask, deleteTask, setSelectedTask, isLoadingTasks, fetchTasks, totalTasks, totalPages } = useTaskContext();
+  const { tasks, addTask, updateTask, deleteTask, setSelectedTask, isLoadingTasks, fetchTasks, fetchTaskDetails, totalTasks, totalPages } = useTaskContext();
   const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    if (location.state?.selectedTaskId) {
+      fetchTaskDetails(location.state.selectedTaskId.toString());
+    }
+  }, [location.state]);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [editTask, setEditTask] = useState<Task | null>(null);

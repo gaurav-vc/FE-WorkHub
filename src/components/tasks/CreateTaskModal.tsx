@@ -564,7 +564,7 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
                   </div>
                   <div className="flex flex-col justify-center space-y-2 pt-6">
                     <div className="flex items-center space-x-2">
-                      <Switch id="is-queued" checked={isQueued} onCheckedChange={setIsQueued} className="scale-150 transform origin-left ml-2" />
+                      <Switch id="is-queued" checked={isQueued} onCheckedChange={setIsQueued} className="scale-150 transform origin-left ml-2 mr-6" />
                       <Label htmlFor="is-queued" className="text-base ml-4 font-bold cursor-pointer">Queue Task Execution</Label>
                     </div>
                     <p className="text-xs text-muted-foreground">If checked, task will wait in queue for resources.</p>
