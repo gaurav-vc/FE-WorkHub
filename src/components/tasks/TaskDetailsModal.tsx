@@ -40,11 +40,12 @@ export function TaskDetailsModal({ taskId, open, onOpenChange, onTaskUpdate, pro
 
   const [globalUsers, setGlobalUsers] = useState<any[]>([]);
 
-  // UI state for popovers
   const [showComments, setShowComments] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [commentInput, setCommentInput] = useState("");
   const [chatInput, setChatInput] = useState("");
+  const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
+  const [editingCommentText, setEditingCommentText] = useState("");
   const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
   const [newChecklist, setNewChecklist] = useState("");
   const [showSubtasks, setShowSubtasks] = useState(false);
@@ -76,10 +77,10 @@ export function TaskDetailsModal({ taskId, open, onOpenChange, onTaskUpdate, pro
     if (open && taskId) {
       setTaskStack([taskId]);
       setTaskHistory([]);
-      setShowComments(false);
+      setShowComments(true);
       setShowChat(false);
-      setShowSubtasks(false);
-      setShowChecklist(false);
+      setShowSubtasks(true);
+      setShowChecklist(true);
     }
   }, [open, taskId]);
 
@@ -426,7 +427,10 @@ export function TaskDetailsModal({ taskId, open, onOpenChange, onTaskUpdate, pro
                   <h3 className="text-slate-800 text-sm font-semibold">Checklist</h3>
                   <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full">{task.checklists?.length || 0}</span>
                 </div>
-                <span className="text-slate-400 text-xs">{showChecklist ? "▼" : "▶"}</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-primary text-xs font-semibold bg-primary/10 px-2 py-1 rounded hover:bg-primary/20 transition-colors" onClick={(e) => { e.stopPropagation(); setShowChecklist(true); document.getElementById('new-checklist-input')?.focus(); }}>+ Add Item</span>
+                  <span className="text-slate-400 text-xs">{showChecklist ? "▼" : "▶"}</span>
+                </div>
               </button>
               
               <div className={`transition-all overflow-hidden ${showChecklist ? "max-h-[500px]" : "max-h-0"}`}>
@@ -456,9 +460,21 @@ export function TaskDetailsModal({ taskId, open, onOpenChange, onTaskUpdate, pro
 
                   <div className="flex gap-2">
                     <Input 
+                      id="new-checklist-input"
                       value={newChecklist}
                       onChange={(e) => setNewChecklist(e.target.value)}
-                      placeholder="Add New Checklist..." 
+                      onKeyDown={async (e) => {
+                        if (e.key === "Enter" && newChecklist.trim()) {
+                          await fetch(`${baseUrl}/${currentTaskId}/add_checklist/`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                            body: JSON.stringify({ title: newChecklist })
+                          });
+                          fetchTaskDetails(currentTaskId);
+                          setNewChecklist("");
+                        }
+                      }}
+                      placeholder="Add New Checklist (Press Enter to save)..." 
                       className="h-8 text-xs bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400 focus-visible:ring-1 focus-visible:ring-primary"
                     />
                     <Button 
@@ -500,9 +516,12 @@ export function TaskDetailsModal({ taskId, open, onOpenChange, onTaskUpdate, pro
                     </div>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
-                  <Info className="h-4 w-4 text-slate-400" />
-                  <span className="text-slate-400 text-xs">{showSubtasks ? "▼" : "▶"}</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-primary text-xs font-semibold bg-primary/10 px-2 py-1 rounded hover:bg-primary/20 transition-colors" onClick={(e) => { e.stopPropagation(); setShowSubtasks(true); document.getElementById('new-subtask-input')?.focus(); }}>+ Add Subtask</span>
+                  <div className="flex items-center gap-2">
+                    <Info className="h-4 w-4 text-slate-400" />
+                    <span className="text-slate-400 text-xs">{showSubtasks ? "▼" : "▶"}</span>
+                  </div>
                 </div>
               </button>
               
@@ -566,10 +585,11 @@ export function TaskDetailsModal({ taskId, open, onOpenChange, onTaskUpdate, pro
 
                   <div className="flex gap-2">
                     <Input 
+                      id="new-subtask-input"
                       value={newSubtaskTitle}
                       onChange={(e) => setNewSubtaskTitle(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && addSubtask()}
-                      placeholder="Add New Subtask..." 
+                      placeholder="Add New Subtask (Press Enter to save)..." 
                       className="h-8 text-xs bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400 focus-visible:ring-1 focus-visible:ring-primary"
                     />
                     <Button onClick={addSubtask} className="h-8 text-xs bg-primary hover:bg-primary/90 text-white px-4">Add</Button>
@@ -586,6 +606,10 @@ export function TaskDetailsModal({ taskId, open, onOpenChange, onTaskUpdate, pro
                   Attachments
                   <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full">{task.attachments?.length || 0}</span>
                 </h3>
+                <label className="cursor-pointer bg-primary/10 hover:bg-primary/20 text-primary px-3 py-1.5 rounded-md text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-sm">
+                  <input type="file" className="hidden" onChange={handleFileUpload} />
+                  <span>+ Upload File</span>
+                </label>
               </div>
 
               {task.attachments && task.attachments.length > 0 ? (
@@ -642,14 +666,52 @@ export function TaskDetailsModal({ taskId, open, onOpenChange, onTaskUpdate, pro
                       <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs shrink-0">
                         {c.user_name ? c.user_name.charAt(0).toUpperCase() : "U"}
                       </div>
-                      <div className="flex-1 bg-slate-50 p-3 rounded-lg rounded-tl-none border border-slate-100">
+                      <div className="flex-1 bg-slate-50 p-3 rounded-lg rounded-tl-none border border-slate-100 group relative">
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-xs font-bold text-slate-700">{c.user_name}</span>
-                          <span className="text-[10px] text-slate-400">
-                            {c.created_at ? formatDistanceToNow(new Date(c.created_at), { addSuffix: true }) : ""}
-                          </span>
+                          <div className="flex items-center gap-3">
+                            <span className="text-[10px] text-slate-400">
+                              {c.created_at ? formatDistanceToNow(new Date(c.created_at), { addSuffix: true }) : ""}
+                            </span>
+                            {c.user_name === (globalUsers.find((u:any) => u.username === username)?.name || username) && editingCommentId !== (c.id || idx) && (
+                              <button 
+                                onClick={() => {
+                                  setEditingCommentId(c.id || idx);
+                                  setEditingCommentText(c.text);
+                                }} 
+                                className="opacity-0 group-hover:opacity-100 transition-all p-1.5 rounded-md bg-slate-100 hover:bg-blue-100 text-slate-500 hover:text-blue-600 cursor-pointer"
+                                title="Edit comment"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                          </div>
                         </div>
-                        <p className="text-sm text-slate-600 whitespace-pre-wrap">{c.text}</p>
+                        {editingCommentId === (c.id || idx) ? (
+                          <div className="mt-2 flex flex-col gap-2">
+                            <Textarea 
+                              value={editingCommentText}
+                              onChange={(e) => setEditingCommentText(e.target.value)}
+                              className="min-h-[60px] text-sm bg-white border-blue-200 focus-visible:ring-1 focus-visible:ring-blue-500 p-2"
+                              autoFocus
+                            />
+                            <div className="flex items-center gap-2 self-end">
+                              <Button size="sm" variant="ghost" className="h-7 text-xs px-2" onClick={() => setEditingCommentId(null)}>Cancel</Button>
+                              <Button size="sm" className="h-7 text-xs px-3 bg-blue-600 hover:bg-blue-700 text-white" onClick={async () => {
+                                if (!editingCommentText.trim()) return;
+                                await fetch(`${baseUrl}/${currentTaskId}/edit_comment/`, {
+                                  method: "PATCH",
+                                  headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                                  body: JSON.stringify({ comment_id: c.id, text: editingCommentText })
+                                });
+                                fetchTaskDetails(currentTaskId);
+                                setEditingCommentId(null);
+                              }}>Save</Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-slate-600 whitespace-pre-wrap">{c.text}</p>
+                        )}
                       </div>
                     </div>
                   ))}
