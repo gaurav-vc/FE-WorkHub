@@ -10,7 +10,7 @@ import {
   Download,
   LineChart as LineChartIcon,
 } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid } from 'recharts';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -787,47 +787,72 @@ export default function Projects() {
               ) : (
                 <>
                   <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-lg font-bold text-slate-800">Task Breakdown</h3>
-                    <div className="flex items-center gap-4 text-sm font-medium">
-                      <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-orange-400"></div> Open</div>
-                      <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-blue-500"></div> In Progress</div>
-                      <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-emerald-500"></div> Completed</div>
+                    <h3 className="text-xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-slate-800 to-slate-500">Task Breakdown</h3>
+                    <div className="flex items-center gap-5 text-sm font-semibold bg-slate-50/80 backdrop-blur-md px-5 py-2 rounded-full border border-slate-200/60 shadow-sm">
+                      <div className="flex items-center gap-2"><div className="w-3.5 h-3.5 rounded-full bg-gradient-to-tr from-orange-500 to-orange-300 shadow-sm"></div> Open</div>
+                      <div className="flex items-center gap-2"><div className="w-3.5 h-3.5 rounded-full bg-gradient-to-tr from-blue-600 to-blue-400 shadow-sm"></div> In Progress</div>
+                      <div className="flex items-center gap-2"><div className="w-3.5 h-3.5 rounded-full bg-gradient-to-tr from-emerald-500 to-emerald-300 shadow-sm"></div> Completed</div>
                     </div>
                   </div>
                   <div className="flex-1 min-h-0 w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart 
                         data={masterAnalyticsData.filter(p => masterAnalyticsSelected.includes(p.id.toString()))} 
-                        margin={{ top: 20, right: 30, left: 0, bottom: 40 }}
-                        barSize={60}
+                        margin={{ top: 30, right: 30, left: 0, bottom: 40 }}
+                        maxBarSize={48}
                       >
+                        <defs>
+                          <linearGradient id="colorOpen" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#fdba74" stopOpacity={1}/>
+                            <stop offset="100%" stopColor="#f97316" stopOpacity={1}/>
+                          </linearGradient>
+                          <linearGradient id="colorInProgress" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#93c5fd" stopOpacity={1}/>
+                            <stop offset="100%" stopColor="#3b82f6" stopOpacity={1}/>
+                          </linearGradient>
+                          <linearGradient id="colorCompleted" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#6ee7b7" stopOpacity={1}/>
+                            <stop offset="100%" stopColor="#10b981" stopOpacity={1}/>
+                          </linearGradient>
+                          <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+                            <feDropShadow dx="0" dy="4" stdDeviation="4" floodOpacity="0.15" />
+                          </filter>
+                        </defs>
+                        <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#e2e8f0" opacity={0.6} />
                         <XAxis 
                           dataKey="projectName" 
                           stroke="#94a3b8" 
-                          fontSize={12} 
+                          fontSize={13} 
                           tickLine={false} 
                           axisLine={false}
-                          tick={{ fill: '#64748b', fontWeight: 500 }}
-                          dy={10}
+                          tick={{ fill: '#64748b', fontWeight: 600 }}
+                          dy={15}
                         />
                         <YAxis 
                           stroke="#94a3b8" 
-                          fontSize={12} 
+                          fontSize={13} 
                           tickLine={false} 
                           axisLine={false} 
                           allowDecimals={false}
-                          tick={{ fill: '#64748b' }}
-                          dx={-10}
+                          tick={{ fill: '#64748b', fontWeight: 500 }}
+                          dx={-15}
                         />
                         <Tooltip 
-                          cursor={{fill: '#f8fafc'}} 
-                          contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)', padding: '12px' }} 
-                          itemStyle={{ fontSize: '13px', fontWeight: 500 }}
-                          labelStyle={{ fontSize: '14px', fontWeight: 700, color: '#1e293b', marginBottom: '8px' }}
+                          cursor={{fill: '#f1f5f9', opacity: 0.5}} 
+                          contentStyle={{ 
+                            borderRadius: '16px', 
+                            border: '1px solid rgba(255, 255, 255, 0.4)', 
+                            boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)', 
+                            padding: '16px',
+                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                            backdropFilter: 'blur(8px)'
+                          }} 
+                          itemStyle={{ fontSize: '14px', fontWeight: 600, padding: '2px 0' }}
+                          labelStyle={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', margin: '0 0 10px 0', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}
                         />
-                        <Bar dataKey="open" name="Open" stackId="a" fill="#fb923c" radius={[0, 0, 0, 0]} />
-                        <Bar dataKey="inProgress" name="In Progress" stackId="a" fill="#3b82f6" radius={[0, 0, 0, 0]} />
-                        <Bar dataKey="completed" name="Completed" stackId="a" fill="#10b981" radius={[6, 6, 0, 0]} />
+                        <Bar dataKey="open" name="Open" stackId="a" fill="url(#colorOpen)" radius={[0, 0, 4, 4]} animationDuration={1500} animationEasing="ease-out" filter="url(#shadow)" />
+                        <Bar dataKey="inProgress" name="In Progress" stackId="a" fill="url(#colorInProgress)" radius={[0, 0, 0, 0]} animationDuration={1500} animationEasing="ease-out" />
+                        <Bar dataKey="completed" name="Completed" stackId="a" fill="url(#colorCompleted)" radius={[6, 6, 0, 0]} animationDuration={1500} animationEasing="ease-out" />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>

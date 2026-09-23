@@ -44,7 +44,7 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
   const [dueTime, setDueTime] = useState("");
   
   const [estimatedEffort, setEstimatedEffort] = useState<number>(0);
-  const [effortUnit, setEffortUnit] = useState<"Hours" | "Days">("Hours");
+  const [effortUnit, setEffortUnit] = useState<"Hours" | "Days" | "Minutes" | "Weeks">("Hours");
   
   const [isUrgent, setIsUrgent] = useState(false);
   
@@ -114,7 +114,7 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
     try {
       const parsedEffort = Number(estimatedEffort) || 0;
       const timeIntervalMinutes = parsedEffort > 0 
-        ? parsedEffort * (effortUnit === "Hours" ? 60 : 480) 
+        ? parsedEffort * (effortUnit === "Hours" ? 60 : effortUnit === "Days" ? 480 : effortUnit === "Weeks" ? 2400 : 1) 
         : 60;
 
       let assigneeIdsToSubmit: number[] = [];
@@ -448,9 +448,20 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
                     <Label className="text-sm font-semibold">Due Date <span className="text-destructive">*</span></Label>
                     <Input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className="bg-muted/30 h-10 dark:[color-scheme:dark]" />
                   </div>
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.5 relative">
                     <Label className="text-sm font-semibold">Due Time</Label>
-                    <Input type="time" value={dueTime} onChange={e => setDueTime(e.target.value)} className="bg-muted/30 h-10 dark:[color-scheme:dark]" />
+                    <div 
+                      className="relative flex items-center cursor-pointer"
+                      onClick={(e) => {
+                        const input = e.currentTarget.querySelector('input');
+                        if (input && 'showPicker' in input) {
+                          try { input.showPicker(); } catch (err) {}
+                        }
+                      }}
+                    >
+                      <Input type="time" value={dueTime} onChange={e => setDueTime(e.target.value)} className="bg-muted/30 h-10 w-full dark:[color-scheme:dark] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer cursor-pointer" />
+                      <svg className="absolute right-3 top-3 h-4 w-4 text-foreground pointer-events-none" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    </div>
                   </div>
                 </div>
 
@@ -462,11 +473,13 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-sm font-semibold">Unit</Label>
-                    <Select value={effortUnit} onValueChange={v => setEffortUnit(v as "Hours" | "Days")}>
+                    <Select value={effortUnit} onValueChange={v => setEffortUnit(v as "Hours" | "Days" | "Minutes" | "Weeks")}>
                       <SelectTrigger className="bg-muted/30 h-10"><SelectValue /></SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="Minutes">Minutes</SelectItem>
                         <SelectItem value="Hours">Hours</SelectItem>
                         <SelectItem value="Days">Days</SelectItem>
+                        <SelectItem value="Weeks">Weeks</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

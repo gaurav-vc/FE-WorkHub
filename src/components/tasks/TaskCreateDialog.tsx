@@ -69,7 +69,7 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
     title: "", description: "", taskType: "self" as "self" | "assign",
     type: "", platform: "",
     priority: "P3" as Task["priority"], project: "", dueDate: "", dueTime: "",
-    startDate: "", estimatedEffort: 0, effortUnit: "hours" as "hours" | "days",
+    startDate: "", estimatedEffort: 0, effortUnit: "hours" as "hours" | "days" | "minutes" | "weeks",
     timeIntervalMinutes: 60,
     isUrgent: false, assigneeIds: [] as string[],
     dependencies: [] as string[],
@@ -81,7 +81,7 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
     type: editTask.type || "", platform: editTask.platform || "",
     priority: editTask.priority, project: editTask.project, dueDate: editTask.dueDate,
     dueTime: editTask.dueTime, startDate: editTask.startDate,
-    estimatedEffort: editTask.estimatedEffort, effortUnit: editTask.effortUnit,
+    estimatedEffort: editTask.estimatedEffort, effortUnit: editTask.effortUnit as "hours" | "days" | "minutes" | "weeks" || "hours",
     timeIntervalMinutes: editTask.timeIntervalMinutes || 60,
     isUrgent: editTask.isUrgent, assigneeIds: editTask.assignees.map(a => {
       // In real scenario we match by id, for fallback match initials
@@ -108,7 +108,7 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
           type: editTask.type || "", platform: editTask.platform || "",
           priority: editTask.priority || "P3", project: editTask.project || "", dueDate: editTask.dueDate || "",
           dueTime: editTask.dueTime || "", startDate: editTask.startDate || "",
-          estimatedEffort: editTask.estimatedEffort || 0, effortUnit: editTask.effortUnit || "hours",
+          estimatedEffort: editTask.estimatedEffort || 0, effortUnit: editTask.effortUnit as "hours" | "days" | "minutes" | "weeks" || "hours",
           timeIntervalMinutes: editTask.timeIntervalMinutes || 60,
           isUrgent: editTask.isUrgent || false, assigneeIds: (editTask.assignees || []).map(a => {
             const found = teamMembers.find(m => m.initials === a.initials);
@@ -149,7 +149,7 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
       });
 
     const timeIntervalMinutes = form.estimatedEffort > 0 
-      ? form.estimatedEffort * (form.effortUnit === "hours" ? 60 : 480) 
+      ? form.estimatedEffort * (form.effortUnit === "hours" ? 60 : form.effortUnit === "days" ? 480 : form.effortUnit === "weeks" ? 2400 : 1) 
       : 60; // Default 60 if not provided
 
     const taskData: Task = {
@@ -479,9 +479,20 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
                   <Label className="text-sm">Due Date <span className="text-destructive">*</span></Label>
                   <Input type="date" value={form.dueDate} onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))} />
                 </div>
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 relative">
                   <Label className="text-sm">Due Time</Label>
-                  <Input type="time" value={form.dueTime} onChange={e => setForm(f => ({ ...f, dueTime: e.target.value }))} />
+                  <div 
+                    className="relative flex items-center cursor-pointer"
+                    onClick={(e) => {
+                      const input = e.currentTarget.querySelector('input');
+                      if (input && 'showPicker' in input) {
+                        try { input.showPicker(); } catch (err) {}
+                      }
+                    }}
+                  >
+                    <Input type="time" value={form.dueTime} onChange={e => setForm(f => ({ ...f, dueTime: e.target.value }))} className="w-full [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer cursor-pointer" />
+                    <svg className="absolute right-3 top-2.5 h-4 w-4 text-foreground pointer-events-none" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  </div>
                 </div>
               </div>
 
@@ -493,11 +504,13 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-sm">Unit</Label>
-                  <Select value={form.effortUnit} onValueChange={v => setForm(f => ({ ...f, effortUnit: v as "hours" | "days" }))}>
+                  <Select value={form.effortUnit} onValueChange={v => setForm(f => ({ ...f, effortUnit: v as "hours" | "days" | "minutes" | "weeks" }))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="minutes">Minutes</SelectItem>
                       <SelectItem value="hours">Hours</SelectItem>
                       <SelectItem value="days">Days</SelectItem>
+                      <SelectItem value="weeks">Weeks</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

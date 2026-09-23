@@ -74,7 +74,7 @@ export interface Task {
   dueTime: string;
   startDate: string;
   estimatedEffort: number;
-  effortUnit: "hours" | "days";
+  effortUnit: "hours" | "days" | "minutes" | "weeks" | "Hours" | "Days" | "Minutes" | "Weeks";
   actualEffort: number;
 
   // Dynamic queue & health properties
