@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import {
   CheckSquare, Plus, Clock, Flag, Circle, CheckCircle2, Calendar, Users, Video,
-  RotateCcw, AlertTriangle, Link2, MoreHorizontal, Edit, Trash2, Eye, PartyPopper, Cake, Loader2
+  RotateCcw, AlertTriangle, Link2, MoreHorizontal, Edit, Trash2, Eye, PartyPopper, Cake, Loader2,
+  PanelRightClose, PanelRightOpen
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -75,9 +76,11 @@ export default function MyDay() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [editTask, setEditTask] = useState<Task | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [filterPriority, setFilterPriority] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
-  const [filterAssignee, setFilterAssignee] = useState("");
+  const [filterAssignee, setFilterAssignee] = useState("all");
+  const [filterCreator, setFilterCreator] = useState("all");
   const [filterStartDate, setFilterStartDate] = useState("");
   const [filterEndDate, setFilterEndDate] = useState("");
   const [filterDelayed, setFilterDelayed] = useState(false);
@@ -114,7 +117,7 @@ export default function MyDay() {
   }, [token]);
 
   useEffect(() => {
-    if (token && isSiteAdmin) {
+    if (token) {
       getAdminTaskSummary({
         created_by: adminFilterCreatedBy,
         assigned_to: adminFilterAssignedTo,
@@ -122,7 +125,7 @@ export default function MyDay() {
         end_date: adminFilterEndDate
       }).then((res: any) => setAdminSummary(res)).catch(console.error);
     }
-  }, [token, isSiteAdmin, adminFilterCreatedBy, adminFilterAssignedTo, adminFilterStartDate, adminFilterEndDate]);
+  }, [token, adminFilterCreatedBy, adminFilterAssignedTo, adminFilterStartDate, adminFilterEndDate]);
 
   useEffect(() => {
     if (token) {
@@ -132,6 +135,7 @@ export default function MyDay() {
           priority: filterPriority,
           status: filterStatus,
           assignee: filterAssignee,
+          creator: filterCreator,
           is_delayed: filterDelayed,
           view_mode: viewMode,
           start_date: filterStartDate,
@@ -141,7 +145,7 @@ export default function MyDay() {
       }, 300);
       return () => clearTimeout(delay);
     }
-  }, [searchQuery, filterPriority, filterStatus, filterAssignee, filterDelayed, filterStartDate, filterEndDate, viewMode, currentPage, token]);
+  }, [searchQuery, filterPriority, filterStatus, filterAssignee, filterCreator, filterDelayed, filterStartDate, filterEndDate, viewMode, currentPage, token]);
 
 
   const toggleComplete = (task: Task) => {
@@ -149,11 +153,19 @@ export default function MyDay() {
   };
 
   const handleCardClick = (status: string) => {
-    setViewMode("team_tasks");
+    setViewMode(isSiteAdmin ? "team_tasks" : "my_tasks");
     setFilterStatus(status);
-    setFilterAssignee(adminFilterAssignedTo);
-    setFilterStartDate(adminFilterStartDate);
-    setFilterEndDate(adminFilterEndDate);
+    if (isSiteAdmin) {
+      setFilterAssignee(adminFilterAssignedTo);
+      setFilterCreator(adminFilterCreatedBy);
+      setFilterStartDate(adminFilterStartDate);
+      setFilterEndDate(adminFilterEndDate);
+    } else {
+      setFilterAssignee("all");
+      setFilterCreator("all");
+      setFilterStartDate("");
+      setFilterEndDate("");
+    }
     
     // Scroll to the task list so user sees the update
     window.scrollTo({ top: document.body.scrollHeight / 2, behavior: 'smooth' });
@@ -169,45 +181,52 @@ export default function MyDay() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-display font-bold text-foreground">My Tasks</h1>
-          <p className="text-muted-foreground mt-1">{dayName}, {dateStr}</p>
+        <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+          <h1 className="text-3xl font-display font-black bg-clip-text text-transparent bg-gradient-to-r from-slate-900 via-primary to-violet-600 tracking-tight">My Tasks</h1>
+          <p className="text-muted-foreground mt-1.5 text-sm font-medium">{dayName}, {dateStr}</p>
         </div>
         <div className="flex items-center gap-3">
+          <Button variant="outline" size="icon" className="hidden lg:flex rounded-full h-9 w-9 bg-white shadow-sm border-slate-200 text-slate-600 hover:text-slate-900" onClick={() => setIsSidebarOpen(!isSidebarOpen)} title={isSidebarOpen ? "Collapse Sidebar" : "Expand Sidebar"}>
+            {isSidebarOpen ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
+          </Button>
           <Button className="gradient-primary text-primary-foreground gap-1.5 rounded-full px-5" onClick={() => { setEditTask(null); setShowCreate(true); }}>
             <Plus className="h-4 w-4" /> Create Task
           </Button>
         </div>
       </div>
 
-      {isSiteAdmin && (
-        <div className="space-y-4 mb-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card className="shadow-sm border-0 bg-[#F4F7F9] hover:bg-slate-100 transition-colors cursor-pointer" onClick={() => handleCardClick("all")}>
-              <CardContent className="p-4">
-                <p className="text-sm font-bold text-slate-500">Total Tasks</p>
-                <p className="text-2xl font-bold text-slate-800 mt-2">{adminSummary.totalTasks}</p>
-              </CardContent>
-            </Card>
-            <Card className="shadow-sm border-0 bg-[#E8F5EE] hover:bg-emerald-100/50 transition-colors cursor-pointer" onClick={() => handleCardClick("done")}>
-              <CardContent className="p-4">
-                <p className="text-sm font-bold text-emerald-400">Completed</p>
-                <p className="text-2xl font-bold text-emerald-500 mt-2">{adminSummary.completed}</p>
-              </CardContent>
-            </Card>
-            <Card className="shadow-sm border-0 bg-[#EEF2FC] hover:bg-blue-100/50 transition-colors cursor-pointer" onClick={() => handleCardClick("in-progress")}>
-              <CardContent className="p-4">
-                <p className="text-sm font-bold text-indigo-300">In Progress</p>
-                <p className="text-2xl font-bold text-indigo-500 mt-2">{adminSummary.inProgress}</p>
-              </CardContent>
-            </Card>
-            <Card className="shadow-sm border-0 bg-[#FDF5E6] hover:bg-orange-100/50 transition-colors cursor-pointer" onClick={() => handleCardClick("todo")}>
-              <CardContent className="p-4">
-                <p className="text-sm font-bold text-orange-200">Open</p>
-                <p className="text-2xl font-bold text-orange-500 mt-2">{adminSummary.open}</p>
-              </CardContent>
-            </Card>
-          </div>
+      <div className="space-y-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card className="border-0 bg-gradient-to-br from-slate-50 to-slate-100/80 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-300 transform hover:-translate-y-1 cursor-pointer overflow-hidden relative group" onClick={() => handleCardClick("all")}>
+            <div className="absolute inset-0 bg-gradient-to-r from-slate-800/0 via-slate-800/5 to-slate-800/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+            <CardContent className="p-5 relative z-10">
+              <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Total Tasks</p>
+              <p className="text-3xl font-black text-slate-800 mt-2 tracking-tight">{adminSummary.totalTasks}</p>
+            </CardContent>
+          </Card>
+          <Card className="border-0 bg-gradient-to-br from-emerald-50 to-emerald-100/80 shadow-[0_2px_10px_-3px_rgba(16,185,129,0.1)] hover:shadow-[0_8px_30px_rgba(16,185,129,0.2)] transition-all duration-300 transform hover:-translate-y-1 cursor-pointer overflow-hidden relative group" onClick={() => handleCardClick("done")}>
+            <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 via-emerald-500/10 to-emerald-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+            <CardContent className="p-5 relative z-10">
+              <p className="text-sm font-semibold text-emerald-600 uppercase tracking-wider">Completed</p>
+              <p className="text-3xl font-black text-emerald-700 mt-2 tracking-tight">{adminSummary.completed}</p>
+            </CardContent>
+          </Card>
+          <Card className="border-0 bg-gradient-to-br from-indigo-50 to-indigo-100/80 shadow-[0_2px_10px_-3px_rgba(99,102,241,0.1)] hover:shadow-[0_8px_30px_rgba(99,102,241,0.2)] transition-all duration-300 transform hover:-translate-y-1 cursor-pointer overflow-hidden relative group" onClick={() => handleCardClick("in-progress")}>
+            <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/0 via-indigo-500/10 to-indigo-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+            <CardContent className="p-5 relative z-10">
+              <p className="text-sm font-semibold text-indigo-600 uppercase tracking-wider">In Progress</p>
+              <p className="text-3xl font-black text-indigo-700 mt-2 tracking-tight">{adminSummary.inProgress}</p>
+            </CardContent>
+          </Card>
+          <Card className="border-0 bg-gradient-to-br from-orange-50 to-orange-100/80 shadow-[0_2px_10px_-3px_rgba(249,115,22,0.1)] hover:shadow-[0_8px_30px_rgba(249,115,22,0.2)] transition-all duration-300 transform hover:-translate-y-1 cursor-pointer overflow-hidden relative group" onClick={() => handleCardClick("todo")}>
+            <div className="absolute inset-0 bg-gradient-to-r from-orange-500/0 via-orange-500/10 to-orange-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+            <CardContent className="p-5 relative z-10">
+              <p className="text-sm font-semibold text-orange-600 uppercase tracking-wider">Open</p>
+              <p className="text-3xl font-black text-orange-700 mt-2 tracking-tight">{adminSummary.open}</p>
+            </CardContent>
+          </Card>
+        </div>
+        {isSiteAdmin && (
           <div className="flex flex-wrap items-center gap-3 bg-white p-2 rounded-lg border-0 shadow-sm mt-2">
             <div className="flex items-center gap-1.5 px-2">
               <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Admin Filters</span>
@@ -272,11 +291,11 @@ export default function MyDay() {
               )}
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-4">
+      <div className={`grid grid-cols-1 ${isSidebarOpen ? "lg:grid-cols-3" : "lg:grid-cols-1"} gap-6 relative transition-all duration-300`}>
+        <div className={`${isSidebarOpen ? "lg:col-span-2" : "lg:col-span-1"} space-y-4 transition-all duration-300`}>
           {/* Quick Add */}
           <Card className="shadow-card">
             <CardContent className="p-3">
@@ -350,6 +369,15 @@ export default function MyDay() {
                     {employees.map(e => <SelectItem key={e.id} value={e.id.toString()}>{e.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
+                <Select value={filterCreator} onValueChange={setFilterCreator}>
+                  <SelectTrigger className="w-[150px] h-8 text-xs">
+                    <SelectValue placeholder="Filter By Creator" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Creators</SelectItem>
+                    {employees.map(e => <SelectItem key={e.id} value={e.id.toString()}>{e.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
                 <div className="flex flex-wrap items-center gap-2">
                   <div className="hidden sm:block w-px h-5 bg-slate-200 mx-1"></div>
                   <Popover>
@@ -416,15 +444,16 @@ export default function MyDay() {
                     <p className="text-sm font-medium">{viewMode === 'team_tasks' ? 'No team task' : 'No task'}</p>
                   </div>
                 ) : (
-                  tasks.map(task => {
+                  tasks.map((task, idx) => {
                   const done = task.status === "done";
                   const pConfig = priorityConfig[task.priority] || priorityConfig.P4;
                   const checklistDone = (task.checklist || []).filter(c => c.completed).length;
                   const checklistTotal = (task.checklist || []).length;
                   return (
                     <div key={task.id}
-                      className={`flex flex-wrap items-start justify-between gap-x-6 gap-y-4 px-4 py-3 hover:bg-muted/50 transition-colors group cursor-pointer ${done ? "opacity-50" : ""} ${task.isUrgent && !done ? "bg-destructive/5 border-l-2 border-l-destructive" : ""}`}
+                      className={`flex flex-wrap items-start justify-between gap-x-6 gap-y-4 px-4 py-3 hover:bg-white hover:shadow-md hover:border-primary/20 transition-all duration-300 transform hover:-translate-y-0.5 group cursor-pointer rounded-lg border border-transparent mb-1 mx-1 animate-in fade-in slide-in-from-bottom-2 ${done ? "opacity-50 grayscale-[0.3]" : ""} ${task.isUrgent && !done ? "bg-destructive/5 border-l-2 border-l-destructive shadow-sm" : ""}`}
                       onClick={() => setSelectedTask(task)}
+                      style={{ animationFillMode: "both", animationDelay: `${Math.min(idx * 50, 500)}ms` }}
                     >
                       <div className="flex items-start gap-3 flex-1 min-w-[250px]">
                         <div className={`w-2 h-2 rounded-full shrink-0 mt-2 ${
@@ -485,19 +514,15 @@ export default function MyDay() {
                                   {isSiteAdmin ? (
                                     <Popover>
                                       <PopoverTrigger asChild>
-                                        <div onClick={(e) => e.stopPropagation()} className="flex -space-x-2 cursor-pointer hover:opacity-80 transition-opacity min-w-[60px] min-h-[24px]">
-                                          {(task.assignees && task.assignees.length > 0) ? (
-                                            task.assignees.map((assignee: any, idx: number) => (
-                                              <Avatar key={assignee.id || idx} className="h-6 w-6 border-2 border-background" title={assignee.name}>
-                                                {assignee.avatar ? (
-                                                  <img src={assignee.avatar.startsWith('http') ? assignee.avatar : `${MEDIA_BASE}${assignee.avatar}`} alt={assignee.name} className="object-cover w-full h-full" />
-                                                ) : (
-                                                  <AvatarFallback className="text-[9px] bg-primary/10 text-primary">{assignee.initials || (assignee.name ? assignee.name.substring(0,2).toUpperCase() : 'U')}</AvatarFallback>
-                                                )}
-                                              </Avatar>
-                                            ))
-                                          ) : (
+                                        <div onClick={(e) => e.stopPropagation()} className="flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity min-w-[60px] min-h-[24px]">
+                                          {(!task.assignees || task.assignees.length === 0) ? (
                                             <Badge variant="outline" className="text-[10px] bg-slate-50 text-slate-500 border-dashed">Unassigned</Badge>
+                                          ) : task.assignees.length <= 2 ? (
+                                            <span className="text-xs font-medium text-foreground">{task.assignees.map((a: any) => a.name).join(', ')}</span>
+                                          ) : (
+                                            <span className="text-xs font-medium text-foreground bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 flex items-center gap-1">
+                                              {task.assignees.slice(0, 2).map((a: any) => a.name).join(', ')} <span className="text-slate-500 font-bold ml-0.5 text-[10px]">+{task.assignees.length - 2} more</span>
+                                            </span>
                                           )}
                                         </div>
                                       </PopoverTrigger>
@@ -528,19 +553,26 @@ export default function MyDay() {
                                       </PopoverContent>
                                     </Popover>
                                   ) : (
-                                    <div className="flex -space-x-2 min-w-[60px] min-h-[24px]">
-                                      {(task.assignees && task.assignees.length > 0) ? (
-                                        task.assignees.map((assignee: any, idx: number) => (
-                                          <Avatar key={assignee.id || idx} className="h-6 w-6 border-2 border-background" title={assignee.name}>
-                                            {assignee.avatar ? (
-                                              <img src={assignee.avatar.startsWith('http') ? assignee.avatar : `${MEDIA_BASE}${assignee.avatar}`} alt={assignee.name} className="object-cover w-full h-full" />
-                                            ) : (
-                                              <AvatarFallback className="text-[9px] bg-primary/10 text-primary">{assignee.initials || (assignee.name ? assignee.name.substring(0,2).toUpperCase() : 'U')}</AvatarFallback>
-                                            )}
-                                          </Avatar>
-                                        ))
-                                      ) : (
+                                    <div className="flex items-center min-w-[60px] min-h-[24px]">
+                                      {(!task.assignees || task.assignees.length === 0) ? (
                                         <Badge variant="outline" className="text-[10px] bg-slate-50 text-slate-500 border-dashed">Unassigned</Badge>
+                                      ) : task.assignees.length <= 2 ? (
+                                        <span className="text-xs font-medium text-foreground">{task.assignees.map((a: any) => a.name).join(', ')}</span>
+                                      ) : (
+                                        <DropdownMenu>
+                                          <DropdownMenuTrigger asChild onClick={e => e.stopPropagation()}>
+                                            <span className="text-xs font-medium text-foreground bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 flex items-center gap-1 cursor-pointer hover:bg-slate-200 transition-colors">
+                                              {task.assignees.slice(0, 2).map((a: any) => a.name).join(', ')} <span className="text-slate-500 font-bold ml-0.5 text-[10px]">+{task.assignees.length - 2} more</span>
+                                            </span>
+                                          </DropdownMenuTrigger>
+                                          <DropdownMenuContent onClick={e => e.stopPropagation()}>
+                                            {task.assignees.map((a: any, idx: number) => (
+                                              <DropdownMenuItem key={a.id || idx} className="text-xs">
+                                                {a.name}
+                                              </DropdownMenuItem>
+                                            ))}
+                                          </DropdownMenuContent>
+                                        </DropdownMenu>
                                       )}
                                     </div>
                                   )}
@@ -613,8 +645,9 @@ export default function MyDay() {
           </Card>
         </div>
 
-        <div className="space-y-4">
-          {/* Mini Calendar */}
+        {isSidebarOpen && (
+          <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+            {/* Mini Calendar */}
           <Card className="shadow-card">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -733,7 +766,8 @@ export default function MyDay() {
               )}
             </CardContent>
           </Card>
-        </div>
+          </div>
+        )}
       </div>
 
       <TaskCreateDialog open={showCreate} onOpenChange={setShowCreate} editTask={editTask} />
