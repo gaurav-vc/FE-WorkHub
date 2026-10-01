@@ -79,8 +79,8 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
   const [form, setForm] = useState(editTask ? {
     title: editTask.title, description: editTask.description, taskType: editTask.taskType,
     type: editTask.type || "", platform: editTask.platform || "",
-    priority: editTask.priority, project: editTask.project, dueDate: editTask.dueDate,
-    dueTime: editTask.dueTime, startDate: editTask.startDate,
+    priority: editTask.priority, project: (editTask as any).project_id?.toString() || "", dueDate: editTask.dueDate,
+    dueTime: ((editTask as any).rawDueTime || editTask.dueTime || "").substring(0, 5), startDate: editTask.startDate,
     estimatedEffort: editTask.estimatedEffort, effortUnit: editTask.effortUnit as "hours" | "days" | "minutes" | "weeks" || "hours",
     timeIntervalMinutes: editTask.timeIntervalMinutes || 60,
     isUrgent: editTask.isUrgent, assigneeIds: editTask.assignees.map(a => {
@@ -106,8 +106,8 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
         setForm({
           title: editTask.title || "", description: editTask.description || "", taskType: editTask.taskType || "self",
           type: editTask.type || "", platform: editTask.platform || "",
-          priority: editTask.priority || "P3", project: editTask.project || "", dueDate: editTask.dueDate || "",
-          dueTime: editTask.dueTime || "", startDate: editTask.startDate || "",
+          priority: editTask.priority || "P3", project: (editTask as any).project_id?.toString() || "", dueDate: editTask.dueDate || "",
+          dueTime: ((editTask as any).rawDueTime || editTask.dueTime || "").substring(0, 5), startDate: editTask.startDate || "",
           estimatedEffort: editTask.estimatedEffort || 0, effortUnit: editTask.effortUnit as "hours" | "days" | "minutes" | "weeks" || "hours",
           timeIntervalMinutes: editTask.timeIntervalMinutes || 60,
           isUrgent: editTask.isUrgent || false, assigneeIds: (editTask.assignees || []).map(a => {
@@ -222,7 +222,7 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-4xl w-[95vw] max-h-[90vh] flex flex-col">
+      <DialogContent className="sm:max-w-4xl w-[95vw] max-h-[90vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Plus className="h-5 w-5 text-primary" />
@@ -239,7 +239,7 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
               <TabsTrigger value="advanced" className="text-base rounded-lg data-[state=active]:shadow-sm">Advanced</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="details" className="space-y-4 mt-0">
+            <TabsContent value="details" className="space-y-4 mt-0 pb-10">
               {/* Task Type */}
               <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-2">
                 <Label className="text-base font-semibold w-24">Task Type</Label>

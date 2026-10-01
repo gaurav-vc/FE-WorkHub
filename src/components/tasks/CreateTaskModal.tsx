@@ -132,7 +132,7 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
         assignedTo: assigneeIdsToSubmit.length > 0 ? assigneeIdsToSubmit[0] : null,
         assigneeIds: assigneeIdsToSubmit,
         priority: priority || "P3 Medium",
-        projectId: projectId && projectId !== "general" ? parseInt(projectId) : null,
+        project: projectId && projectId !== "general" ? projectId.toString() : "",
         startDate: startDate || null,
         dueDate: dueDate || new Date().toISOString().split('T')[0],
         dueTime: dueTime || null,

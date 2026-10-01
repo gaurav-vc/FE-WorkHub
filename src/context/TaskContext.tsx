@@ -60,6 +60,8 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       createdDate: formatDate(t.created_at || t.createdDate),
       createdTime: t.created_at ? new Date(t.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "",
       dueTime: t.dueTime || t.due_time || "",
+      rawDueTime: t.raw_due_time || "",
+      project_id: t.project_id || "",
       assignees: (t.assignees_detail && t.assignees_detail.length > 0) ? t.assignees_detail.map((a: any) => ({
         id: a.id,
         name: a.name,
@@ -207,6 +209,12 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       if (task.dueDate) apiPayload.due_date = task.dueDate;
       else apiPayload.due_date = new Date().toISOString().split('T')[0]; // Required by backend
       
+      if (task.dueTime) apiPayload.due_time = task.dueTime;
+      if (task.project) {
+        apiPayload.project_id = task.project;
+        delete apiPayload.project;
+      }
+
       if (task.startDate) apiPayload.start_date = task.startDate;
       if (task.estimatedEffort) apiPayload.duration = task.estimatedEffort;
       
@@ -257,6 +265,11 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     delete apiPayload.dependent_tasks_legacy;
     
     if (updates.dueDate !== undefined) apiPayload.due_date = updates.dueDate;
+    if (updates.dueTime !== undefined) apiPayload.due_time = updates.dueTime;
+    if (updates.project !== undefined) {
+      apiPayload.project_id = updates.project;
+      delete apiPayload.project;
+    }
     if (updates.startDate !== undefined) apiPayload.start_date = updates.startDate;
     if (updates.estimatedEffort !== undefined) apiPayload.duration = updates.estimatedEffort;
     
