@@ -263,59 +263,66 @@ END:VCARD`;
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-8 animate-fade-in pb-10">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 animate-in slide-in-from-top-4 duration-500">
         <div>
-          <h1 className="text-2xl font-display font-bold text-foreground flex items-center gap-2">
-            <Users className="h-6 w-6 text-primary" />
+          <h1 className="text-3xl font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-slate-900 to-slate-700 flex items-center gap-3">
+            <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl shadow-sm">
+              <Users className="h-6 w-6" />
+            </div>
             Employee Directory
           </h1>
-          <p className="text-muted-foreground mt-1">Find and connect with colleagues across the organization</p>
+          <p className="text-slate-500 mt-2 text-[15px] font-medium ml-1">Find and connect with colleagues across the organization</p>
         </div>
-        <Button className="gradient-primary text-primary-foreground gap-1.5 shadow-sm" onClick={() => setShowAddForm(true)}>
+        <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white gap-2 shadow-lg shadow-blue-500/25 h-11 px-6 rounded-full transition-all hover:scale-105" onClick={() => setShowAddForm(true)}>
           <Plus className="h-4 w-4" /> Add Employee
         </Button>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search by name, role, or department..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+      <div className="flex flex-col sm:flex-row gap-4 bg-white p-2 rounded-2xl shadow-sm border border-slate-100 animate-in fade-in duration-700 delay-150">
+        <div className="relative flex-1">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Input placeholder="Search by name, role, or department..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-11 h-12 bg-slate-50/50 border-0 focus-visible:ring-1 focus-visible:ring-blue-500 rounded-xl text-[15px]" />
         </div>
+        <div className="h-8 w-px bg-slate-200 self-center hidden sm:block" />
         <Select value={department} onValueChange={setDepartment}>
-          <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-[220px] h-12 bg-transparent border-0 focus:ring-0 shadow-none font-medium text-slate-700">
+            <div className="flex items-center gap-2 text-slate-500"><Building className="h-4 w-4" /><SelectValue /></div>
+          </SelectTrigger>
           <SelectContent>
             {departments.map((d) => (
-              <SelectItem key={d} value={d}>{d}</SelectItem>
+              <SelectItem key={d} value={d} className="font-medium">{d}</SelectItem>
             ))}
           </SelectContent>
         </Select>
-        <div className="flex gap-1 border border-border rounded-md p-0.5">
-          <Button size="icon" variant={viewMode === "grid" ? "secondary" : "ghost"} className="h-8 w-8" onClick={() => setViewMode("grid")}><Grid3X3 className="h-4 w-4" /></Button>
-          <Button size="icon" variant={viewMode === "list" ? "secondary" : "ghost"} className="h-8 w-8" onClick={() => setViewMode("list")}><List className="h-4 w-4" /></Button>
+        <div className="h-8 w-px bg-slate-200 self-center hidden sm:block" />
+        <div className="flex gap-1 p-1 bg-slate-100 rounded-xl self-center">
+          <Button size="icon" variant="ghost" className={`h-10 w-10 rounded-lg transition-all ${viewMode === "grid" ? "bg-white shadow-sm text-blue-600" : "text-slate-500 hover:text-slate-700"}`} onClick={() => setViewMode("grid")}><Grid3X3 className="h-4 w-4" /></Button>
+          <Button size="icon" variant="ghost" className={`h-10 w-10 rounded-lg transition-all ${viewMode === "list" ? "bg-white shadow-sm text-blue-600" : "text-slate-500 hover:text-slate-700"}`} onClick={() => setViewMode("list")}><List className="h-4 w-4" /></Button>
         </div>
       </div>
 
-      <p className="text-sm text-muted-foreground">{filtered.length} employees found</p>
+      <p className="text-sm font-semibold text-slate-500 px-1 animate-in fade-in duration-700 delay-200">{filtered.length} employees found</p>
 
       {/* Grid View */}
       {viewMode === "grid" && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filtered.map((emp) => (
-            <Card key={emp.id} className="shadow-card hover:shadow-md transition-all cursor-pointer group" onClick={() => setSelectedEmployee(emp)}>
-              <CardContent className="p-4 text-center">
-                <div className="relative inline-block mb-3">
-                  <Avatar className="h-16 w-16 mx-auto">
-                    <AvatarFallback className="text-lg font-display font-bold gradient-primary text-primary-foreground">{emp.initials}</AvatarFallback>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          {filtered.map((emp, i) => (
+            <Card key={emp.id} className="relative overflow-hidden shadow-sm hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] border-0 ring-1 ring-slate-200 transition-all duration-300 cursor-pointer group hover:-translate-y-1.5 animate-in zoom-in-95 fade-in slide-in-from-bottom-6" style={{ animationDelay: `${i * 70}ms`, animationFillMode: "both" }} onClick={() => setSelectedEmployee(emp)}>
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <CardContent className="p-6 text-center flex flex-col items-center">
+                <div className="relative inline-block mb-4 group-hover:scale-110 transition-transform duration-300">
+                  <Avatar className="h-20 w-20 mx-auto border-4 border-white shadow-md">
+                    <AvatarFallback className="text-xl font-display font-black bg-gradient-to-br from-blue-50 to-indigo-100 text-blue-700">{emp.initials}</AvatarFallback>
                   </Avatar>
-                  <div className={`absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-card ${statusColors[emp.status]}`} />
+                  <div className={`absolute bottom-1 right-1 h-4 w-4 rounded-full border-2 border-white shadow-sm ${statusColors[emp.status]}`} />
                 </div>
-                <h3 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">{emp.name}</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">{emp.role}</p>
-                <Badge variant="secondary" className="text-[10px] mt-2">{emp.department}</Badge>
-                <div className="flex items-center justify-center gap-1 mt-2 text-[11px] text-muted-foreground">
-                  <MapPin className="h-3 w-3" />{emp.location}
+                <h3 className="text-[17px] font-bold text-slate-800 group-hover:text-blue-600 transition-colors">{emp.name}</h3>
+                <p className="text-[13px] font-medium text-slate-500 mt-1">{emp.role}</p>
+                <Badge variant="secondary" className="bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 text-[10px] uppercase font-bold tracking-wider mt-3 px-3 py-1 shadow-sm">{emp.department}</Badge>
+                <div className="flex items-center justify-center gap-1.5 mt-4 text-[12px] font-medium text-slate-400 bg-slate-50/50 w-full py-2 rounded-lg border border-slate-100/50">
+                  <MapPin className="h-3.5 w-3.5 text-slate-400" />{emp.location}
                 </div>
               </CardContent>
             </Card>
@@ -325,30 +332,32 @@ END:VCARD`;
 
       {/* List View */}
       {viewMode === "list" && (
-        <Card className="shadow-card">
-          <CardContent className="p-0">
-            <div className="divide-y divide-border">
-              {filtered.map((emp) => (
-                <div key={emp.id} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => setSelectedEmployee(emp)}>
-                  <div className="relative">
-                    <Avatar className="h-10 w-10">
-                      <AvatarFallback className="text-sm font-semibold gradient-primary text-primary-foreground">{emp.initials}</AvatarFallback>
-                    </Avatar>
-                    <div className={`absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-card ${statusColors[emp.status]}`} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground">{emp.name}</p>
-                    <p className="text-xs text-muted-foreground">{emp.role} · {emp.department}</p>
-                  </div>
-                  <div className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground">
-                    <MapPin className="h-3 w-3" />{emp.location}
-                  </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        <div className="flex flex-col gap-3">
+          {filtered.map((emp, i) => (
+            <div key={emp.id} className="flex items-center gap-4 px-5 py-4 bg-white border border-slate-200/60 rounded-2xl hover:border-blue-200 hover:shadow-lg hover:shadow-blue-900/5 transition-all duration-300 cursor-pointer group hover:-translate-y-0.5 animate-in fade-in slide-in-from-bottom-4" style={{ animationDelay: `${i * 50}ms`, animationFillMode: "both" }} onClick={() => setSelectedEmployee(emp)}>
+              <div className="relative group-hover:scale-105 transition-transform">
+                <Avatar className="h-12 w-12 border-2 border-white shadow-sm">
+                  <AvatarFallback className="text-sm font-bold bg-gradient-to-br from-blue-50 to-indigo-100 text-blue-700">{emp.initials}</AvatarFallback>
+                </Avatar>
+                <div className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white shadow-sm ${statusColors[emp.status]}`} />
+              </div>
+              <div className="flex-1 min-w-0 flex flex-col justify-center">
+                <p className="text-[15px] font-bold text-slate-800 group-hover:text-blue-600 transition-colors">{emp.name}</p>
+                <div className="flex items-center gap-2 mt-0.5 text-[13px] font-medium text-slate-500">
+                  <span>{emp.role}</span>
+                  <span className="w-1 h-1 rounded-full bg-slate-300" />
+                  <span>{emp.department}</span>
                 </div>
-              ))}
+              </div>
+              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-lg border border-slate-100 text-[12px] font-semibold text-slate-500">
+                <MapPin className="h-3.5 w-3.5 text-slate-400" />{emp.location}
+              </div>
+              <div className="h-8 w-8 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors ml-2">
+                <ChevronRight className="h-4 w-4 text-slate-400 group-hover:text-blue-600" />
+              </div>
             </div>
-          </CardContent>
-        </Card>
+          ))}
+        </div>
       )}
 
       {/* Add Employee Dialog */}

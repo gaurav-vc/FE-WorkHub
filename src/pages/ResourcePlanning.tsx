@@ -270,28 +270,44 @@ export default function ResourcePlanning() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className={`shadow-card hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-primary group ${filter === "all" && view !== "conflicts" ? "ring-2 ring-primary ring-offset-1" : ""}`} onClick={() => { setView("dashboard"); setFilter("all"); }}>
-          <CardContent className="p-4 text-center flex flex-col items-center justify-center">
-            <p className="text-3xl font-display font-bold text-foreground group-hover:scale-110 transition-transform">{teamMembers.length}</p>
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mt-1">Team Members</p>
+        <Card className={`relative overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer group border-0 bg-gradient-to-br from-white to-slate-50/80 ${filter === "all" && view !== "conflicts" ? "ring-2 ring-primary ring-offset-2 scale-[1.02]" : "hover:-translate-y-1"}`} onClick={() => { setView("dashboard"); setFilter("all"); }}>
+          <div className="absolute top-0 left-0 w-full h-1 bg-primary" />
+          <CardContent className="p-5 text-center flex flex-col items-center justify-center relative z-10">
+            <div className="p-3 bg-primary/10 rounded-2xl mb-3 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
+               <Users className="h-5 w-5 text-primary" />
+            </div>
+            <p className="text-3xl font-display font-black text-slate-800">{teamMembers.length}</p>
+            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mt-1">Team Members</p>
           </CardContent>
         </Card>
-        <Card className={`shadow-card hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-success group ${filter === "optimal" && view !== "conflicts" ? "ring-2 ring-success ring-offset-1" : ""}`} onClick={() => { setView("dashboard"); setFilter("optimal"); }}>
-          <CardContent className="p-4 text-center flex flex-col items-center justify-center">
-            <p className="text-3xl font-display font-bold text-success group-hover:scale-110 transition-transform">{resourceData.filter(r => r.status === "optimal").length}</p>
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mt-1">Optimal Load</p>
+        <Card className={`relative overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer group border-0 bg-gradient-to-br from-white to-emerald-50/80 ${filter === "optimal" && view !== "conflicts" ? "ring-2 ring-emerald-500 ring-offset-2 scale-[1.02]" : "hover:-translate-y-1"}`} onClick={() => { setView("dashboard"); setFilter("optimal"); }}>
+          <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500" />
+          <CardContent className="p-5 text-center flex flex-col items-center justify-center relative z-10">
+            <div className="p-3 bg-emerald-100 rounded-2xl mb-3 group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-300">
+               <BarChart3 className="h-5 w-5 text-emerald-600" />
+            </div>
+            <p className="text-3xl font-display font-black text-slate-800">{resourceData.filter(r => r.status === "optimal").length}</p>
+            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mt-1">Optimal Load</p>
           </CardContent>
         </Card>
-        <Card className={`shadow-card hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-destructive group ${filter === "overloaded" && view !== "conflicts" ? "ring-2 ring-destructive ring-offset-1" : ""}`} onClick={() => { setView("dashboard"); setFilter("overloaded"); }}>
-          <CardContent className="p-4 text-center flex flex-col items-center justify-center">
-            <p className="text-3xl font-display font-bold text-destructive group-hover:scale-110 transition-transform">{resourceData.filter(r => r.status === "overloaded").length}</p>
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mt-1">Overloaded</p>
+        <Card className={`relative overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer group border-0 bg-gradient-to-br from-white to-rose-50/80 ${filter === "overloaded" && view !== "conflicts" ? "ring-2 ring-rose-500 ring-offset-2 scale-[1.02]" : "hover:-translate-y-1"}`} onClick={() => { setView("dashboard"); setFilter("overloaded"); }}>
+          <div className="absolute top-0 left-0 w-full h-1 bg-rose-500" />
+          <CardContent className="p-5 text-center flex flex-col items-center justify-center relative z-10">
+            <div className="p-3 bg-rose-100 rounded-2xl mb-3 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
+               <AlertTriangle className="h-5 w-5 text-rose-600" />
+            </div>
+            <p className="text-3xl font-display font-black text-slate-800">{resourceData.filter(r => r.status === "overloaded").length}</p>
+            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mt-1">Overloaded</p>
           </CardContent>
         </Card>
-        <Card className={`shadow-card hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-warning group ${view === "conflicts" ? "ring-2 ring-warning ring-offset-1" : ""}`} onClick={() => { setView("conflicts"); }}>
-          <CardContent className="p-4 text-center flex flex-col items-center justify-center">
-            <p className="text-3xl font-display font-bold text-warning group-hover:scale-110 transition-transform">{conflicts.length}</p>
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mt-1">Conflicts</p>
+        <Card className={`relative overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer group border-0 bg-gradient-to-br from-white to-amber-50/80 ${view === "conflicts" ? "ring-2 ring-amber-500 ring-offset-2 scale-[1.02]" : "hover:-translate-y-1"}`} onClick={() => { setView("conflicts"); }}>
+          <div className="absolute top-0 left-0 w-full h-1 bg-amber-500" />
+          <CardContent className="p-5 text-center flex flex-col items-center justify-center relative z-10">
+            <div className="p-3 bg-amber-100 rounded-2xl mb-3 group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-300">
+               <Briefcase className="h-5 w-5 text-amber-600" />
+            </div>
+            <p className="text-3xl font-display font-black text-slate-800">{conflicts.length}</p>
+            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mt-1">Conflicts</p>
           </CardContent>
         </Card>
       </div>
@@ -310,51 +326,53 @@ export default function ResourcePlanning() {
               No resources match this filter.
             </div>
           )}
-          {filteredResourceData.map(r => (
-            <Card key={r.id} className="shadow-card">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-10 w-10">
-                    <AvatarFallback className="bg-primary/10 text-primary font-semibold text-sm">{r.initials}</AvatarFallback>
+          {filteredResourceData.map((r, i) => (
+            <Card key={r.id} className="shadow-sm border-slate-200 hover:shadow-md transition-all duration-300 animate-in slide-in-from-bottom-4 group hover:border-slate-300" style={{ animationDelay: `${i * 100}ms`, animationFillMode: "both" }}>
+              <CardContent className="p-5">
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-12 w-12 border-2 border-white shadow-sm group-hover:scale-105 transition-transform duration-300">
+                    <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-bold">{r.initials}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center justify-between mb-2">
                       <div>
-                        <p className="text-sm font-semibold">{r.name}</p>
-                        <p className="text-xs text-muted-foreground">{r.role} · {r.department}</p>
+                        <p className="text-sm font-bold text-slate-800">{r.name}</p>
+                        <p className="text-xs font-medium text-slate-500">{r.role || "Team Member"} {r.department ? `· ${r.department}` : ''}</p>
                       </div>
                       <div className="text-right">
-                        <Badge className={`${statusColors[r.status]} text-[10px] capitalize`}>{r.status}</Badge>
+                        <Badge className={`${statusColors[r.status]} text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 border-0 shadow-sm`}>{r.status}</Badge>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 mb-1.5">
+                    <div className="flex items-center gap-4 mb-2">
                       <div className="flex-1">
-                        <Progress value={Math.min(r.utilization, 100)} className={`h-2 ${r.status === "overloaded" ? "[&>div]:bg-destructive" : r.status === "optimal" ? "[&>div]:bg-success" : "[&>div]:bg-info"}`} />
+                        <Progress value={Math.min(r.utilization, 100)} className={`h-2 shadow-inner ${r.status === "overloaded" ? "[&>div]:bg-rose-500" : r.status === "optimal" ? "[&>div]:bg-emerald-500" : "[&>div]:bg-blue-500"}`} />
                       </div>
-                      <span className="text-xs font-semibold w-12 text-right">{r.utilization}%</span>
+                      <span className="text-xs font-black w-10 text-right text-slate-700">{r.utilization}%</span>
                     </div>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      <span>{r.assignedTasks.length} tasks</span>
-                      <span>{r.totalEffortHours}h assigned</span>
-                      <span>{r.weeklyCapacity}h/week capacity</span>
+                    <div className="flex items-center gap-5 text-[11px] font-semibold text-slate-500">
+                      <span className="flex items-center gap-1"><Briefcase className="h-3 w-3" /> {r.assignedTasks.length} tasks</span>
+                      <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {r.totalEffortHours}h assigned</span>
+                      <span className="flex items-center gap-1"><BarChart3 className="h-3 w-3" /> {r.weeklyCapacity}h/week capacity</span>
                     </div>
                   </div>
                 </div>
                 {/* Assigned tasks list */}
                 {r.assignedTasks.length > 0 && (
-                  <Accordion type="single" collapsible className="mt-3 border-t">
+                  <Accordion type="single" collapsible className="mt-4 border-t border-slate-100">
                     <AccordionItem value="tasks" className="border-none">
-                      <AccordionTrigger className="py-2 text-xs font-semibold hover:no-underline text-muted-foreground hover:text-foreground">
+                      <AccordionTrigger className="py-3 text-[11px] font-bold tracking-wider uppercase hover:no-underline text-slate-400 hover:text-primary transition-colors">
                         View Assigned Tasks ({r.assignedTasks.length})
                       </AccordionTrigger>
-                      <AccordionContent className="space-y-1 pb-2">
-                        {r.assignedTasks.map(t => (
-                          <div key={t.id} className="flex items-center gap-2 text-xs">
-                            <div className={`h-1.5 w-1.5 rounded-full ${t.isUrgent ? "bg-destructive" : "bg-primary"}`} />
-                            <span className="flex-1 truncate">{t.title}</span>
-                            <Badge variant="outline" className="text-[9px]">{t.priority}</Badge>
-                          </div>
-                        ))}
+                      <AccordionContent>
+                        <div className="max-h-[160px] overflow-y-auto pr-3 space-y-2 custom-scrollbar">
+                          {r.assignedTasks.map(t => (
+                            <div key={t.id} className="flex items-center gap-3 text-xs bg-slate-50 hover:bg-slate-100 p-2.5 rounded-lg transition-colors border border-slate-100">
+                              <div className={`h-2 w-2 rounded-full shadow-sm ${t.isUrgent ? "bg-rose-500" : "bg-primary"}`} />
+                              <span className="flex-1 truncate font-medium text-slate-700">{t.title}</span>
+                              <Badge variant="outline" className="text-[9px] font-bold tracking-widest bg-white shadow-sm border-slate-200">{t.priority}</Badge>
+                            </div>
+                          ))}
+                        </div>
                       </AccordionContent>
                     </AccordionItem>
                   </Accordion>

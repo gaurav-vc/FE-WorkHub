@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
-import { Check, CheckSquare, CalendarDays, MessageSquare, Clock, ArrowRight, Users, TrendingUp, Sparkles, Loader2 } from "lucide-react";
+import { Check, CheckSquare, CalendarDays, MessageSquare, Clock, ArrowRight, Users, TrendingUp, Sparkles, Loader2, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { safeFormatDistanceToNow as formatDistanceToNow } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
+import { useTaskContext } from "@/context/TaskContext";
+import { TaskWorkspacePanel } from "@/components/tasks/TaskWorkspacePanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -25,7 +28,9 @@ const priorityColors: Record<string, string> = {
 };
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const { token } = useAuth();
+  const { tasks, setSelectedTask } = useTaskContext();
   const { branding } = useBranding();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -36,6 +41,7 @@ export default function Dashboard() {
   const [isAddingLink, setIsAddingLink] = useState(false);
   const [activeTab, setActiveTab] = useState("my_tasks");
   const [currentPage, setCurrentPage] = useState(1);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const itemsPerPage = 12;
 
   const handleAddLink = async (e: React.FormEvent) => {
@@ -95,9 +101,29 @@ export default function Dashboard() {
   const totalPages = Math.ceil((activeTasksList?.length || 0) / itemsPerPage);
   const paginatedTasks = activeTasksList?.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
+  const handleTaskClick = (task: any) => {
+    const fullTask = tasks.find((t) => String(t.id) === String(task.id || task.task_id));
+    if (fullTask) {
+      setSelectedTask(fullTask);
+    } else {
+      setSelectedTask({
+        ...task,
+        id: task.id || task.task_id,
+        createdBy: task.createdBy || { name: "System", initials: "SY" },
+        assignees: task.assignees || [],
+        tags: task.tags || [],
+        checklist: task.checklist || [],
+        subtasks: task.subtasks || [],
+        dependencies: task.dependencies || [],
+        chats: task.chats || [],
+        comments: task.comments || [],
+      } as any);
+    }
+  };
+
   const statCards = [
-    { label: "Tasks Due Today", value: summaryStats.tasksDue, icon: CheckSquare, color: "text-primary", bg: "bg-primary/10" },
-    { label: "Unread Messages", value: summaryStats.unreadMessages, icon: MessageSquare, color: "text-accent", bg: "bg-accent/10" },
+    { label: "Tasks Due Today", value: summaryStats.tasksDue, icon: CheckSquare, color: "text-primary", bg: "bg-primary/10", path: "/tasks/my-day" },
+    { label: "Unread Messages", value: summaryStats.unreadMessages, icon: MessageSquare, color: "text-accent", bg: "bg-accent/10", path: "/inbox" },
   ];
 
   const now = new Date();
@@ -187,14 +213,14 @@ export default function Dashboard() {
       {/* Summary Stats */}
       <div className="grid grid-cols-2 gap-4">
         {statCards.map((stat) => (
-          <Card key={stat.label} className="shadow-card border-0 hover:shadow-md transition-shadow">
+          <Card key={stat.label} className="shadow-card border-0 hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:-translate-y-0.5 hover:border-primary/20 transition-all duration-300 cursor-pointer group" onClick={() => navigate(stat.path)}>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${stat.bg}`}>
+                <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${stat.bg} group-hover:scale-110 transition-transform duration-300`}>
                   <stat.icon className={`h-5 w-5 ${stat.color}`} />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold font-display">{stat.value}</p>
+                  <p className="text-2xl font-bold font-display group-hover:text-primary transition-colors">{stat.value}</p>
                   <p className="text-xs text-muted-foreground">{stat.label}</p>
                 </div>
               </div>
@@ -204,9 +230,10 @@ export default function Dashboard() {
       </div>
 
       {/* Main Grid */}
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Tasks Widget with Tabs */}
-        <Card className="lg:col-span-2 shadow-card border-0">
+      <div className={`grid grid-cols-1 ${isSidebarOpen ? "lg:grid-cols-3" : "lg:grid-cols-1"} gap-6 relative transition-all duration-300`}>
+        <div className={`${isSidebarOpen ? "lg:col-span-2" : "lg:col-span-1"} space-y-6 transition-all duration-300`}>
+          {/* Tasks Widget with Tabs */}
+          <Card className="shadow-card border-0">
           <Tabs value={activeTab} onValueChange={(val) => { setActiveTab(val); setCurrentPage(1); }} className="w-full">
             <CardHeader className="pb-2">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -220,9 +247,14 @@ export default function Dashboard() {
                     My Assigned Task to Others
                   </TabsTrigger>
                 </TabsList>
-                <Button variant="ghost" size="sm" className="text-xs text-muted-foreground gap-1 hidden sm:flex shrink-0">
-                  View All <ArrowRight className="h-3 w-3" />
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="sm" className="text-xs text-muted-foreground gap-1 hidden sm:flex shrink-0" onClick={() => navigate('/tasks/my-day')}>
+                    View All <ArrowRight className="h-3 w-3" />
+                  </Button>
+                  <Button variant="outline" size="icon" className="hidden lg:flex rounded-full h-8 w-8 bg-slate-50 shadow-sm border-slate-200 text-slate-600 hover:bg-slate-100 transition-colors" onClick={() => setIsSidebarOpen(!isSidebarOpen)} title={isSidebarOpen ? "Collapse Sidebar" : "Expand Sidebar"}>
+                    {isSidebarOpen ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="pt-2 min-h-[300px]">
@@ -234,7 +266,8 @@ export default function Dashboard() {
                   return (
                     <div
                       key={task.id}
-                      className={`flex items-center gap-3 rounded-lg border-2 p-3 hover:bg-secondary/50 transition-colors group ${timeline.border}`}
+                      className={`flex items-center gap-3 rounded-lg border-2 p-3 hover:bg-secondary/50 transition-colors group cursor-pointer ${timeline.border}`}
+                      onClick={() => handleTaskClick(task)}
                     >
                       <button 
                         onClick={(e) => {
@@ -307,7 +340,8 @@ export default function Dashboard() {
                   return (
                     <div
                       key={task.id}
-                      className="flex items-center gap-3 rounded-lg border-2 p-3 hover:bg-secondary/50 transition-colors group shadow-sm"
+                      className="flex items-center gap-3 rounded-lg border-2 p-3 hover:bg-secondary/50 transition-colors group shadow-sm cursor-pointer"
+                      onClick={() => handleTaskClick(task)}
                     >
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{task.title}</p>
@@ -339,33 +373,48 @@ export default function Dashboard() {
             </CardContent>
           </Tabs>
         </Card>
+        </div>
 
-        {/* Upcoming Meetings */}
-        <Card className="shadow-card border-0">
+        {isSidebarOpen && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+            {/* Upcoming Meetings */}
+            <Card className="shadow-card border-0">
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-display font-semibold flex items-center gap-2">
               <CalendarDays className="h-4 w-4 text-accent" />
               Upcoming Meetings
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {upcomingMeetings?.length > 0 ? upcomingMeetings.map((meeting: any) => (
-              <div key={meeting.id} className="rounded-lg bg-secondary/50 p-3 space-y-1.5">
-                <p className="text-sm font-medium">{meeting.title}</p>
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>{new Date(meeting.meeting_time || meeting.time).toLocaleString([], {hour: '2-digit', minute:'2-digit'})} · {meeting.duration}</span>
-                  <span className="flex items-center gap-1">
-                    <Users className="h-3 w-3" />
+          <CardContent className="max-h-[300px] overflow-y-auto custom-scrollbar pr-2 pt-1 pb-4">
+            <div className="space-y-3 px-1">
+            {upcomingMeetings?.length > 0 ? upcomingMeetings.map((meeting: any, idx: number) => (
+              <div 
+                key={meeting.id} 
+                className="group relative rounded-xl border border-slate-100 bg-white p-3 hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:border-primary/20 transition-all duration-300 hover:-translate-y-0.5 animate-in fade-in slide-in-from-bottom-2 overflow-hidden"
+                style={{ animationFillMode: "both", animationDelay: `${idx * 75}ms` }}
+              >
+                <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-primary to-accent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="flex justify-between items-start mb-2">
+                  <p className="text-[13px] font-semibold text-slate-800 group-hover:text-primary transition-colors">{meeting.title}</p>
+                  {meeting.type === "recurring" && (
+                    <Badge variant="outline" className="text-[9px] bg-slate-50 text-slate-500 border-dashed border-slate-200 uppercase tracking-wider px-1.5 py-0 mt-0.5">Recurring</Badge>
+                  )}
+                </div>
+                <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium">
+                  <span className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-md group-hover:bg-primary/5 transition-colors">
+                    <Clock className="h-3 w-3 text-primary/70" />
+                    {new Date(meeting.meeting_time || meeting.time).toLocaleString([], {hour: '2-digit', minute:'2-digit'})} · {meeting.duration}
+                  </span>
+                  <span className="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-md group-hover:bg-accent/5 transition-colors">
+                    <Users className="h-3 w-3 text-accent/70" />
                     {meeting.attendees?.length || meeting.attendees || 0}
                   </span>
                 </div>
-                {meeting.type === "recurring" && (
-                  <Badge variant="secondary" className="text-[10px]">Recurring</Badge>
-                )}
               </div>
             )) : (
-              <p className="text-sm text-muted-foreground">No upcoming meetings.</p>
+              <p className="text-sm text-muted-foreground text-center py-4">No upcoming meetings.</p>
             )}
+            </div>
           </CardContent>
         </Card>
 
@@ -378,8 +427,9 @@ export default function Dashboard() {
               Team Activity
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {teamActivity?.length > 0 ? teamActivity.map((activity: any) => {
+          <CardContent className="max-h-[300px] overflow-y-auto custom-scrollbar pr-2 pt-1 pb-4">
+            <div className="relative space-y-5 px-1">
+            {teamActivity?.length > 0 ? teamActivity.map((activity: any, idx: number) => {
               const getTimeString = (dateStr: string) => {
                 if (!dateStr) return "just now";
                 const date = new Date(dateStr);
@@ -388,26 +438,41 @@ export default function Dashboard() {
               };
               
               return (
-              <div key={activity.id} className="flex items-start gap-3">
-                <Avatar className="h-7 w-7 mt-0.5">
-                  <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-medium">
-                    {activity.user_name?.[0] || activity.initials || 'U'}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm">
-                    <span className="font-medium">{activity.user_name || activity.user}</span>{" "}
-                    <span className="text-muted-foreground">{activity.action}</span>{" "}
-                    <span className="font-medium">{activity.target}</span>
+              <div 
+                key={activity.id} 
+                className="group relative flex items-start gap-4 animate-in fade-in slide-in-from-bottom-3"
+                style={{ animationFillMode: "both", animationDelay: `${idx * 100}ms` }}
+              >
+                {/* Connecting timeline line */}
+                {idx !== teamActivity.length - 1 && (
+                  <div className="absolute left-[15px] top-8 bottom-[-24px] w-px bg-gradient-to-b from-border to-transparent" />
+                )}
+                
+                <div className="relative z-10 shrink-0 mt-0.5">
+                  <div className="absolute inset-0 bg-primary/20 blur-md rounded-full scale-0 group-hover:scale-150 transition-transform duration-500" />
+                  <Avatar className="h-8 w-8 border-2 border-background shadow-sm relative z-10 group-hover:-translate-y-0.5 transition-transform duration-300">
+                    <AvatarFallback className="text-[10px] bg-gradient-to-br from-primary/20 to-primary/5 text-primary font-bold">
+                      {activity.user_name?.[0] || activity.initials || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                </div>
+                
+                <div className="flex-1 min-w-0 bg-transparent group-hover:bg-slate-50 p-2 -my-2 -mx-2 rounded-xl transition-all duration-300">
+                  <p className="text-[13px] leading-snug">
+                    <span className="font-semibold text-slate-900">{activity.user_name || activity.user}</span>{" "}
+                    <span className="text-slate-500 font-medium">{activity.action}</span>{" "}
+                    <span className="font-semibold text-slate-800">{activity.target}</span>
                   </p>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-[11px] font-medium text-slate-400 mt-1 flex items-center gap-1.5">
+                    <Clock className="h-3 w-3" />
                     {getTimeString(activity.created_at || activity.time)}
                   </p>
                 </div>
               </div>
             )}) : (
-              <p className="text-sm text-muted-foreground">No recent activity.</p>
+              <p className="text-sm text-muted-foreground text-center py-4">No recent activity.</p>
             )}
+            </div>
           </CardContent>
         </Card>
 
@@ -418,7 +483,7 @@ export default function Dashboard() {
             <CardTitle className="text-base font-display font-semibold">Quick Links</CardTitle>
             <Dialog open={isAddLinkOpen} onOpenChange={setIsAddLinkOpen}>
               <DialogTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-slate-100 text-slate-600 hover:bg-primary hover:text-white transition-all duration-300">
                   <Plus className="h-4 w-4" />
                 </Button>
               </DialogTrigger>
@@ -443,35 +508,41 @@ export default function Dashboard() {
               </DialogContent>
             </Dialog>
           </CardHeader>
-          <CardContent>
+          <CardContent className="max-h-[300px] overflow-y-auto custom-scrollbar pr-2 pt-2 pb-4">
             {quickLinks?.length > 0 ? (
-              <div className="grid grid-cols-2 gap-3">
-                {quickLinks.map((link: any) => (
+              <div className="grid grid-cols-2 gap-3 px-1">
+                {quickLinks.map((link: any, idx: number) => (
                   <a
                     key={link.id || link.label}
                     href={link.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="group relative flex flex-col items-start justify-between overflow-hidden rounded-xl border border-border/60 bg-gradient-to-br from-background to-secondary/30 p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/5 hover:border-primary/40"
+                    className="group relative flex flex-col items-start overflow-hidden rounded-xl border border-slate-200/60 bg-white p-4 transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:border-primary/30 animate-in fade-in zoom-in-95"
+                    style={{ animationFillMode: "both", animationDelay: `${idx * 75}ms` }}
                   >
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary mb-3 transition-transform duration-300 group-hover:scale-110 group-hover:bg-primary/20">
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    
+                    <div className="relative z-10 flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 text-slate-600 mb-3 transition-all duration-500 group-hover:bg-primary/10 group-hover:text-primary group-hover:scale-110 group-hover:-rotate-3 shadow-sm border border-slate-100">
                       <Link2 className="h-5 w-5" />
                     </div>
-                    <div className="flex w-full items-center justify-between">
-                      <span className="font-semibold font-display text-sm text-foreground truncate pr-2">{link.label}</span>
-                      <ExternalLink className="h-4 w-4 text-muted-foreground opacity-0 -translate-x-2 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0 group-hover:text-primary" />
+                    <div className="relative z-10 flex w-full items-center justify-between mt-auto">
+                      <span className="font-semibold text-sm text-slate-700 group-hover:text-slate-900 transition-colors truncate pr-2">{link.label}</span>
+                      <div className="h-6 w-6 rounded-full bg-slate-50 flex items-center justify-center opacity-0 -translate-x-3 transition-all duration-500 group-hover:opacity-100 group-hover:translate-x-0 group-hover:bg-primary group-hover:text-white">
+                        <ExternalLink className="h-3 w-3" />
+                      </div>
                     </div>
-                    {/* Decorative Background Orb */}
-                    <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-primary/5 blur-2xl transition-all duration-500 group-hover:bg-primary/20 group-hover:blur-xl" />
                   </a>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">No quick links configured.</p>
+              <p className="text-sm text-muted-foreground text-center py-4">No quick links configured.</p>
             )}
           </CardContent>
         </Card>
+          </div>
+        )}
       </div>
+      <TaskWorkspacePanel />
     </div>
   );
 }

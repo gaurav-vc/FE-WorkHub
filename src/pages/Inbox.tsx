@@ -20,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { EmailViewerPanel } from "@/components/emails/EmailViewerPanel";
 
 export default function Inbox() {
   const { token } = useAuth();
@@ -27,6 +28,7 @@ export default function Inbox() {
   const [accounts, setAccounts] = useState<any[]>([]);
   const [selectedAccountId, setSelectedAccountId] = useState<string>("");
   const [loading, setLoading] = useState(true);
+  const [selectedEmailId, setSelectedEmailId] = useState<string | null>(null);
 
   const [accountsLoaded, setAccountsLoaded] = useState(false);
 
@@ -243,10 +245,8 @@ export default function Inbox() {
                       </p>
                     </div>
                     {email.web_link && (
-                      <Button variant="outline" size="sm" asChild className="shrink-0 mt-4 sm:mt-0 opacity-0 group-hover:opacity-100 transition-opacity self-center rounded-full hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200">
-                        <a href={email.web_link} target="_blank" rel="noopener noreferrer">
-                          View Email <ArrowRight className="h-4 w-4 ml-1.5" />
-                        </a>
+                      <Button variant="outline" size="sm" onClick={() => setSelectedEmailId(email.id)} className="shrink-0 mt-4 sm:mt-0 opacity-0 group-hover:opacity-100 transition-opacity self-center rounded-full hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200">
+                        View Email <ArrowRight className="h-4 w-4 ml-1.5" />
                       </Button>
                     )}
                   </CardContent>
@@ -256,6 +256,11 @@ export default function Inbox() {
           )}
         </div>
       </div>
+      <EmailViewerPanel 
+        emailId={selectedEmailId} 
+        onClose={() => setSelectedEmailId(null)} 
+        onReplied={() => fetchEmails(selectedAccountId)} 
+      />
     </div>
   );
 }
