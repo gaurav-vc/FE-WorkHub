@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Upload, Camera, FileText, Check, Loader2, Building, Mail, Phone, User, X, ScanFace, FileUp, Trash2, Pencil, Search } from "lucide-react";
+import { Upload, Camera, FileText, Check, Loader2, Building, Mail, Phone, User, X, ScanFace, FileUp, Trash2, Pencil, Search, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -89,6 +89,53 @@ export default function MyCard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [emailData, setEmailData] = useState({ subject: "", body: "", to: "", name: "" });
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+
+  const openEmailModal = (card: BusinessCardData) => {
+    setEmailData({
+      to: card.email,
+      name: card.name,
+      subject: `Following up from our recent connection`,
+      body: `Hi ${card.name ? card.name.split(' ')[0] : 'there'},\n\nIt was great connecting with you recently. I wanted to follow up regarding our conversation.\n\nBest regards,\n[Your Name]`
+    });
+    setIsEmailModalOpen(true);
+  };
+
+  const handleSendEmail = async () => {
+    setIsSendingEmail(true);
+    try {
+      await apiClient("/integrations/emails/send-contact-email/", {
+        method: "POST",
+        data: {
+          to: emailData.to,
+          subject: emailData.subject,
+          body: emailData.body.replace(/\n/g, '<br>'),
+        }
+      });
+      toast.success("Email sent successfully!");
+      setIsEmailModalOpen(false);
+    } catch (error) {
+      toast.error("Failed to send email. Ensure your Gmail is connected.");
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
+
+  const getWhatsAppLink = (phone: string) => {
+    const cleanPhone = phone.replace(/\D/g, '');
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    if (isMobile) {
+      // On mobile, wa.me opens the native app seamlessly
+      return `https://wa.me/${cleanPhone}`;
+    } else {
+      // On desktop, this skips the landing page and opens WhatsApp Web directly
+      return `https://web.whatsapp.com/send?phone=${cleanPhone}`;
+    }
+  };
 
   const { data: cards, isLoading: isLoadingCards } = useQuery({
     queryKey: ["business-cards"],
@@ -447,6 +494,54 @@ export default function MyCard() {
           </DialogContent>
         </Dialog>
 
+        {/* Email Send Modal */}
+        <Dialog open={isEmailModalOpen} onOpenChange={setIsEmailModalOpen}>
+          <DialogContent className="sm:max-w-[500px] rounded-3xl p-0 overflow-hidden border-0 shadow-[0_20px_50px_rgba(0,0,0,0.1)]">
+            <div className="relative p-8 overflow-hidden bg-white">
+              {/* Premium Background Accent */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
+              <div className="absolute bottom-0 left-0 w-40 h-40 bg-blue-500/5 rounded-full blur-2xl -ml-10 -mb-10 pointer-events-none"></div>
+              
+              <div className="relative z-10 flex items-center gap-4 mb-8">
+                <div className="h-12 w-12 rounded-2xl bg-indigo-50 flex items-center justify-center shrink-0 border border-indigo-100/50 shadow-sm">
+                  <Mail className="h-6 w-6 text-indigo-600" />
+                </div>
+                <div>
+                  <DialogTitle className="text-2xl font-extrabold text-slate-900 tracking-tight">Compose Email</DialogTitle>
+                  <p className="text-slate-500 text-sm font-medium mt-0.5">Sending to <span className="text-indigo-600 font-semibold">{emailData.name}</span></p>
+                </div>
+              </div>
+              
+              <div className="relative z-10 space-y-5">
+                <div className="grid gap-2">
+                  <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Subject</Label>
+                  <Input 
+                    className="bg-white border-slate-200 rounded-xl h-12 focus-visible:ring-indigo-500 font-medium text-slate-800 shadow-sm" 
+                    value={emailData.subject} 
+                    onChange={(e) => setEmailData({...emailData, subject: e.target.value})} 
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Message Body</Label>
+                  <textarea 
+                    className="flex min-h-[200px] w-full rounded-xl border border-slate-200 bg-white px-4 py-4 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 resize-none font-medium text-slate-700 shadow-sm leading-relaxed"
+                    value={emailData.body}
+                    onChange={(e) => setEmailData({...emailData, body: e.target.value})}
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <DialogFooter className="p-5 bg-slate-50 border-t border-slate-100 flex gap-3 sm:justify-end">
+              <Button variant="outline" onClick={() => setIsEmailModalOpen(false)} className="rounded-xl border-slate-200 hover:bg-slate-100 text-slate-600 font-bold h-12 px-6">Cancel</Button>
+              <Button onClick={handleSendEmail} disabled={isSendingEmail || !emailData.subject || !emailData.body} className="rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold h-12 px-8 shadow-md hover:shadow-lg transition-all">
+                {isSendingEmail ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Mail className="mr-2 h-5 w-5" />}
+                {isSendingEmail ? "Sending..." : "Send Email"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         {/* Content Area */}
         {isLoadingCards ? (
           <div className="flex justify-center p-20">
@@ -472,28 +567,53 @@ export default function MyCard() {
                       <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200 text-lg font-bold text-indigo-600">
                         {card.name ? card.name.charAt(0).toUpperCase() : <User className="h-4 w-4 text-slate-400" />}
                       </div>
-                      <div>
-                        <h3 className="font-bold text-base text-slate-900 leading-tight">{card.name || 'Unnamed Contact'}</h3>
-                        <p className="text-xs font-medium text-indigo-600 mt-0.5 flex items-center gap-1.5">
-                          {card.job_title ? `${card.job_title}` : 'Professional'}
-                          <span className="text-slate-300">•</span> 
-                          <span className="text-slate-600 truncate max-w-[150px] inline-block align-bottom">{card.company || 'Unknown Company'}</span>
-                        </p>
+                      <div className="overflow-hidden">
+                        <h3 className="font-bold text-base text-slate-900 leading-tight truncate">{card.name || 'Unnamed Contact'}</h3>
+                        <div className="text-xs font-medium mt-1 flex items-center gap-1.5 w-full">
+                          <span className="text-indigo-600 truncate max-w-[45%]">{card.job_title || 'Professional'}</span>
+                          <span className="text-slate-300 shrink-0">•</span> 
+                          <span className="text-slate-500 truncate max-w-[45%]">{card.company || 'Unknown Company'}</span>
+                        </div>
                       </div>
                     </div>
                     
-                    <div className="space-y-2 pt-3 border-t border-slate-100">
+                    <div className="space-y-3 pt-4 mb-4 border-t border-slate-100">
                       {card.email && (
-                        <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
-                          <div className="bg-indigo-50 p-1.5 rounded-md"><Mail className="h-3.5 w-3.5 text-indigo-600" /></div>
-                          <a href={`mailto:${card.email}`} className="hover:text-indigo-600 transition-colors truncate">{card.email}</a>
+                        <div className="flex items-center gap-3 text-sm text-slate-600 font-medium">
+                          <Mail className="h-4 w-4 text-slate-400 shrink-0" />
+                          <span className="truncate">{card.email}</span>
                         </div>
                       )}
                       {card.phone && (
-                        <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
-                          <div className="bg-violet-50 p-1.5 rounded-md"><Phone className="h-3.5 w-3.5 text-violet-600" /></div>
-                          <a href={`tel:${card.phone}`} className="hover:text-violet-600 transition-colors">{card.phone}</a>
+                        <div className="flex items-center gap-3 text-sm text-slate-600 font-medium">
+                          <Phone className="h-4 w-4 text-slate-400 shrink-0" />
+                          <span className="truncate">{card.phone}</span>
                         </div>
+                      )}
+                    </div>
+
+                    <div className="flex gap-2 pt-4 border-t border-slate-100">
+                      {card.email && (
+                        <Button 
+                          variant="outline" 
+                          className="flex-1 h-10 bg-indigo-50 hover:bg-indigo-100 border-transparent hover:border-indigo-200 text-indigo-700 font-bold transition-all"
+                          onClick={(e) => { e.stopPropagation(); openEmailModal(card); }}
+                        >
+                          <Mail className="h-4 w-4 mr-2" />
+                          Email
+                        </Button>
+                      )}
+                      {card.phone && (
+                        <a 
+                          href={getWhatsAppLink(card.phone)} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="flex-1 flex items-center justify-center h-10 bg-emerald-50 hover:bg-emerald-100 border border-transparent hover:border-emerald-200 text-emerald-700 rounded-xl font-bold transition-all text-sm"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <MessageCircle className="h-4 w-4 mr-2" />
+                          WhatsApp
+                        </a>
                       )}
                     </div>
                   </div>

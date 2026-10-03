@@ -249,49 +249,75 @@ export default function CompanyPolicies() {
         </PermissionGuard>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search policies..." value={search} onChange={handleSearchChange} className="pl-9" />
+      <div className="flex flex-col sm:flex-row gap-4 items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-100 mb-6 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-500/5 rounded-full blur-2xl -mr-10 -mt-20 pointer-events-none"></div>
+        <div className="relative flex-1 w-full">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+          <Input placeholder="Search company policies..." value={search} onChange={handleSearchChange} className="pl-11 h-12 bg-slate-50/50 border-slate-200 rounded-xl focus-visible:ring-indigo-500 text-base font-medium shadow-sm transition-all focus:bg-white" />
         </div>
-        <Select value={category} onValueChange={handleCategoryChange}>
-          <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            {policyCategories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <div className="w-full sm:w-[220px]">
+          <Select value={category} onValueChange={handleCategoryChange}>
+            <SelectTrigger className="h-12 bg-slate-50/50 border-slate-200 rounded-xl focus:ring-indigo-500 font-bold text-slate-700 shadow-sm transition-all focus:bg-white">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl border-slate-100 shadow-lg">
+              {policyCategories.map((c) => <SelectItem key={c} value={c} className="cursor-pointer font-medium">{c}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      <div className="space-y-3">
-        {currentPolicies.map((policy) => (
-          <Card key={policy.id} className="shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer group border-border hover:border-primary/30" onClick={() => setSelectedPolicy(policy)}>
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                <FileCheck className="h-6 w-6" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">{policy.title}</h3>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <Badge variant="secondary" className="text-[10px]">{policy.category}</Badge>
-                  <span className="text-[11px] text-muted-foreground">v{policy.version} · Created {formatDate(policy.created_at_formatted || policy.created_at)} · Updated {formatDate(policy.lastUpdated || policy.updated_at)}</span>
+      {currentPolicies.length === 0 ? (
+        <div className="text-center py-20 bg-white/50 backdrop-blur-sm rounded-3xl border border-dashed border-slate-300">
+          <FileCheck className="h-12 w-12 text-slate-300 mx-auto mb-4" />
+          <h3 className="text-lg font-bold text-slate-900">No policies found</h3>
+          <p className="text-slate-500 font-medium">Try adjusting your search or category filter.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {currentPolicies.map((policy) => (
+            <Card key={policy.id} className="relative shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer group border-slate-200/60 hover:border-indigo-300 hover:-translate-y-1 overflow-hidden rounded-2xl bg-white" onClick={() => setSelectedPolicy(policy)}>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none group-hover:bg-indigo-500/10 transition-colors duration-500"></div>
+              
+              <CardContent className="p-5 flex flex-col h-full relative z-10">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 shrink-0 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300 shadow-sm">
+                    <FileCheck className="h-6 w-6" />
+                  </div>
+                  
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                      <Button size="icon" variant="ghost" className="h-8 w-8 opacity-0 group-hover:opacity-100 shrink-0 hover:bg-slate-100 rounded-full transition-opacity"><MoreHorizontal className="h-4 w-4 text-slate-500" /></Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="rounded-xl shadow-lg border-slate-100">
+                      <PermissionGuard requires="edit">
+                        <DropdownMenuItem className="cursor-pointer font-medium text-slate-700" onClick={(e) => { e.stopPropagation(); openEdit(policy); }}><Edit className="h-4 w-4 mr-2 text-slate-500"/> Edit</DropdownMenuItem>
+                        <DropdownMenuItem className="cursor-pointer text-red-600 font-medium focus:text-red-700 focus:bg-red-50" onClick={(e) => { e.stopPropagation(); deletePolicy(policy.id); }}><Trash2 className="h-4 w-4 mr-2"/> Delete</DropdownMenuItem>
+                      </PermissionGuard>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
-              </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                  <Button size="icon" variant="ghost" className="h-7 w-7 opacity-0 group-hover:opacity-100 shrink-0"><MoreHorizontal className="h-4 w-4" /></Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <PermissionGuard requires="edit">
-                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEdit(policy); }}>Edit</DropdownMenuItem>
-                    <DropdownMenuItem className="text-destructive" onClick={(e) => { e.stopPropagation(); deletePolicy(policy.id); }}>Delete</DropdownMenuItem>
-                  </PermissionGuard>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+                
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold text-slate-900 group-hover:text-indigo-700 transition-colors line-clamp-2 leading-tight mb-3">{policy.title}</h3>
+                  
+                  <div className="flex flex-wrap gap-2 mb-6">
+                    <Badge variant="secondary" className="text-[11px] font-bold tracking-wide uppercase bg-slate-100 text-slate-600 group-hover:bg-indigo-50 group-hover:text-indigo-700 transition-colors">{policy.category}</Badge>
+                    <Badge variant="outline" className="text-[11px] font-bold tracking-wide uppercase border-slate-200 text-slate-500 bg-white">v{policy.version}</Badge>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-slate-100 mt-auto">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between">
+                    <span>Upd: {formatDate(policy.lastUpdated || policy.updated_at)}</span>
+                    <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-indigo-500 transition-colors transform group-hover:translate-x-1" />
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       <PagedPagination 
         currentPage={currentPage}
