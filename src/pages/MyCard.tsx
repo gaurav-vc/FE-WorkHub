@@ -43,7 +43,7 @@ const scanCard = async (file: File) => {
   const formData = new FormData();
   formData.append("image", file);
   
-  return apiClient("/directory/business-cards/groq_scan/", {
+  return apiClient("/directory/business-cards/scan/", {
     method: "POST",
     data: formData,
   });
