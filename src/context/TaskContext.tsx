@@ -24,6 +24,7 @@ interface TaskContextType {
   fetchTaskDetails: (id: string) => Promise<void>;
   totalTasks: number;
   totalPages: number;
+  statusCounts: { todo: number, inProgress: number, blocked: number, done: number };
 }
 
 const TaskContext: Context<TaskContextType | null> = (window as any).__TaskContext || createContext<TaskContextType | null>(null);
@@ -41,6 +42,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
   const [isLoadingTasks, setIsLoadingTasks] = useState<boolean>(true);
   const [totalTasks, setTotalTasks] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [statusCounts, setStatusCounts] = useState({ todo: 0, inProgress: 0, blocked: 0, done: 0 });
 
   const mapTaskFromApi = (t: any): Task => {
     const formatDate = (dateStr: string) => {
@@ -110,6 +112,22 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       } else {
         setTotalTasks(rawTasks.length);
         setTotalPages(1);
+      }
+      
+      if (data.status_counts) {
+        setStatusCounts({
+          todo: data.status_counts.todo || 0,
+          inProgress: data.status_counts.in_progress || 0,
+          blocked: data.status_counts.blocked || 0,
+          done: data.status_counts.done || 0,
+        });
+      } else {
+        setStatusCounts({
+          todo: rawTasks.filter((t: any) => t.status === "pending" || t.status === "todo" || t.status === "open").length,
+          inProgress: rawTasks.filter((t: any) => t.status === "in_progress" || t.status === "in-progress").length,
+          blocked: rawTasks.filter((t: any) => t.status === "delayed" || t.status === "blocked" || t.status === "on_hold").length,
+          done: rawTasks.filter((t: any) => t.status === "completed" || t.status === "done").length,
+        });
       }
     } catch (err: any) {
       if (err?.status !== 403) {
@@ -375,6 +393,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       fetchTaskDetails,
       totalTasks,
       totalPages,
+      statusCounts,
     }}>
       {children}
     </TaskContext.Provider>

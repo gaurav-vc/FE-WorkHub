@@ -64,7 +64,7 @@ export default function MyDay() {
 
   const isAdmin = portalType === 'site_admin' || portalType === 'super_user' || role === 'admin' || role?.toLowerCase().includes('admin') || hasSpecialAccess;
   const isSiteAdmin = portalType === 'site_admin' || portalType === 'super_user' || hasAdminAccess || hasSpecialAccess;
-  const { tasks, addTask, updateTask, deleteTask, setSelectedTask, isLoadingTasks, fetchTasks, fetchTaskDetails, totalTasks, totalPages } = useTaskContext();
+  const { tasks, addTask, updateTask, deleteTask, setSelectedTask, isLoadingTasks, fetchTasks, fetchTaskDetails, totalTasks, totalPages, statusCounts } = useTaskContext();
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
@@ -89,7 +89,7 @@ export default function MyDay() {
   const [birthdays, setBirthdays] = useState<any[]>([]);
   const [employees, setEmployees] = useState<{id: number, name: string}[]>([]);
 
-  const [adminSummary, setAdminSummary] = useState({ totalTasks: 0, completed: 0, inProgress: 0, open: 0 });
+  const [adminSummary, setAdminSummary] = useState({ totalTasks: 0, completed: 0, inProgress: 0, blocked: 0, open: 0 });
   const [adminFilterCreatedBy, setAdminFilterCreatedBy] = useState("all");
   const [adminFilterAssignedTo, setAdminFilterAssignedTo] = useState("all");
   const [adminFilterStartDate, setAdminFilterStartDate] = useState("");
@@ -717,10 +717,10 @@ export default function MyDay() {
             </CardHeader>
             <CardContent className="space-y-2">
               {[
-                { label: "Yet to Start", count: tasks.filter(t => t.status === ("todo" as any)).length, color: "bg-muted" },
-                { label: "In Progress", count: tasks.filter(t => t.status === "in-progress").length, color: "bg-primary" },
-                { label: "Blocked", count: tasks.filter(t => t.status === "blocked").length, color: "bg-destructive" },
-                { label: "Done", count: tasks.filter(t => t.status === "done").length, color: "bg-success" },
+                { label: "Yet to Start", count: statusCounts.todo, color: "bg-muted" },
+                { label: "In Progress", count: statusCounts.inProgress, color: "bg-primary" },
+                { label: "Blocked", count: statusCounts.blocked, color: "bg-destructive" },
+                { label: "Done", count: statusCounts.done, color: "bg-success" },
               ].map(s => (
                 <div key={s.label} className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
