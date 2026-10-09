@@ -179,29 +179,39 @@ export default function RecognitionBirthdays() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-display font-bold text-foreground flex items-center gap-2">
-            <PartyPopper className="h-6 w-6 text-primary" /> Recognition & Birthdays
-          </h1>
-          <p className="text-muted-foreground mt-1">Celebrate achievements and team birthdays</p>
+    <div className="space-y-8 animate-fade-in p-2 sm:p-6 lg:p-8 relative max-w-7xl mx-auto">
+      {/* Ambient background light */}
+      <div className="fixed top-0 right-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[120px] pointer-events-none -z-10 animate-pulse" />
+      <div className="fixed bottom-0 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-[120px] pointer-events-none -z-10 animate-pulse delay-1000" />
+
+      {/* Header */}
+      <div className="relative rounded-3xl p-8 overflow-hidden bg-gradient-to-br from-card/80 to-background/50 border border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-xl">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl animate-pulse" />
+        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+          <div className="space-y-2">
+            <h1 className="text-4xl font-display font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-primary via-purple-500 to-indigo-500 flex items-center gap-3">
+              <PartyPopper className="h-10 w-10 text-primary animate-bounce-slow" /> Recognition & Birthdays
+            </h1>
+            <p className="text-muted-foreground font-medium pl-14 text-lg">Celebrate achievements and team birthdays</p>
+          </div>
+          <PermissionGuard requires="create">
+            <Button size="lg" className="bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 text-white gap-2 px-8 h-14 text-lg font-semibold rounded-2xl shadow-lg shadow-primary/25 hover:-translate-y-1 transition-all w-full sm:w-auto" onClick={() => setShowCreate(true)}>
+              <Send className="h-5 w-5" /> Send Kudos
+            </Button>
+          </PermissionGuard>
         </div>
-        <PermissionGuard requires="create">
-          <Button size="lg" className="gradient-primary text-primary-foreground gap-2 px-8 py-6 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all w-full sm:w-auto" onClick={() => setShowCreate(true)}>
-            <Send className="h-5 w-5" /> Send Kudos
-          </Button>
-        </PermissionGuard>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         {/* Kudos Wall */}
-        <div className="lg:col-span-2 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-display font-semibold text-foreground">Recognition Wall</h2>
+        <div className="xl:col-span-2 space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-card/60 backdrop-blur-md border border-white/10 shadow-sm">
+            <h2 className="text-2xl font-display font-bold text-foreground flex items-center gap-2">
+              <Star className="h-6 w-6 text-warning" /> Recognition Wall
+            </h2>
             <Select value={recipientFilter} onValueChange={setRecipientFilter}>
-              <SelectTrigger className="w-[200px] h-9"><SelectValue placeholder="Filter by Recipient" /></SelectTrigger>
-              <SelectContent>
+              <SelectTrigger className="w-full sm:w-[220px] h-11 bg-background/50 border-white/10 rounded-xl focus-visible:ring-primary/50"><SelectValue placeholder="Filter by Recipient" /></SelectTrigger>
+              <SelectContent className="rounded-xl border-white/10 backdrop-blur-xl">
                 <SelectItem value="All">All Recipients</SelectItem>
                 {employees.map(e => (
                   <SelectItem key={e.id} value={e.name}>{e.name}</SelectItem>
@@ -209,35 +219,38 @@ export default function RecognitionBirthdays() {
               </SelectContent>
             </Select>
           </div>
-          <div className="max-h-[600px] overflow-y-auto pr-2 space-y-4">
-            {kudos.filter(k => recipientFilter === "All" || k.to === recipientFilter).map((k) => (
-              <Card key={k.id} className="shadow-card group">
-                <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  <Avatar className="h-10 w-10 shrink-0">
-                    <AvatarFallback className="text-sm font-semibold gradient-primary text-primary-foreground">{k.fromInitials}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-semibold text-foreground">{k.from}</span>
-                      <span className="text-xs text-muted-foreground">recognized</span>
-                      <span className="text-sm font-semibold text-primary">{k.to}</span>
-                      <Badge variant="outline" className="text-[10px] gap-1">{categoryIcons[k.category]} {k.category}</Badge>
-                    </div>
-                    <p className="text-sm text-foreground mt-2 leading-relaxed">{k.message}</p>
-                    <div className="flex items-center gap-3 mt-3">
-                      <Button size="sm" variant="ghost" className="text-xs gap-1 h-7" onClick={() => reactToKudos(k.id)}>
-                        ❤️ {k.reactions}
-                      </Button>
-                      <span className="text-[11px] text-muted-foreground">{k.time}</span>
-                      <PermissionGuard requires="delete">
-                        <Button size="sm" variant="ghost" className="text-xs h-7 opacity-0 group-hover:opacity-100 ml-auto text-destructive" onClick={() => deleteKudos(k.id)}>
-                          <Trash2 className="h-3 w-3" />
+          <div className="pr-2 space-y-5">
+            {kudos.filter(k => recipientFilter === "All" || k.to === recipientFilter).map((k, index) => (
+              <Card key={k.id} className="group relative bg-card/60 backdrop-blur-xl border border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.1)] hover:-translate-y-1 transition-all duration-500 overflow-hidden rounded-3xl animate-in fade-in slide-in-from-bottom-8" style={{ animationDelay: `${index * 100}ms`, animationFillMode: 'both' }}>
+                <div className="absolute top-0 left-0 w-1.5 bg-gradient-to-b from-primary via-purple-500 to-transparent h-full opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                <CardContent className="p-6 sm:p-8">
+                  <div className="flex flex-col sm:flex-row gap-5 items-start">
+                    <Avatar className="h-14 w-14 shrink-0 border-2 border-primary/20 shadow-sm group-hover:scale-110 transition-transform duration-500">
+                      <AvatarFallback className="text-lg font-bold bg-gradient-to-br from-primary to-purple-600 text-white">{k.fromInitials}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0 space-y-3">
+                      <div className="flex items-center gap-2 flex-wrap bg-background/50 p-3 rounded-2xl border border-white/5 w-fit">
+                        <span className="text-base font-bold text-foreground">{k.from}</span>
+                        <span className="text-sm font-medium text-muted-foreground italic">recognized</span>
+                        <span className="text-base font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-purple-500">{k.to}</span>
+                        <Badge variant="secondary" className="text-xs px-2.5 py-1 gap-1.5 ml-2 bg-card border-border shadow-sm rounded-full">{categoryIcons[k.category]} {k.category}</Badge>
+                      </div>
+                      <p className="text-base sm:text-lg text-foreground/90 leading-relaxed font-medium pl-1">
+                        "{k.message}"
+                      </p>
+                      <div className="flex items-center gap-4 pt-2">
+                        <Button size="sm" variant="outline" className="text-sm gap-2 h-9 rounded-xl hover:bg-primary/5 hover:text-primary hover:border-primary/30 transition-colors" onClick={() => reactToKudos(k.id)}>
+                          <Heart className="h-4 w-4 text-destructive" /> {k.reactions}
                         </Button>
-                      </PermissionGuard>
+                        <span className="text-xs font-medium text-muted-foreground/70">{k.time}</span>
+                        <PermissionGuard requires="delete">
+                          <Button size="sm" variant="ghost" className="text-xs h-9 rounded-xl opacity-0 group-hover:opacity-100 ml-auto text-destructive hover:bg-destructive/10" onClick={() => deleteKudos(k.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </PermissionGuard>
+                      </div>
                     </div>
                   </div>
-                </div>
                 </CardContent>
               </Card>
             ))}
@@ -245,51 +258,59 @@ export default function RecognitionBirthdays() {
         </div>
 
         {/* Birthday Sidebar */}
-        <div className="space-y-4">
-          <Card className="shadow-card">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <Cake className="h-4 w-4 text-accent" /> Upcoming Birthdays
+        <div className="space-y-6">
+          <Card className="shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-white/10 bg-card/60 backdrop-blur-xl rounded-3xl overflow-hidden sticky top-6">
+            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-accent to-pink-500"></div>
+            <CardHeader className="pb-4 pt-6 bg-gradient-to-b from-accent/5 to-transparent">
+              <CardTitle className="text-xl font-display font-bold flex items-center gap-3">
+                <div className="p-2 bg-accent/10 rounded-xl">
+                  <Cake className="h-5 w-5 text-accent animate-bounce-slow" />
+                </div>
+                Upcoming Birthdays
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              {birthdays.map((b) => (
-                <div key={b.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
-                  <Avatar className="h-9 w-9">
-                    <AvatarFallback className="text-xs font-semibold gradient-primary text-primary-foreground">{b.initials}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground">{b.name}</p>
-                    <p className="text-xs text-muted-foreground">{b.department}</p>
+            <CardContent className="space-y-4 px-6 pb-6">
+              {birthdays.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground text-sm font-medium">No upcoming birthdays</div>
+              ) : (
+                birthdays.map((b) => (
+                  <div key={b.id} className="group flex items-center gap-4 p-3 rounded-2xl hover:bg-background/50 border border-transparent hover:border-white/5 transition-all duration-300">
+                    <Avatar className="h-12 w-12 border-2 border-accent/20 shadow-sm group-hover:scale-110 transition-transform">
+                      <AvatarFallback className="text-sm font-bold bg-gradient-to-br from-accent to-pink-500 text-white">{b.initials}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-foreground truncate">{b.name}</p>
+                      <p className="text-xs font-medium text-muted-foreground truncate">{b.department}</p>
+                    </div>
+                    <Badge variant="secondary" className="text-xs px-2.5 py-1 rounded-full bg-accent/10 text-accent border-accent/20 shrink-0">{b.date_string}</Badge>
                   </div>
-                  <Badge variant="secondary" className="text-[10px] shrink-0">{b.date_string}</Badge>
-                </div>
-              ))}
+                ))
+              )}
             </CardContent>
           </Card>
         </div>
       </div>
 
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle>Send Recognition</DialogTitle></DialogHeader>
-          <div className="space-y-3 mt-2">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Recipient</Label>
+        <DialogContent className="sm:max-w-md rounded-3xl border-white/10 bg-card/95 backdrop-blur-xl shadow-2xl">
+          <DialogHeader><DialogTitle className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-600">Send Recognition</DialogTitle></DialogHeader>
+          <div className="space-y-5 mt-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold">Recipient</Label>
               <Select value={form.to} onValueChange={(v) => setForm({ ...form, to: v })}>
-                <SelectTrigger className="w-full h-11"><SelectValue placeholder="Who do you want to recognize?" /></SelectTrigger>
-                <SelectContent>
+                <SelectTrigger className="w-full h-12 rounded-xl bg-background/50 border-white/10 focus-visible:ring-primary/50"><SelectValue placeholder="Who do you want to recognize?" /></SelectTrigger>
+                <SelectContent className="rounded-xl border-white/10 backdrop-blur-xl">
                   {employees.map(e => (
-                    <SelectItem key={e.id} value={e.name}>{e.name}</SelectItem>
+                    <SelectItem key={e.id} value={e.name} className="rounded-lg">{e.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Category</Label>
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold">Category</Label>
               <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v })}>
-                <SelectTrigger className="w-full h-11"><SelectValue placeholder="Select Category" /></SelectTrigger>
-                <SelectContent>
+                <SelectTrigger className="w-full h-12 rounded-xl bg-background/50 border-white/10 focus-visible:ring-primary/50"><SelectValue placeholder="Select Category" /></SelectTrigger>
+                <SelectContent className="rounded-xl border-white/10 backdrop-blur-xl">
                   <SelectItem value="Team Player">Team Player</SelectItem>
                   <SelectItem value="Innovation">Innovation</SelectItem>
                   <SelectItem value="Above & Beyond">Above & Beyond</SelectItem>
@@ -297,11 +318,14 @@ export default function RecognitionBirthdays() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5"><Label className="text-xs">Message</Label><Textarea value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} placeholder="What did they do that's awesome?" rows={3} /></div>
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold">Message</Label>
+              <Textarea value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} placeholder="What did they do that's awesome?" rows={4} className="rounded-xl bg-background/50 border-white/10 focus-visible:ring-primary/50 text-base" />
+            </div>
           </div>
-          <DialogFooter className="mt-4">
-            <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
-            <Button className="gradient-primary text-primary-foreground" onClick={sendKudos}>Send Kudos</Button>
+          <DialogFooter className="mt-6">
+            <DialogClose asChild><Button variant="outline" className="rounded-xl h-11 px-6">Cancel</Button></DialogClose>
+            <Button className="bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 text-white rounded-xl h-11 px-6 shadow-lg shadow-primary/25" onClick={sendKudos}>Send Kudos</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

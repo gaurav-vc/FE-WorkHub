@@ -277,22 +277,27 @@ export default function CreateMOM() {
   });
 
   return (
-    <div className="p-2 md:p-6 w-full space-y-8 pb-20 animate-fade-in">
-      <div className="flex justify-between items-center -ml-4 md:ml-0">
-        <Button variant="ghost" className="gap-2" onClick={() => navigate('/collaboration/moms')}>
+    <div className="p-4 md:p-8 w-full max-w-7xl mx-auto space-y-10 pb-32 animate-fade-in relative">
+      {/* Background ambient light */}
+      <div className="fixed top-0 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-[100px] pointer-events-none -z-10 animate-pulse" />
+      <div className="fixed bottom-0 right-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-[100px] pointer-events-none -z-10 animate-pulse delay-1000" />
+      
+      <div className="flex justify-between items-center -ml-4 md:ml-0 sticky top-4 z-50">
+        <Button variant="outline" className="gap-2 bg-background/60 backdrop-blur-md border-white/10 shadow-sm hover:bg-background/80 transition-all rounded-xl" onClick={() => navigate('/collaboration/moms')}>
           <ArrowLeft className="h-4 w-4" /> Back to List
         </Button>
       </div>
 
       {/* 01 Meeting Information */}
-      <div className="bg-card p-6 md:p-8 rounded-xl border border-border shadow-card hover:shadow-md transition-shadow">
-        <div className="flex items-center gap-3 mb-8">
-          <div className="h-10 w-10 bg-primary/10 text-primary rounded-lg flex items-center justify-center shrink-0">
-            <FileText className="h-5 w-5" />
+      <div className="group relative overflow-hidden bg-card/60 backdrop-blur-xl p-6 md:p-10 rounded-3xl border border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-500 animate-in fade-in slide-in-from-bottom-8">
+        <div className="absolute top-0 left-0 w-1 bg-gradient-to-b from-primary via-blue-500 to-transparent h-full opacity-50 group-hover:opacity-100 transition-opacity"></div>
+        <div className="flex items-center gap-4 mb-10">
+          <div className="h-12 w-12 bg-gradient-to-br from-primary/20 to-blue-500/20 text-primary rounded-2xl flex items-center justify-center shrink-0 shadow-inner group-hover:scale-110 transition-transform duration-500">
+            <FileText className="h-6 w-6 animate-pulse" />
           </div>
           <div>
-            <h3 className="text-lg font-display font-bold text-foreground">01 Meeting Information</h3>
-            <p className="text-sm text-muted-foreground font-medium mt-0.5">Core meeting context and scheduling details</p>
+            <h3 className="text-2xl font-display font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-foreground to-foreground/70">01 Meeting Information</h3>
+            <p className="text-sm text-muted-foreground font-medium mt-1">Core meeting context and scheduling details</p>
           </div>
         </div>
         
@@ -381,14 +386,15 @@ export default function CreateMOM() {
       </div>
 
       {/* 02 Attendees */}
-      <div className="bg-card p-6 md:p-8 rounded-xl border border-border shadow-card hover:shadow-md transition-shadow">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="h-10 w-10 bg-primary/10 text-primary rounded-lg flex items-center justify-center shrink-0">
-            <Users className="h-5 w-5" />
+      <div className="group relative overflow-hidden bg-card/60 backdrop-blur-xl p-6 md:p-10 rounded-3xl border border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-500 animate-in fade-in slide-in-from-bottom-12">
+        <div className="absolute top-0 left-0 w-1 bg-gradient-to-b from-blue-500 via-indigo-500 to-transparent h-full opacity-50 group-hover:opacity-100 transition-opacity"></div>
+        <div className="flex items-center gap-4 mb-10">
+          <div className="h-12 w-12 bg-gradient-to-br from-blue-500/20 to-indigo-500/20 text-blue-600 rounded-2xl flex items-center justify-center shrink-0 shadow-inner group-hover:scale-110 transition-transform duration-500">
+            <Users className="h-6 w-6" />
           </div>
           <div>
-            <h3 className="text-lg font-display font-bold text-foreground">02 Attendees</h3>
-            <p className="text-sm text-muted-foreground font-medium mt-0.5">{externalAttendees.length + internalAttendees.length} participants</p>
+            <h3 className="text-2xl font-display font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-foreground to-foreground/70">02 Attendees</h3>
+            <p className="text-sm text-muted-foreground font-medium mt-1">{externalAttendees.length + internalAttendees.length} participants</p>
           </div>
         </div>
 
