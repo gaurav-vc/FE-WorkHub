@@ -69,7 +69,7 @@ export default function TemplateMarketplace() {
   const [activeCategory, setActiveCategory] = useState("All");
   
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 9;
   
   const [tab, setTab] = useState("marketplace");
   const [myTemplates, setMyTemplates] = useState<ProjectTemplate[]>([]);
@@ -299,22 +299,25 @@ export default function TemplateMarketplace() {
   const deleteMyTemplate = (id: string) => setMyTemplates(prev => prev.filter(t => t.id !== id));
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <div className="space-y-8 animate-fade-in relative">
+      {/* Background ambient light */}
+      <div className="fixed top-20 right-1/4 w-96 h-96 bg-primary/5 rounded-full blur-[120px] pointer-events-none -z-10 animate-pulse" />
+
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-card/60 backdrop-blur-xl border border-white/10 p-6 rounded-3xl shadow-sm">
         <div>
-          <h1 className="text-2xl font-display font-bold text-foreground flex items-center gap-2">
-            <LayoutTemplate className="h-6 w-6 text-primary" /> Template Marketplace
+          <h1 className="text-3xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-purple-600 flex items-center gap-3">
+            <LayoutTemplate className="h-8 w-8 text-primary animate-bounce-slow" /> Template Marketplace
           </h1>
-          <p className="text-muted-foreground mt-1">{backendTemplates.length} project templates ready to use</p>
+          <p className="text-muted-foreground mt-1 ml-11">{backendTemplates.length} project templates ready to use</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="gap-1.5 border-primary/20 hover:bg-primary/5" onClick={downloadCsvTemplate} title="Download CSV Template Format">
+          <Button variant="outline" className="gap-1.5 border-white/10 hover:bg-card/50 rounded-xl h-10" onClick={downloadCsvTemplate} title="Download CSV Template Format">
             <Download className="h-4 w-4" /> Download Format
           </Button>
-          <Button variant="outline" className="gap-1.5" onClick={() => setShowImport(true)}>
+          <Button variant="outline" className="gap-1.5 border-white/10 hover:bg-card/50 rounded-xl h-10" onClick={() => setShowImport(true)}>
             <FileSpreadsheet className="h-4 w-4" /> Import CSV
           </Button>
-          <Button className="gap-1.5 bg-primary text-primary-foreground shadow-sm hover:shadow-md transition-shadow" onClick={() => setShowCreate(true)}>
+          <Button className="gap-1.5 bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 text-white shadow-lg shadow-primary/25 rounded-xl h-10 hover:-translate-y-0.5 transition-all" onClick={() => setShowCreate(true)}>
             <Plus className="h-4 w-4" /> Create Template
           </Button>
         </div>
@@ -361,25 +364,28 @@ export default function TemplateMarketplace() {
                 ))}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {currentTemplates.map(tmpl => {
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {currentTemplates.map((tmpl, index) => {
                   const CatIcon = categoryIcons[tmpl.category] || LayoutTemplate;
                   return (
-                    <Card key={tmpl.id} className="shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer group hover:border-primary/40 border-border bg-card/60 backdrop-blur-sm" onClick={() => handlePreviewClick(tmpl)}>
-                      <CardContent className="p-5">
+                    <Card key={tmpl.id} className="relative shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.1)] transition-all duration-500 cursor-pointer group border-white/10 hover:-translate-y-1 overflow-hidden rounded-3xl bg-card/60 backdrop-blur-xl animate-in fade-in slide-in-from-bottom-8" style={{ animationDelay: `${index * 50}ms`, animationFillMode: 'both' }} onClick={() => handlePreviewClick(tmpl)}>
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none group-hover:bg-primary/20 transition-colors duration-500"></div>
+                      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                      
+                      <CardContent className="p-6 relative z-10">
                         <div className="flex items-start gap-4">
-                          <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                            <CatIcon className="h-6 w-6 text-primary group-hover:text-primary-foreground transition-colors" />
+                          <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-gradient-to-br group-hover:from-primary group-hover:to-purple-600 group-hover:text-white transition-all duration-300 shadow-sm border border-primary/20">
+                            <CatIcon className="h-6 w-6 text-primary group-hover:text-white transition-colors" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <h3 className="text-base font-semibold truncate group-hover:text-primary transition-colors">{tmpl.name}</h3>
-                              {tmpl.popular && <Star className="h-3.5 w-3.5 text-warning fill-warning shrink-0" />}
+                              <h3 className="text-lg font-bold truncate group-hover:text-primary transition-colors text-foreground leading-snug">{tmpl.name}</h3>
+                              {tmpl.popular && <Star className="h-4 w-4 text-warning fill-warning shrink-0 drop-shadow-sm" />}
                             </div>
-                            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{tmpl.description}</p>
-                            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50">
-                              <Badge variant="secondary" className="text-[10px] font-medium">{tmpl.category}</Badge>
-                              <span className="text-[11px] text-muted-foreground font-medium flex items-center gap-1"><CheckSquare className="h-3 w-3" /> {tmpl.tasks} tasks</span>
+                            <p className="text-sm text-muted-foreground mt-1 line-clamp-2 leading-relaxed">{tmpl.description}</p>
+                            <div className="flex items-center gap-2 mt-4 pt-4 border-t border-white/5">
+                              <Badge variant="secondary" className="text-[10px] font-bold uppercase tracking-wide bg-primary/10 text-primary border-primary/20">{tmpl.category}</Badge>
+                              <span className="text-[11px] text-muted-foreground font-semibold flex items-center gap-1"><CheckSquare className="h-3.5 w-3.5" /> {tmpl.tasks} tasks</span>
                             </div>
                           </div>
                         </div>

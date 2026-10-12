@@ -340,31 +340,33 @@ export default function CalendarMeetings() {
   };
 
   return (
-    <div className="space-y-4 animate-fade-in">
+    <div className="space-y-6 animate-fade-in relative">
+      {/* Background ambient light */}
+      <div className="fixed top-20 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-[120px] pointer-events-none -z-10 animate-pulse" />
+
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-card/60 backdrop-blur-xl border border-white/10 p-6 rounded-3xl shadow-sm">
         <div>
-          <h1 className="text-2xl font-display font-bold text-foreground flex items-center gap-2">
-            <CalendarDays className="h-6 w-6 text-primary" />
+          <h1 className="text-3xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-purple-600 flex items-center gap-3">
+            <CalendarDays className="h-8 w-8 text-primary animate-bounce-slow" />
             Calendar
           </h1>
         </div>
-        <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline" onClick={() => setCurrentDate(new Date())}>Today</Button>
-          <div className="flex items-center gap-1">
-            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => navigate(-1)}><ChevronLeft className="h-4 w-4" /></Button>
-            <span className="text-sm font-semibold text-foreground min-w-[140px] text-center">{monthName}</span>
-            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => navigate(1)}><ChevronRight className="h-4 w-4" /></Button>
+        <div className="flex items-center gap-2 bg-background/50 p-1.5 rounded-2xl border border-white/5 backdrop-blur-sm">
+          <Button size="sm" variant="outline" className="rounded-xl border-white/10 hover:bg-card" onClick={() => setCurrentDate(new Date())}>Today</Button>
+          <div className="flex items-center gap-1 mx-2">
+            <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full hover:bg-card" onClick={() => navigate(-1)}><ChevronLeft className="h-4 w-4" /></Button>
+            <span className="text-sm font-bold text-foreground min-w-[140px] text-center">{monthName}</span>
+            <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full hover:bg-card" onClick={() => navigate(1)}><ChevronRight className="h-4 w-4" /></Button>
           </div>
-          <Tabs value={view} onValueChange={(v) => setView(v as typeof view)}>
-            <TabsList className="h-8">
-              <TabsTrigger value="day" className="text-xs h-6 px-2">Day</TabsTrigger>
-              <TabsTrigger value="week" className="text-xs h-6 px-2">Week</TabsTrigger>
-              <TabsTrigger value="month" className="text-xs h-6 px-2">Month</TabsTrigger>
+          <Tabs value={view} onValueChange={(v) => setView(v as typeof view)} className="bg-transparent">
+            <TabsList className="h-9 bg-card/50 border border-white/5 rounded-xl p-1">
+              <TabsTrigger value="day" className="text-xs h-7 px-3 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">Day</TabsTrigger>
+              <TabsTrigger value="week" className="text-xs h-7 px-3 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">Week</TabsTrigger>
+              <TabsTrigger value="month" className="text-xs h-7 px-3 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">Month</TabsTrigger>
             </TabsList>
           </Tabs>
-          {/* Changed Add Event button to just the + icon */}
-          <Button size="icon" className="gradient-primary text-primary-foreground h-8 w-8 rounded-full" onClick={() => openAddEvent(new Date())}>
+          <Button size="icon" className="bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 text-white shadow-lg shadow-primary/25 h-9 w-9 rounded-xl ml-2 hover:-translate-y-0.5 transition-all" onClick={() => openAddEvent(new Date())}>
             <Plus className="h-4 w-4" />
           </Button>
         </div>
@@ -372,16 +374,16 @@ export default function CalendarMeetings() {
 
       {/* Month View */}
       {view === "month" && (
-        <Card className="shadow-sm border-border overflow-hidden bg-card">
+        <Card className="shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/10 overflow-hidden bg-card/60 backdrop-blur-xl rounded-3xl animate-in fade-in slide-in-from-bottom-8">
           <CardContent className="p-0">
-            <div className="grid grid-cols-7 text-center border-b border-border bg-muted/30">
+            <div className="grid grid-cols-7 text-center border-b border-white/5 bg-background/30">
               {weekDays.map((d) => (
-                <div key={d} className="py-2.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{d}</div>
+                <div key={d} className="py-3 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">{d}</div>
               ))}
             </div>
             <div className="grid grid-cols-7 text-left">
               {Array.from({ length: firstDayOfMonth }).map((_, i) => (
-                <div key={`e-${i}`} className="min-h-[110px] border-b border-r border-border bg-muted/10" />
+                <div key={`e-${i}`} className="min-h-[120px] border-b border-r border-white/5 bg-background/10" />
               ))}
               {Array.from({ length: daysInMonth }).map((_, i) => {
                 const day = i + 1;
@@ -393,26 +395,26 @@ export default function CalendarMeetings() {
                   <div
                     key={day}
                     onClick={() => openAddEvent(cellDate)}
-                    className="min-h-[110px] border-b border-r border-border p-1.5 hover:bg-muted/30 transition-colors cursor-pointer group flex flex-col group"
+                    className="min-h-[120px] border-b border-r border-white/5 p-2 hover:bg-card/80 transition-colors cursor-pointer group flex flex-col relative"
                   >
                     <div className="flex justify-end w-full mb-1">
                       <span className={cn(
-                        "inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] transition-all font-medium", 
-                        isToday ? "bg-primary text-primary-foreground shadow-sm font-bold" : "text-muted-foreground group-hover:bg-muted"
+                        "inline-flex h-7 w-7 items-center justify-center rounded-full text-xs transition-all font-semibold z-10", 
+                        isToday ? "bg-primary text-primary-foreground shadow-md font-bold scale-110" : "text-muted-foreground group-hover:bg-muted"
                       )}>{day}</span>
                     </div>
-                    <div className="space-y-1 w-full flex-1 overflow-y-auto custom-scrollbar pr-0.5">
+                    <div className="space-y-1.5 w-full flex-1 overflow-y-auto custom-scrollbar pr-0.5 z-10">
                       {dayEvents.slice(0, 3).map((ev) => (
                         <div 
                           key={ev.id} 
                           onClick={(e) => { e.stopPropagation(); setSelectedEvent(ev); }} 
-                          className={cn("text-[10px] px-2 py-1 rounded-md truncate text-left shadow-sm hover:shadow-md transition-shadow cursor-pointer font-medium leading-tight flex flex-col gap-0.5", getEventStyles(ev.color))}
+                          className={cn("text-[10px] px-2 py-1.5 rounded-lg truncate text-left shadow-sm hover:shadow-md transition-all cursor-pointer font-medium leading-tight flex flex-col gap-0.5 border border-white/5", getEventStyles(ev.color))}
                         >
                           <span className="truncate">{ev.title}</span>
                           <span className="text-[9px] opacity-80 font-normal">{ev.time}</span>
                         </div>
                       ))}
-                      {dayEvents.length > 3 && <div className="text-[10px] text-muted-foreground text-center font-medium py-0.5 hover:text-foreground transition-colors bg-muted rounded-md">+{dayEvents.length - 3} more</div>}
+                      {dayEvents.length > 3 && <div className="text-[10px] text-muted-foreground text-center font-medium py-1 hover:text-foreground transition-colors bg-background/50 rounded-lg">+{dayEvents.length - 3} more</div>}
                     </div>
                   </div>
                 );

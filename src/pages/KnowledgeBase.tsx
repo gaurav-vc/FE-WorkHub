@@ -53,7 +53,7 @@ export default function KnowledgeBase() {
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [articles, setArticles] = useState<Article[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 9;
   const [loading, setLoading] = useState(true);
 
   // Upload Form
@@ -182,86 +182,62 @@ export default function KnowledgeBase() {
 
   if (selectedArticle) {
     return (
-      <div className="w-full max-w-5xl mx-auto flex flex-col h-[calc(100vh-6rem)] animate-fade-in gap-8 pb-8 relative">
+      <div className="w-full max-w-5xl mx-auto flex flex-col min-h-[calc(100vh-6rem)] animate-fade-in gap-8 pb-8 relative">
         {/* Ambient detail backgrounds */}
         <div className="fixed top-20 left-10 w-72 h-72 bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none -z-10 animate-pulse" />
         <div className="fixed bottom-20 right-10 w-96 h-96 bg-purple-500/10 rounded-full blur-[100px] pointer-events-none -z-10 animate-pulse delay-1000" />
 
-        <div className="shrink-0 pt-4 sticky top-0 z-50 bg-background/80 backdrop-blur-md pb-4 border-b border-border/50">
-          <Button variant="outline" onClick={() => setSelectedArticle(null)} className="gap-2 bg-card/50 backdrop-blur-md border-white/10 shadow-sm hover:shadow-md hover:bg-card/80 transition-all rounded-xl">
+        <div className="shrink-0 pt-2 pb-2 sticky top-0 z-50 bg-background/95 backdrop-blur-xl border-b border-white/10 flex items-center justify-between">
+          <Button variant="ghost" size="sm" onClick={() => setSelectedArticle(null)} className="gap-2 text-muted-foreground hover:text-foreground -ml-2">
             <ArrowLeft className="h-4 w-4" /> Back to articles
           </Button>
-        </div>
-        
-        <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
-          <div className="flex flex-wrap gap-2 mb-4">
-            {(selectedArticle.tags || []).map((t) => (
-              <Badge key={t} variant="secondary" className="text-xs px-3 py-1 rounded-full bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 transition-colors">{t}</Badge>
-            ))}
-            {selectedArticle.category && (
-              <Badge variant="secondary" className="text-xs px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-500 border-indigo-500/20 capitalize">{selectedArticle.category.replace('-', ' ')}</Badge>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" className={cn("gap-1.5 h-8 text-xs rounded-lg transition-colors", selectedArticle.is_helpful ? "bg-indigo-500/10 text-indigo-500 border-indigo-500/30" : "hover:bg-accent")} onClick={() => handleHelpful(selectedArticle.id)}>
+              <ThumbsUp className={cn("h-3.5 w-3.5", selectedArticle.is_helpful && "fill-current animate-bounce-slow")} /> {selectedArticle.helpful_count || 0}
+            </Button>
+            <Button size="sm" variant="outline" className={cn("gap-1.5 h-8 text-xs rounded-lg transition-colors", selectedArticle.is_saved ? "bg-purple-500/10 text-purple-500 border-purple-500/30" : "hover:bg-accent")} onClick={() => handleSave(selectedArticle.id)}>
+              <Bookmark className={cn("h-3.5 w-3.5", selectedArticle.is_saved && "fill-current")} />
+            </Button>
+            <Button size="sm" variant="outline" className="gap-1.5 h-8 text-xs rounded-lg hover:bg-accent" onClick={() => handleShare(selectedArticle.id)}>
+              <Share2 className="h-3.5 w-3.5" />
+            </Button>
+            {selectedArticle.file_url && (
+              <a href={selectedArticle.file_url} target="_blank" rel="noreferrer">
+                <Button size="sm" className="gap-1.5 h-8 text-xs rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:opacity-90 transition-opacity">
+                  <Download className="h-3.5 w-3.5" /> Download
+                </Button>
+              </a>
             )}
           </div>
-          <h1 className="text-4xl md:text-5xl font-display font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-foreground via-foreground/90 to-foreground/70 leading-tight mb-6">
+        </div>
+        
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-3 pt-2">
+          <div className="flex flex-wrap gap-2 items-center">
+            {selectedArticle.category && (
+              <Badge variant="secondary" className="text-[10px] px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-500 border-indigo-500/20 capitalize">{selectedArticle.category.replace('-', ' ')}</Badge>
+            )}
+            {(selectedArticle.tags || []).map((t) => (
+              <Badge key={t} variant="outline" className="text-[10px] px-2 py-0.5 rounded-md text-muted-foreground border-white/10">{t}</Badge>
+            ))}
+          </div>
+          
+          <h1 className="text-3xl sm:text-4xl font-display font-extrabold text-foreground leading-tight">
             {selectedArticle.title}
           </h1>
           
-          <div className="flex items-center gap-6 text-sm text-muted-foreground bg-card/40 backdrop-blur-md p-4 rounded-2xl border border-white/5 w-fit shadow-sm">
-            <div className="flex items-center gap-3">
-              <Avatar className="h-8 w-8 border-2 border-indigo-100 shadow-sm"><AvatarFallback className="text-[10px] bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-bold">{selectedArticle.author?.initials || 'A'}</AvatarFallback></Avatar>
-              <div className="flex flex-col">
-                <span className="font-semibold text-foreground">{selectedArticle.author?.name || 'Anonymous'}</span>
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground/70">Author</span>
-              </div>
+          <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground pt-1">
+            <div className="flex items-center gap-2">
+              <Avatar className="h-5 w-5 border border-indigo-500/20"><AvatarFallback className="text-[8px] bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-bold">{selectedArticle.author?.initials || 'A'}</AvatarFallback></Avatar>
+              <span className="font-semibold text-foreground/80">{selectedArticle.author?.name || 'Anonymous'}</span>
             </div>
-            <div className="w-px h-8 bg-border/50"></div>
-            <div className="flex items-center gap-2 font-medium">
-              <Clock className="h-4 w-4 text-primary/70" /> {selectedArticle.readTime || '1 min'} read
-            </div>
-            <div className="flex items-center gap-2 font-medium">
-              <Eye className="h-4 w-4 text-primary/70" /> {selectedArticle.views || 0} views
-            </div>
+            <div className="w-1 h-1 rounded-full bg-border"></div>
+            <span className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5 text-indigo-500/70" /> {selectedArticle.readTime || '1 min'} read</span>
+            <div className="w-1 h-1 rounded-full bg-border"></div>
+            <span className="flex items-center gap-1.5"><Eye className="h-3.5 w-3.5 text-indigo-500/70" /> {selectedArticle.views || 0} views</span>
           </div>
         </div>
-        
-        <div className="flex flex-wrap gap-3 items-center border-y border-white/10 py-4 animate-in fade-in duration-1000">
-          <Button 
-            size="sm" 
-            variant="outline" 
-            className={cn("gap-2 text-sm rounded-xl transition-all duration-300", selectedArticle.is_helpful ? "bg-indigo-500/10 text-indigo-500 border-indigo-500/30" : "hover:bg-accent")}
-            onClick={() => handleHelpful(selectedArticle.id)}
-          >
-            <ThumbsUp className={cn("h-4 w-4", selectedArticle.is_helpful && "fill-current animate-bounce-slow")} /> {selectedArticle.helpful_count || 0} Helpful
-          </Button>
-          <Button 
-            size="sm" 
-            variant="outline" 
-            className={cn("gap-2 text-sm rounded-xl transition-all duration-300", selectedArticle.is_saved ? "bg-purple-500/10 text-purple-500 border-purple-500/30" : "hover:bg-accent")}
-            onClick={() => handleSave(selectedArticle.id)}
-          >
-            <Bookmark className={cn("h-4 w-4", selectedArticle.is_saved && "fill-current animate-bounce-slow")} /> Save
-          </Button>
-          <Button 
-            size="sm" 
-            variant="outline" 
-            className="gap-2 text-sm rounded-xl hover:bg-accent transition-all duration-300"
-            onClick={() => handleShare(selectedArticle.id)}
-          >
-            <Share2 className="h-4 w-4" /> Share
-          </Button>
-          
-          <div className="flex-1"></div>
-          
-          {selectedArticle.file_url && (
-            <a href={selectedArticle.file_url} target="_blank" rel="noreferrer">
-              <Button size="sm" className="gap-2 text-sm bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-lg shadow-indigo-500/25 rounded-xl hover:-translate-y-0.5 transition-all duration-300">
-                <Download className="h-4 w-4 animate-pulse" /> Download Attachment
-              </Button>
-            </a>
-          )}
-        </div>
 
-        <Card className="shadow-2xl shadow-indigo-500/5 border border-white/10 bg-card/80 backdrop-blur-xl flex-1 overflow-y-auto custom-scrollbar p-8 md:p-12 rounded-3xl animate-in fade-in slide-in-from-bottom-12 duration-700">
+        <Card className="shadow-2xl shadow-indigo-500/5 border border-white/10 bg-card/80 backdrop-blur-xl flex-1 p-8 md:p-12 rounded-3xl animate-in fade-in slide-in-from-bottom-12 duration-700">
           <CardContent className="p-0">
             {selectedArticle.excerpt && <p className="text-xl md:text-2xl font-medium text-foreground/80 mb-10 pb-8 border-b border-border/50 leading-relaxed italic">{selectedArticle.excerpt}</p>}
             {/* Render Text Content if meaningful */}
@@ -429,32 +405,32 @@ export default function KnowledgeBase() {
               <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-70 group-hover:opacity-100 group-hover:h-2 transition-all duration-300"></div>
               <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
               
-              <CardContent className="p-8 flex flex-col flex-1 relative z-10">
-                <div className="flex flex-wrap gap-2 mb-5">
+              <CardContent className="p-6 flex flex-col flex-1 relative z-10">
+                <div className="flex flex-wrap gap-2 mb-4">
                   {article.category && (
-                    <Badge variant="secondary" className="text-xs px-2.5 py-1 rounded-full bg-indigo-500/10 text-indigo-500 border-indigo-500/20 capitalize transition-colors group-hover:bg-indigo-500/20">{article.category.replace('-', ' ')}</Badge>
+                    <Badge variant="secondary" className="text-[10px] px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-500 border-indigo-500/20 capitalize transition-colors group-hover:bg-indigo-500/20">{article.category.replace('-', ' ')}</Badge>
                   )}
                   {article.file_url && (
-                    <Badge variant="secondary" className="text-xs px-2.5 py-1 rounded-full bg-accent/50 text-foreground border-white/10 flex items-center gap-1.5"><FileText className="h-3.5 w-3.5" /> Attachment</Badge>
+                    <Badge variant="secondary" className="text-[10px] px-2 py-0.5 rounded-md bg-accent/50 text-foreground border-white/10 flex items-center gap-1.5"><FileText className="h-3 w-3" /> Attachment</Badge>
                   )}
                 </div>
                 
-                <h3 className="text-xl font-bold text-foreground group-hover:text-indigo-500 transition-colors leading-snug mb-3">
+                <h3 className="text-lg font-bold text-foreground group-hover:text-indigo-500 transition-colors leading-snug mb-2">
                   {article.title}
                 </h3>
                 
-                <p className="text-base text-muted-foreground/90 line-clamp-3 leading-relaxed flex-1">
+                <p className="text-sm text-muted-foreground/90 line-clamp-2 leading-relaxed flex-1">
                   {article.excerpt || 'Click to view details and read the full article.'}
                 </p>
                 
-                <div className="flex items-center justify-between mt-8 pt-5 border-t border-white/5">
-                  <div className="flex items-center gap-3 text-sm font-medium text-foreground/80">
-                    <Avatar className="h-8 w-8 border-2 border-indigo-500/20 shadow-sm"><AvatarFallback className="text-[10px] bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-bold">{article.author?.initials || 'A'}</AvatarFallback></Avatar>
+                <div className="flex items-center justify-between mt-6 pt-4 border-t border-white/5">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-foreground/80">
+                    <Avatar className="h-6 w-6 border border-indigo-500/20 shadow-sm"><AvatarFallback className="text-[8px] bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-bold">{article.author?.initials || 'A'}</AvatarFallback></Avatar>
                     {article.author?.name || 'Anonymous'}
                   </div>
-                  <div className="flex items-center gap-4 text-xs font-semibold text-muted-foreground/70 bg-accent/30 px-3 py-1.5 rounded-xl border border-white/5">
-                    <span className="flex items-center gap-1.5"><Clock className="h-4 w-4 text-indigo-500/70" />{article.readTime || '1 min'}</span>
-                    <span className="flex items-center gap-1.5"><Eye className="h-4 w-4 text-indigo-500/70" />{article.views || 0}</span>
+                  <div className="flex items-center gap-3 text-[10px] font-semibold text-muted-foreground/70 bg-accent/30 px-2 py-1 rounded-lg border border-white/5">
+                    <span className="flex items-center gap-1"><Clock className="h-3 w-3 text-indigo-500/70" />{article.readTime || '1 min'}</span>
+                    <span className="flex items-center gap-1"><Eye className="h-3 w-3 text-indigo-500/70" />{article.views || 0}</span>
                   </div>
                 </div>
               </CardContent>
