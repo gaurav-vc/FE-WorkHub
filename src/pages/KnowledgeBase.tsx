@@ -276,28 +276,30 @@ export default function KnowledgeBase() {
   }
 
   return (
-    <div className="w-full max-w-7xl mx-auto flex flex-col h-[calc(100vh-6rem)] animate-fade-in gap-8 pb-8 relative">
+    <div className="w-full max-w-7xl mx-auto space-y-6 pb-20 animate-fade-in relative pt-1">
       {/* Background ambient light */}
       <div className="fixed top-0 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[120px] pointer-events-none -z-10 animate-pulse" />
       <div className="fixed bottom-0 right-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none -z-10 animate-pulse delay-1000" />
       
       {/* Header section with glassmorphic container */}
-      <div className="relative rounded-3xl p-8 overflow-hidden bg-gradient-to-br from-card/80 to-background/50 border border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-xl">
+      <div className="relative rounded-2xl p-6 md:p-8 overflow-hidden bg-gradient-to-br from-card/80 to-background/50 border border-white/10 shadow-lg backdrop-blur-xl">
         <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/20 rounded-full blur-3xl animate-pulse" />
         
         <div className="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
-          <div className="space-y-2">
-            <h1 className="text-4xl font-display font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-primary flex items-center gap-3">
-              <BookOpen className="h-10 w-10 text-indigo-500 animate-bounce-slow" />
+          <div className="space-y-1">
+            <h1 className="text-3xl md:text-4xl font-display font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-primary flex items-center gap-3">
+              <BookOpen className="h-9 w-9 text-indigo-500 animate-bounce-slow" />
               Knowledge Base
             </h1>
-            <p className="text-muted-foreground font-medium pl-14 text-lg">Search and browse company documentation, guides, and policies</p>
+            <p className="text-xs md:text-sm text-muted-foreground font-medium pl-12">
+              Explore resources, articles, and guides ({articles.length} items)
+            </p>
           </div>
           
           <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg shadow-indigo-500/25 h-12 px-6 rounded-xl hover:-translate-y-1 transition-all duration-300">
-                <Plus className="h-5 w-5" /> Add Knowledge
+              <Button className="gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg shadow-indigo-500/25 h-11 px-5 rounded-xl hover:-translate-y-0.5 transition-all duration-300 text-sm font-semibold">
+                <Plus className="h-4 w-4" /> Add Knowledge
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl border-white/10 bg-card/95 backdrop-blur-xl shadow-2xl">
@@ -351,36 +353,42 @@ export default function KnowledgeBase() {
         </div>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-6 items-center w-full">
+      {/* Unified Search and Category Control Bar */}
+      <div className="bg-card/60 backdrop-blur-xl border border-white/10 p-3 sm:p-4 rounded-2xl shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
         {/* Search */}
-        <div className="relative w-full md:w-96 group">
-          <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 rounded-2xl blur-md transition-all duration-500 group-hover:blur-lg opacity-0 group-hover:opacity-100" />
-          <Search className="absolute left-4 top-3.5 h-5 w-5 text-muted-foreground group-focus-within:text-indigo-500 transition-colors z-10" />
+        <div className="relative w-full md:w-80 shrink-0 group">
+          <Search className="absolute left-3.5 top-3 h-4 w-4 text-muted-foreground group-focus-within:text-indigo-500 transition-colors z-10" />
           <Input
             placeholder="Search articles, guides, policies..."
             value={search}
             onChange={handleSearchChange}
-            className="relative pl-12 h-12 rounded-2xl bg-card/60 backdrop-blur-xl border border-white/10 shadow-inner focus-visible:ring-indigo-500/50 transition-all text-base"
+            className="pl-10 h-10 rounded-xl bg-background/50 border-white/10 focus-visible:ring-indigo-500/50 text-sm"
           />
         </div>
 
-        {/* Category Pills */}
-        <div className="flex flex-wrap gap-2 w-full md:flex-1 overflow-x-auto custom-scrollbar pb-2 md:pb-0 hide-scrollbar">
+        {/* Category Pills - Clean single-row alignment with smooth horizontal scroll */}
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 flex-1 md:justify-end">
           {categories.map((cat) => {
             const count = cat.id === 'all' ? articles.length : articles.filter(a => a.category?.toLowerCase() === cat.id).length;
+            const isActive = activeCategory === cat.id;
             return (
               <button
                 key={cat.id}
                 onClick={() => handleCategoryChange(cat.id)}
                 className={cn(
-                  "px-5 py-2.5 rounded-2xl text-sm font-semibold transition-all duration-300 border flex items-center gap-2 flex-shrink-0",
-                  activeCategory === cat.id
-                    ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white border-transparent shadow-lg shadow-indigo-500/25 scale-105"
-                    : "bg-card/60 text-muted-foreground border-white/10 hover:bg-card/80 hover:border-white/20 hover:scale-105 backdrop-blur-xl"
+                  "h-10 px-4 rounded-xl text-xs font-semibold transition-all duration-200 border flex items-center gap-2 shrink-0 whitespace-nowrap",
+                  isActive
+                    ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white border-transparent shadow-md shadow-indigo-500/20"
+                    : "bg-background/50 text-muted-foreground border-white/10 hover:bg-card hover:text-foreground"
                 )}
               >
                 {cat.name} 
-                <span className={cn("px-2 py-0.5 rounded-full text-xs font-bold", activeCategory === cat.id ? "bg-white/20 text-white" : "bg-muted text-muted-foreground")}>{count}</span>
+                <span className={cn(
+                  "px-1.5 py-0.5 rounded-full text-[10px] font-bold min-w-[18px] text-center",
+                  isActive ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"
+                )}>
+                  {count}
+                </span>
               </button>
             );
           })}
@@ -394,7 +402,7 @@ export default function KnowledgeBase() {
           <p className="text-xl font-medium animate-pulse">Curating knowledge base...</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {currentArticles.map((article, index) => (
             <Card
               key={article.id}

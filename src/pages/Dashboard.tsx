@@ -63,29 +63,29 @@ export default function Dashboard() {
     }
   };
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const dashboardData = await getMyDayDashboard();
       setData(dashboardData);
     } catch (err) {
       console.error(err);
-      toast.error("An error occurred while fetching dashboard data");
+      if (!silent) toast.error("An error occurred while fetching dashboard data");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
     if (token) {
       fetchDashboardData();
-      const handleSync = () => fetchDashboardData();
+      const handleSync = () => fetchDashboardData(true);
       window.addEventListener('tasks-updated', handleSync);
       return () => window.removeEventListener('tasks-updated', handleSync);
     }
   }, [token]);
 
-  if (loading) {
+  if (loading && !data) {
     return (
       <div className="flex h-[50vh] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -135,7 +135,7 @@ export default function Dashboard() {
     try {
       await submitApprovalAction(rawId, action);
       toast.success(`Request ${action}d successfully`);
-      fetchDashboardData();
+      fetchDashboardData(true);
     } catch (e) {
       toast.error("An error occurred");
     }
@@ -161,30 +161,44 @@ export default function Dashboard() {
 
   const handleStatusChange = async (taskId: string, newStatus: string) => {
     if (updatingTasks.has(taskId)) {
-      toast.info("Wait, task is updating");
       return;
     }
     setUpdatingTasks(prev => new Set(prev).add(taskId));
+    const previousSnapshot = data;
     try {
       // Optimistic update
       setData((prev: any) => {
         if (!prev) return prev;
-        const updatedMyTasks = prev.todayTasks.map((t: any) => t.id === taskId ? { ...t, status: newStatus } : t);
+        const target = (prev.todayTasks || []).find((t: any) => String(t.id) === String(taskId));
+        const wasDone = target && (target.status === 'completed' || target.status === 'done');
+        const isNowDone = newStatus === 'completed' || newStatus === 'done';
+        let tasksDueDiff = 0;
+        if (!wasDone && isNowDone) tasksDueDiff = -1;
+        else if (wasDone && !isNowDone) tasksDueDiff = 1;
+
+        const updatedMyTasks = (prev.todayTasks || []).map((t: any) => 
+          String(t.id) === String(taskId) ? { ...t, status: newStatus } : t
+        );
         updatedMyTasks.sort((a: any, b: any) => {
           const aDone = a.status === 'completed' || a.status === 'done' ? 1 : 0;
           const bDone = b.status === 'completed' || b.status === 'done' ? 1 : 0;
           if (aDone !== bDone) return aDone - bDone;
           return 0; // maintain relative order
         });
-        return { ...prev, todayTasks: updatedMyTasks };
+        return { 
+          ...prev, 
+          todayTasks: updatedMyTasks,
+          summaryStats: {
+            ...prev.summaryStats,
+            tasksDue: Math.max(0, (prev.summaryStats?.tasksDue || 0) + tasksDueDiff)
+          }
+        };
       });
       await updateTask(taskId, { status: newStatus as any });
       toast.success("Task status updated");
-      // Fire a custom event so company pulse can sync
-      window.dispatchEvent(new Event('tasks-updated'));
     } catch (e) {
-      toast.error("Wait, task is updating");
-      fetchDashboardData(); // revert
+      toast.error("Failed to update status");
+      if (previousSnapshot) setData(previousSnapshot); // revert
     } finally {
       setUpdatingTasks(prev => {
         const next = new Set(prev);

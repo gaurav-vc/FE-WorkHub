@@ -30,13 +30,29 @@ import { useLocation } from "react-router-dom";
 export default function TeamChat() {
   const { token, username, fullName } = useAuth();
   const location = useLocation();
-  const [activeChannel, setActiveChannel] = useState<string | null>(null);
+  const [activeChannel, setActiveChannel] = useState<string | null>(() => {
+    return sessionStorage.getItem('last_active_channel') || null;
+  });
   const [message, setMessage] = useState("");
   const [showChannels, setShowChannels] = useState(true);
   const [channelSearch, setChannelSearch] = useState("");
 
-  const [chatChannels, setChatChannels] = useState<any[]>([]);
-  const [chatMessages, setChatMessages] = useState<Record<string, any[]>>({});
+  const [chatChannels, setChatChannels] = useState<any[]>(() => {
+    try {
+      const cached = sessionStorage.getItem('cached_chat_channels');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [chatMessages, setChatMessages] = useState<Record<string, any[]>>(() => {
+    try {
+      const cached = sessionStorage.getItem('cached_chat_messages');
+      return cached ? JSON.parse(cached) : {};
+    } catch {
+      return {};
+    }
+  });
   
   const [showCreateChannel, setShowCreateChannel] = useState(false);
   const [newChannelName, setNewChannelName] = useState("");
@@ -67,13 +83,21 @@ export default function TeamChat() {
     if (token) {
       try {
         const data = await getChatChannels();
-        const channels = data.results || data;
+        const channels = data.results || data || [];
         setChatChannels(channels);
+        try {
+          sessionStorage.setItem('cached_chat_channels', JSON.stringify(channels));
+        } catch (e) {}
         
         if (location.state?.activeChannelId) {
           setActiveChannel(location.state.activeChannelId);
-        } else if (channels.length > 0 && !activeChannel) {
-          setActiveChannel(channels[0].id);
+          sessionStorage.setItem('last_active_channel', location.state.activeChannelId);
+        } else if (!activeChannel && channels.length > 0) {
+          const savedActive = sessionStorage.getItem('last_active_channel');
+          const found = savedActive && channels.some((c: any) => c.id.toString() === savedActive.toString());
+          const target = found ? savedActive : channels[0].id;
+          setActiveChannel(target);
+          sessionStorage.setItem('last_active_channel', target);
         }
       } catch (err) {
         console.error(err);
@@ -121,7 +145,11 @@ export default function TeamChat() {
           setChatMessages(prev => {
             const prevMsgs = prev[channelId] || [];
             if (prevMsgs.find(m => m.id === msg.id)) return prev;
-            return { ...prev, [channelId]: [...prevMsgs, msg] };
+            const updated = { ...prev, [channelId]: [...prevMsgs, msg] };
+            try {
+              sessionStorage.setItem('cached_chat_messages', JSON.stringify(updated));
+            } catch (e) {}
+            return updated;
           });
         } else if (data.type === 'new_channel') {
            fetchChannels();
@@ -159,13 +187,21 @@ export default function TeamChat() {
     if (!token || !activeChannel) return;
     
     const fetchMessages = async () => {
-      // Only show loading if we don't have these messages yet
-      if (!chatMessages[activeChannel]) {
+      // Only show loading skeleton if we have zero cached messages for this channel
+      const cached = chatMessages[activeChannel];
+      if (!cached || cached.length === 0) {
         setIsLoadingMessages(true);
       }
       try {
         const data = await getChatMessages(activeChannel.toString());
-        setChatMessages(prev => ({ ...prev, [activeChannel]: data.results || data }));
+        const newMsgs = data.results || data || [];
+        setChatMessages(prev => {
+          const updated = { ...prev, [activeChannel]: newMsgs };
+          try {
+            sessionStorage.setItem('cached_chat_messages', JSON.stringify(updated));
+          } catch (e) {}
+          return updated;
+        });
       } catch (err) {
         console.error(err);
       } finally {
@@ -174,6 +210,7 @@ export default function TeamChat() {
     };
 
     fetchMessages();
+    sessionStorage.setItem('last_active_channel', activeChannel.toString());
     
     // Mark channel as read
     markChannelRead(activeChannel.toString()).then(() => {
@@ -221,7 +258,11 @@ export default function TeamChat() {
           // Replace temp message with actual message
           const filtered = channelMsgs.filter(m => m.id !== tempId);
           if (filtered.some((m: any) => m.id === newMessage.id)) return prev;
-          return { ...prev, [activeChannel]: [...filtered, newMessage] };
+          const updated = { ...prev, [activeChannel]: [...filtered, newMessage] };
+          try {
+            sessionStorage.setItem('cached_chat_messages', JSON.stringify(updated));
+          } catch (e) {}
+          return updated;
         });
       }
     } catch (e) {
@@ -354,7 +395,11 @@ export default function TeamChat() {
                 {dmChannels.map((ch) => (
                   <button
                     key={ch.id}
-                    onClick={() => { setActiveChannel(ch.id); setShowChannels(false); }}
+                    onClick={() => { 
+                      setActiveChannel(ch.id); 
+                      sessionStorage.setItem('last_active_channel', ch.id.toString());
+                      setShowChannels(false); 
+                    }}
                     className={cn(
                       "w-full flex items-center gap-3 px-2 py-2 rounded-lg text-sm transition-all text-left group",
                       activeChannel === ch.id
@@ -398,7 +443,11 @@ export default function TeamChat() {
                 {groupChannels.map((ch) => (
                   <button
                     key={ch.id}
-                    onClick={() => { setActiveChannel(ch.id); setShowChannels(false); }}
+                    onClick={() => { 
+                      setActiveChannel(ch.id); 
+                      sessionStorage.setItem('last_active_channel', ch.id.toString());
+                      setShowChannels(false); 
+                    }}
                     className={cn(
                       "w-full flex items-center gap-3 px-2 py-2 rounded-lg text-sm transition-all text-left group",
                       activeChannel === ch.id

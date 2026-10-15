@@ -133,6 +133,7 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
         assigneeIds: assigneeIdsToSubmit,
         priority: priority || "P3 Medium",
         project: projectId && projectId !== "general" ? projectId.toString() : "",
+        project_id: projectId && projectId !== "general" && !isNaN(Number(projectId)) ? Number(projectId) : undefined,
         startDate: startDate || null,
         dueDate: dueDate || new Date().toISOString().split('T')[0],
         dueTime: dueTime || null,

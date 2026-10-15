@@ -20,7 +20,7 @@ interface TaskContextType {
   selectedTask: Task | null;
   setSelectedTask: (task: Task | null) => void;
   isLoadingTasks: boolean;
-  fetchTasks: (filters?: any) => Promise<void>;
+  fetchTasks: (filters?: any, silent?: boolean) => Promise<void>;
   fetchTaskDetails: (id: string) => Promise<void>;
   totalTasks: number;
   totalPages: number;
@@ -61,8 +61,8 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       startDate: formatDate(t.start_date || t.created_at || t.startDate),
       createdDate: formatDate(t.created_at || t.createdDate),
       createdTime: t.created_at ? new Date(t.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "",
-      dueTime: t.dueTime || t.due_time || "",
-      rawDueTime: t.raw_due_time || "",
+      dueTime: (t.due_time || (t.dueTime && t.dueTime !== 'EOD' ? t.dueTime : "")),
+      rawDueTime: t.raw_due_time || (t.due_time && t.due_time !== 'EOD' ? t.due_time : ""),
       project_id: t.project_id || "",
       assignees: (t.assignees_detail && t.assignees_detail.length > 0) ? t.assignees_detail.map((a: any) => ({
         id: a.id,
@@ -86,6 +86,8 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       estimatedEffort: t.estimated_effort !== undefined ? t.estimated_effort : (t.estimatedEffort || t.duration || 3),
       effortUnit: t.effort_unit || t.effortUnit || "hours",
       actualEffort: t.actual_effort || t.actualEffort || 0,
+      isUrgent: Boolean(t.isUrgent ?? t.is_urgent ?? false),
+      is_urgent: Boolean(t.isUrgent ?? t.is_urgent ?? false),
     };
     
     // Map status from backend to frontend
@@ -98,18 +100,48 @@ export function TaskProvider({ children }: { children: ReactNode }) {
   };
 
   const lastFiltersRef = React.useRef<any>({});
+  const inFlightStatusUpdatesRef = React.useRef<Map<string, string>>(new Map());
   
-  const fetchTasks = async (filters: any = {}) => {
+  const fetchTasks = async (filters: any = {}, silent: boolean = false) => {
     lastFiltersRef.current = filters;
-    setIsLoadingTasks(true);
+    if (!silent) {
+      setIsLoadingTasks(true);
+    }
     try {
       const data = await getTasks(filters);
-      const rawTasks = data.results || data;
-      setTasks(rawTasks.map(mapTaskFromApi));
-      if (data.count !== undefined) {
+      const rawTasks = Array.isArray(data) ? data : (data?.results && Array.isArray(data.results)) ? data.results : [];
+      if (rawTasks.length > 0 || !silent) {
+        setTasks((prevTasks) => {
+          const prevMap = new Map(prevTasks.map(t => [t.id.toString(), t]));
+          return rawTasks.map((raw: any) => {
+            const mapped = mapTaskFromApi(raw);
+            const prev = prevMap.get(mapped.id.toString());
+            
+            // If there is an in-flight status update for this task, preserve it!
+            const inFlightStatus = inFlightStatusUpdatesRef.current.get(mapped.id.toString());
+            const finalStatus = inFlightStatus || mapped.status;
+
+            if (prev) {
+              return {
+                ...mapped,
+                status: finalStatus,
+                chats: (mapped.chats && mapped.chats.length > 0) ? mapped.chats : (prev.chats || []),
+                chat: (mapped.chat && mapped.chat.length > 0) ? mapped.chat : (prev.chat || []),
+                comments: (mapped.comments && mapped.comments.length > 0) ? mapped.comments : (prev.comments || []),
+                attachments: (mapped.attachments && mapped.attachments.length > 0) ? mapped.attachments : (prev.attachments || []),
+                subtasks: (mapped.subtasks && mapped.subtasks.length > 0) ? mapped.subtasks : (prev.subtasks || []),
+                checklist: (mapped.checklist && mapped.checklist.length > 0) ? mapped.checklist : (prev.checklist || []),
+                checklists: (mapped.checklists && mapped.checklists.length > 0) ? mapped.checklists : (prev.checklists || []),
+              };
+            }
+            return { ...mapped, status: finalStatus };
+          });
+        });
+      }
+      if (data?.count !== undefined) {
         setTotalTasks(data.count);
         setTotalPages(Math.ceil(data.count / 12));
-      } else {
+      } else if (rawTasks.length > 0) {
         setTotalTasks(rawTasks.length);
         setTotalPages(1);
       }
@@ -134,7 +166,9 @@ export function TaskProvider({ children }: { children: ReactNode }) {
         console.error("Failed to fetch tasks", err);
       }
     } finally {
-      setIsLoadingTasks(false);
+      if (!silent) {
+        setIsLoadingTasks(false);
+      }
     }
   };
 
@@ -144,9 +178,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       if (res) {
         const mapped = mapTaskFromApi(res);
         setTasks((prev) => prev.map((t) => (t.id.toString() === id.toString() ? { ...t, ...mapped } : t)));
-        if (selectedTask?.id.toString() === id.toString()) {
-          setSelectedTask((prev) => prev ? { ...prev, ...mapped } : mapped);
-        }
+        setSelectedTask((prev) => (prev && prev.id.toString() === id.toString() ? { ...prev, ...mapped } : prev));
       }
     } catch (err) {
       console.error("Failed to fetch task details:", err);
@@ -182,8 +214,8 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       const handleSync = () => {
         if (fetchTimeout) clearTimeout(fetchTimeout);
         fetchTimeout = setTimeout(() => {
-          fetchTasks(lastFiltersRef.current);
-        }, 800);
+          fetchTasks(lastFiltersRef.current, true); // Silent background fetch without loader
+        }, 600);
       };
       
       window.addEventListener('tasks-updated', handleSync);
@@ -227,9 +259,28 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       if (task.dueDate) apiPayload.due_date = task.dueDate;
       else apiPayload.due_date = new Date().toISOString().split('T')[0]; // Required by backend
       
-      if (task.dueTime) apiPayload.due_time = task.dueTime;
-      if (task.project) {
-        apiPayload.project_id = task.project;
+      if (task.dueTime && task.dueTime !== "EOD") {
+        apiPayload.due_time = task.dueTime;
+      } else {
+        apiPayload.due_time = null;
+      }
+      
+      const rawPid = (task as any).project_id && String((task as any).project_id).trim() !== "" 
+        ? (task as any).project_id 
+        : task.project;
+      
+      if (rawPid !== undefined && rawPid !== null && String(rawPid).trim() !== "") {
+        const strVal = String(rawPid).trim();
+        const num = Number(strVal);
+        if (!isNaN(num) && Number.isInteger(num) && num > 0) {
+          apiPayload.project_id = num;
+          delete apiPayload.project;
+        } else {
+          apiPayload.project = strVal;
+          delete apiPayload.project_id;
+        }
+      } else {
+        delete apiPayload.project_id;
         delete apiPayload.project;
       }
 
@@ -237,6 +288,10 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       if (task.estimatedEffort) apiPayload.duration = task.estimatedEffort;
       
       const anyTask: any = task;
+      if (task.isUrgent !== undefined) {
+        apiPayload.is_urgent = task.isUrgent;
+        apiPayload.isUrgent = task.isUrgent;
+      }
       if (anyTask.assigneeIds && anyTask.assigneeIds.length > 0) {
           apiPayload.assigned_to = anyTask.assigneeIds[0];
           apiPayload.assignees = anyTask.assigneeIds;
@@ -247,7 +302,22 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       else if (task.status === "blocked") apiPayload.status = "delayed";
       
       const newTask = await createTask(apiPayload);
-      setTasks((prev) => [...prev, { ...task, ...mapTaskFromApi(newTask), id: newTask.id || task.id }]);
+      const mapped = { ...task, ...mapTaskFromApi(newTask), id: newTask.id || task.id };
+      
+      // Prepend so the newly added task appears at the top immediately!
+      setTasks((prev) => [mapped, ...prev]);
+      
+      // Dynamically update totalTasks and statusCounts immediately
+      setTotalTasks((prev) => prev + 1);
+      const statusKey = mapped.status === "done" ? "done" : mapped.status === "in-progress" ? "inProgress" : mapped.status === "blocked" ? "blocked" : "todo";
+      setStatusCounts((prev) => ({
+        ...prev,
+        [statusKey]: (prev[statusKey as keyof typeof prev] || 0) + 1,
+      }));
+
+      // Broadcast task-created event so any subscriber updates immediately
+      window.dispatchEvent(new CustomEvent('task-created', { detail: mapped }));
+
       toast.success("Task created");
       return true;
     } catch (err) {
@@ -258,7 +328,12 @@ export function TaskProvider({ children }: { children: ReactNode }) {
   };
 
   const updateTask = async (id: string, updates: Partial<Task>) => {
+    let prevTask: Task | undefined;
+    if (updates.status) {
+      inFlightStatusUpdatesRef.current.set(id.toString(), updates.status);
+    }
     setTasks((prev) => {
+      prevTask = prev.find((t) => t.id.toString() === id.toString());
       const updated = prev.map((t) => (t.id.toString() === id.toString() ? { ...t, ...updates } : t));
       if (updates.status) {
         return updated.sort((a, b) => {
@@ -270,8 +345,28 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       }
       return updated;
     });
+
     if (selectedTask?.id.toString() === id.toString()) {
       setSelectedTask((prev) => prev ? { ...prev, ...updates } : prev);
+    }
+
+    // Instantly update statusCounts if status changed
+    if (updates.status && prevTask && prevTask.status !== updates.status) {
+      const getStatusKey = (s: string) => {
+        if (s === 'done' || s === 'completed') return 'done';
+        if (s === 'in-progress' || s === 'in_progress') return 'inProgress';
+        if (s === 'blocked' || s === 'delayed') return 'blocked';
+        return 'todo';
+      };
+      const oldKey = getStatusKey(prevTask.status);
+      const newKey = getStatusKey(updates.status);
+      if (oldKey !== newKey) {
+        setStatusCounts((prev) => ({
+          ...prev,
+          [oldKey]: Math.max(0, (prev[oldKey as keyof typeof prev] || 0) - 1),
+          [newKey]: (prev[newKey as keyof typeof prev] || 0) + 1,
+        }));
+      }
     }
 
     const apiPayload: any = { ...updates };
@@ -283,19 +378,47 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     delete apiPayload.dependent_tasks_legacy;
     
     if (updates.dueDate !== undefined) apiPayload.due_date = updates.dueDate;
-    if (updates.dueTime !== undefined) apiPayload.due_time = updates.dueTime;
-    if (updates.project !== undefined) {
-      apiPayload.project_id = updates.project;
+    if (updates.dueTime !== undefined) {
+      const dt = updates.dueTime;
+      if (!dt || dt === "EOD" || dt === "null" || dt === "undefined") {
+        apiPayload.due_time = null;
+      } else {
+        apiPayload.due_time = dt;
+      }
+    }
+    const rawUpdatePid = (updates as any).project_id && String((updates as any).project_id).trim() !== ""
+      ? (updates as any).project_id
+      : updates.project;
+
+    if (rawUpdatePid !== undefined && rawUpdatePid !== null && String(rawUpdatePid).trim() !== "") {
+      const strVal = String(rawUpdatePid).trim();
+      const num = Number(strVal);
+      if (!isNaN(num) && Number.isInteger(num) && num > 0) {
+        apiPayload.project_id = num;
+        delete apiPayload.project;
+      } else {
+        apiPayload.project = strVal;
+        delete apiPayload.project_id;
+      }
+    } else if ((updates as any).project_id !== undefined || updates.project !== undefined) {
+      delete apiPayload.project_id;
       delete apiPayload.project;
     }
     if (updates.startDate !== undefined) apiPayload.start_date = updates.startDate;
     if (updates.estimatedEffort !== undefined) apiPayload.duration = updates.estimatedEffort;
+    
+    if (updates.isUrgent !== undefined) {
+      apiPayload.is_urgent = updates.isUrgent;
+      apiPayload.isUrgent = updates.isUrgent;
+    }
     
     const anyUpdates: any = updates;
     if (anyUpdates.assigneeIds !== undefined) {
         if (anyUpdates.assigneeIds.length > 0) {
             apiPayload.assigned_to = anyUpdates.assigneeIds[0];
             apiPayload.assignees = anyUpdates.assigneeIds;
+        } else if (anyUpdates.taskType === 'self') {
+            // Keep self task assigned, never nullify
         } else {
             apiPayload.assigned_to = null;
             apiPayload.assignees = [];
@@ -307,40 +430,54 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     else if (updates.status === "blocked") apiPayload.status = "delayed";
     else if (updates.status === "done") apiPayload.status = "completed";
     
-    console.log("Sending update to backend:", id, apiPayload);
-    
-    // Pass snake_case payload
-    const updatePromise = updateTaskApi(id, apiPayload);
-    
-    toast.promise(updatePromise, {
-      loading: 'Wait, The task is updating...',
-      success: 'Task successfully updated!',
-      error: (err: any) => `Failed to update task: ${err.message || 'Unknown error'}`
-    });
-
     try {
-      await updatePromise;
-      console.log("Update successful, refetch scheduled...");
-      // Re-fetch is handled by tasks-updated event which is already debounced
+      const res = await updateTaskApi(id, apiPayload);
+      inFlightStatusUpdatesRef.current.delete(id.toString());
+      if (res) {
+        const mapped = mapTaskFromApi(res);
+        setTasks((prev) => prev.map((t) => (t.id.toString() === id.toString() ? { ...t, ...mapped } : t)));
+        setSelectedTask((prev) => (prev && prev.id.toString() === id.toString() ? { ...prev, ...mapped } : prev));
+      }
       return true;
     } catch (err: any) {
+      inFlightStatusUpdatesRef.current.delete(id.toString());
       console.error("Update task failed:", err);
+      toast.error(`Failed to update task: ${err.message || 'Server error'}`);
+      // Revert if failed
+      if (prevTask) {
+        setTasks((prev) => prev.map((t) => t.id.toString() === id.toString() ? prevTask! : t));
+      }
       if (fetchTimeout) clearTimeout(fetchTimeout);
-      fetchTimeout = setTimeout(() => fetchTasks(), 500);
+      fetchTimeout = setTimeout(() => fetchTasks(lastFiltersRef.current, true), 300);
       return false;
     }
   };
 
   const deleteTask = async (id: string) => {
-    setTasks((prev) => prev.filter((t) => t.id.toString() !== id.toString()));
+    let deletedTask: Task | undefined;
+    setTasks((prev) => {
+      deletedTask = prev.find((t) => t.id.toString() === id.toString());
+      return prev.filter((t) => t.id.toString() !== id.toString());
+    });
     if (selectedTask?.id.toString() === id.toString()) setSelectedTask(null);
+
+    if (deletedTask) {
+      setTotalTasks((prev) => Math.max(0, prev - 1));
+      const s = deletedTask.status;
+      const key = s === "done" ? "done" : s === "in-progress" ? "inProgress" : s === "blocked" ? "blocked" : "todo";
+      setStatusCounts((prev) => ({
+        ...prev,
+        [key]: Math.max(0, (prev[key as keyof typeof prev] || 0) - 1),
+      }));
+    }
 
     try {
       await deleteTaskApi(id);
+      window.dispatchEvent(new CustomEvent('task-deleted', { detail: { id } }));
       toast.success("Task deleted");
     } catch (err) {
       toast.error("Failed to delete task");
-      fetchTasks();
+      fetchTasks(lastFiltersRef.current, true);
     }
   };
 

@@ -76,19 +76,40 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
     tags: [] as string[],
   };
 
-  const [form, setForm] = useState(editTask ? {
-    title: editTask.title, description: editTask.description, taskType: editTask.taskType,
-    type: editTask.type || "", platform: editTask.platform || "",
-    priority: editTask.priority, project: (editTask as any).project_id?.toString() || "", dueDate: editTask.dueDate,
-    dueTime: ((editTask as any).rawDueTime || editTask.dueTime || "").substring(0, 5), startDate: editTask.startDate,
-    estimatedEffort: editTask.estimatedEffort, effortUnit: editTask.effortUnit as "hours" | "days" | "minutes" | "weeks" || "hours",
-    timeIntervalMinutes: editTask.timeIntervalMinutes || 60,
-    isUrgent: editTask.isUrgent, assigneeIds: editTask.assignees.map(a => {
-      // In real scenario we match by id, for fallback match initials
-      const found = teamMembers.find(m => m.initials === a.initials);
-      return found?.id || a.initials;
-    }), dependencies: editTask.dependencies || [], tags: editTask.tags || [],
-  } : defaultForm);
+  const getInitialForm = (task?: Task | null) => {
+    if (!task) return defaultForm;
+    const taskAssignees = task.assignees || [];
+    const isUrgentVal = Boolean(task.isUrgent ?? (task as any).is_urgent ?? false);
+    const projId = (task as any).project_id?.toString() || (task.project && projects.find(p => p.name === task.project)?.id?.toString()) || "";
+    
+    const mappedAssigneeIds = taskAssignees.map(a => {
+      if ((a as any).id) return (a as any).id.toString();
+      const found = teamMembers.find(m => m.initials === a.initials || m.name === a.name);
+      return found?.id?.toString() || a.initials;
+    });
+
+    return {
+      title: task.title || "",
+      description: task.description || "",
+      taskType: task.taskType || (mappedAssigneeIds.length > 0 && taskAssignees.some(a => a.name !== username) ? "assign" : "self"),
+      type: task.type || "",
+      platform: task.platform || "",
+      priority: task.priority || "P3",
+      project: projId,
+      dueDate: task.dueDate || "",
+      dueTime: ((task as any).rawDueTime || (task.dueTime !== "EOD" ? task.dueTime : "") || "").substring(0, 5),
+      startDate: task.startDate || "",
+      estimatedEffort: task.estimatedEffort || 0,
+      effortUnit: (task.effortUnit as "hours" | "days" | "minutes" | "weeks") || "hours",
+      timeIntervalMinutes: task.timeIntervalMinutes || 60,
+      isUrgent: isUrgentVal,
+      assigneeIds: mappedAssigneeIds,
+      dependencies: task.dependencies || [],
+      tags: task.tags || [],
+    };
+  };
+
+  const [form, setForm] = useState(getInitialForm(editTask));
 
   const [repeat, setRepeat] = useState<RepeatConfig>(editTask?.repeat || { enabled: false, type: "daily" });
   const [checklist, setChecklist] = useState<ChecklistItem[]>(editTask?.checklist || []);
@@ -103,18 +124,7 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
   useEffect(() => {
     if (open) {
       if (editTask) {
-        setForm({
-          title: editTask.title || "", description: editTask.description || "", taskType: editTask.taskType || "self",
-          type: editTask.type || "", platform: editTask.platform || "",
-          priority: editTask.priority || "P3", project: (editTask as any).project_id?.toString() || "", dueDate: editTask.dueDate || "",
-          dueTime: ((editTask as any).rawDueTime || editTask.dueTime || "").substring(0, 5), startDate: editTask.startDate || "",
-          estimatedEffort: editTask.estimatedEffort || 0, effortUnit: editTask.effortUnit as "hours" | "days" | "minutes" | "weeks" || "hours",
-          timeIntervalMinutes: editTask.timeIntervalMinutes || 60,
-          isUrgent: editTask.isUrgent || false, assigneeIds: (editTask.assignees || []).map(a => {
-            const found = teamMembers.find(m => m.initials === a.initials);
-            return found?.id || a.initials;
-          }), dependencies: editTask.dependencies || [], tags: editTask.tags || [],
-        });
+        setForm(getInitialForm(editTask));
         setRepeat(editTask.repeat || { enabled: false, type: "daily" });
         setChecklist(editTask.checklist || []);
         setSubtasks(editTask.subtasks || []);
@@ -128,7 +138,7 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
       setNewTag("");
       setAttachment(null);
     }
-  }, [open, editTask, teamMembers]);
+  }, [open, editTask, teamMembers, projects]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -141,35 +151,66 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
       toast.error("Please select a project before adding the task.");
       return;
     }
+
+    const currentUserId = localStorage.getItem('user_id') || teamMembers.find(m => m.name === username || m.username === username)?.id;
+    const selfAssignee = {
+      id: currentUserId || undefined,
+      name: username || "User",
+      initials: username ? username.substring(0, 2).toUpperCase() : "U"
+    };
+
     const assignees = form.taskType === "self"
-      ? [{ name: username || "User", initials: username ? username.substring(0, 2).toUpperCase() : "U" }]
+      ? (editTask?.assignees?.length && editTask.assignees.some(a => a.name === username) ? editTask.assignees : [selfAssignee])
       : form.assigneeIds.map(id => {
         const m = teamMembers.find(t => t.id.toString() === id.toString());
-        return m ? { name: m.name, initials: m.initials } : { name: "Unknown", initials: "??" };
+        return m ? { id: m.id, name: m.name, initials: m.initials } : { id, name: "Unknown", initials: "??" };
       });
+
+    const assigneeIdsToPass = form.taskType === "self"
+      ? (currentUserId ? [currentUserId.toString()] : (editTask?.assignees || []).map(a => (a as any).id?.toString()).filter(Boolean))
+      : form.assigneeIds;
+
+    const selectedProj = projects.find(p => p.id?.toString() === form.project?.toString());
+    const projectName = selectedProj?.name || (editTask ? editTask.project : "General Workspace");
+    const numericProjId = form.project && !isNaN(Number(form.project)) ? Number(form.project) : (selectedProj?.id ? Number(selectedProj.id) : undefined);
 
     const timeIntervalMinutes = form.estimatedEffort > 0 
       ? form.estimatedEffort * (form.effortUnit === "hours" ? 60 : form.effortUnit === "days" ? 480 : form.effortUnit === "weeks" ? 2400 : 1) 
       : 60; // Default 60 if not provided
 
     const taskData: Task = {
+      ...(editTask || {}),
       id: editTask?.id || `task-${Date.now()}`,
-      title: form.title, description: form.description, taskType: form.taskType,
-      type: form.type, platform: form.platform,
-      priority: form.priority, status: editTask?.status || "todo",
-      project: form.project, assignees, createdBy: { name: username || "User", initials: username ? username.substring(0, 2).toUpperCase() : "U" },
+      title: form.title,
+      description: form.description,
+      taskType: form.taskType,
+      type: form.type,
+      platform: form.platform,
+      priority: form.priority,
+      status: editTask?.status || "todo",
+      project: projectName,
+      project_id: numericProjId || form.project,
+      assignees,
+      createdBy: editTask?.createdBy || { name: username || "User", initials: username ? username.substring(0, 2).toUpperCase() : "U" },
       createdDate: editTask?.createdDate || new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-      dueDate: form.dueDate, dueTime: form.dueTime, startDate: form.startDate,
-      estimatedEffort: form.estimatedEffort, effortUnit: form.effortUnit,
+      dueDate: form.dueDate,
+      dueTime: form.dueTime && form.dueTime !== "EOD" ? form.dueTime : "",
+      startDate: form.startDate,
+      estimatedEffort: form.estimatedEffort,
+      effortUnit: form.effortUnit,
       actualEffort: editTask?.actualEffort || 0,
       timeIntervalMinutes,
-      isUrgent: form.isUrgent, repeat,
+      isUrgent: form.isUrgent,
+      is_urgent: form.isUrgent,
+      repeat,
       dependencies: form.dependencies,
-      dependent_tasks_legacy: form.dependencies, // Provide both for backend compatibility
-      checklist, checklists: checklist, subtasks,
+      dependent_tasks_legacy: form.dependencies,
+      checklist,
+      checklists: checklist,
+      subtasks,
       tags: form.tags,
-      file: attachment, // For passing the file to the task creation API
-      assigneeIds: form.assigneeIds, // Pass assigneeIds for the backend
+      file: attachment,
+      assigneeIds: assigneeIdsToPass,
     } as any;
 
     setIsSubmitting(true);

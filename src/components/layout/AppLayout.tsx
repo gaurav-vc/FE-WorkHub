@@ -20,11 +20,11 @@ export function AppLayout({ children }: AppLayoutProps) {
   
   const isAIAssistantPage = location.pathname === "/ai/assistant";
   const path = location.pathname.replace(/\/$/, "") || "/";
-  const publicPages = ["/login", "/register", "/forgot-password", "/home", "/privacy-policy", "/terms-of-service"];
-  const isAuthPage = publicPages.includes(path);
+  const publicPages = ["/login", "/register", "/forgot-password", "/home", "/privacy-policy", "/terms-of-service", "/api/docs", "/docs", "/api-docs"];
+  const isAuthPage = publicPages.includes(path) || path.startsWith("/api/docs") || path.startsWith("/docs");
 
   if (isAuthPage) {
-    return <div className="min-h-screen w-full bg-slate-50">{children}</div>;
+    return <div className={`min-h-screen w-full ${path.includes("docs") ? "bg-slate-950" : "bg-slate-50"}`}>{children}</div>;
   }
 
   if (isLoading) {

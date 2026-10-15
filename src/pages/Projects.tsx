@@ -123,6 +123,7 @@ export default function Projects() {
   const [departments, setDepartments] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [selectedExportProjects, setSelectedExportProjects] = useState<string[]>([]);
   const [exportSearch, setExportSearch] = useState("");
@@ -144,9 +145,15 @@ export default function Projects() {
   const fetchProjects = async () => {
     try {
       setLoading(true);
-      const data = await getProjects({ search, status: filterStatus, page: currentPage });
-      const rawProjects = data.results || data;
-      setProjects(rawProjects.map((p: any) => ({
+      const data = await getProjects({ search, status: filterStatus, page: currentPage, page_size: 10 });
+      const rawProjects = data.results || (Array.isArray(data) ? data : []);
+      const count = data.count !== undefined ? data.count : rawProjects.length;
+      setTotalCount(count);
+
+      // If backend returned unpaginated list, slice 10 items
+      const paginatedList = data.results ? rawProjects : rawProjects.slice((currentPage - 1) * 10, currentPage * 10);
+
+      setProjects(paginatedList.map((p: any) => ({
         id: p.id.toString(),
         name: p.name,
         description: p.description,
@@ -160,11 +167,7 @@ export default function Projects() {
         imported_tasks: p.imported_tasks || [],
         created_by_name: p.created_by_name,
       })));
-      if (data.count !== undefined) {
-        setTotalPages(Math.ceil(data.count / 12));
-      } else {
-        setTotalPages(1);
-      }
+      setTotalPages(Math.max(1, Math.ceil(count / 10)));
     } catch (error) {
       console.error("Failed to fetch projects", error);
       toast.error("Failed to load projects");
@@ -345,9 +348,20 @@ export default function Projects() {
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search projects..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+          <Input 
+            placeholder="Search projects..." 
+            value={search} 
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }} 
+            className="pl-9" 
+          />
         </div>
-        <Select value={filterStatus} onValueChange={setFilterStatus}>
+        <Select value={filterStatus} onValueChange={(val) => {
+          setFilterStatus(val);
+          setCurrentPage(1);
+        }}>
           <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Status</SelectItem>
@@ -565,12 +579,21 @@ export default function Projects() {
         </div>
       )}
 
-      <PagedPagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={setCurrentPage}
-        className="mt-8 mb-4"
-      />
+      {totalPages > 1 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 pt-4 border-t border-border">
+          <p className="text-sm text-muted-foreground font-medium">
+            Showing <span className="font-bold text-foreground">{projects.length === 0 ? 0 : (currentPage - 1) * 10 + 1}</span> to{" "}
+            <span className="font-bold text-foreground">{Math.min(currentPage * 10, totalCount)}</span> of{" "}
+            <span className="font-bold text-foreground">{totalCount}</span> projects (10 per page)
+          </p>
+          <PagedPagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            className="border-t-0 mt-0 py-0"
+          />
+        </div>
+      )}
 
       {/* Expanded Dialog size max-w-2xl */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>

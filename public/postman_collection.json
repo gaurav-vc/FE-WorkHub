@@ -1,0 +1,354 @@
+{
+  "info": {
+    "name": "WorkHub Enterprise API Collection",
+    "description": "Comprehensive Postman collection for WorkHub Enterprise REST API endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000/api",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "YOUR_JWT_TOKEN_HERE",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "01. Authentication",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login/",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login", ""]
+            }
+          }
+        },
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"johndoe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"Pass123!\",\n  \"first_name\": \"John\",\n  \"last_name\": \"Doe\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register/",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register", ""]
+            }
+          }
+        },
+        {
+          "name": "Current User Profile (Me)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/me/",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "me", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02. Tasks",
+      "item": [
+        {
+          "name": "List Tasks",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/tasks/?status=all&priority=all&view_mode=my_tasks",
+              "host": ["{{base_url}}"],
+              "path": ["tasks", ""],
+              "query": [
+                { "key": "status", "value": "all" },
+                { "key": "priority", "value": "all" },
+                { "key": "view_mode", "value": "my_tasks" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Task",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Implement Search Bar Filter\",\n  \"description\": \"Real-time search with debounce\",\n  \"project_id\": 1,\n  \"priority\": \"P2\",\n  \"status\": \"pending\",\n  \"due_date\": \"2026-10-30\",\n  \"due_time\": \"17:00:00\",\n  \"estimated_effort\": 4,\n  \"effort_unit\": \"hours\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/tasks/",
+              "host": ["{{base_url}}"],
+              "path": ["tasks", ""]
+            }
+          }
+        },
+        {
+          "name": "Get Task Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/tasks/1/",
+              "host": ["{{base_url}}"],
+              "path": ["tasks", "1", ""]
+            }
+          }
+        },
+        {
+          "name": "Update Task Status (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"completed\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/tasks/1/",
+              "host": ["{{base_url}}"],
+              "path": ["tasks", "1", ""]
+            }
+          }
+        },
+        {
+          "name": "Delete Task",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/tasks/1/",
+              "host": ["{{base_url}}"],
+              "path": ["tasks", "1", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03. Projects",
+      "item": [
+        {
+          "name": "List Projects",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/projects/?paginate=false",
+              "host": ["{{base_url}}"],
+              "path": ["projects", ""],
+              "query": [
+                { "key": "paginate", "value": "false" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Project",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Mobile App v2.0\",\n  \"description\": \"React Native app\",\n  \"department\": \"Engineering\",\n  \"due_date\": \"2026-12-31\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/projects/create/",
+              "host": ["{{base_url}}"],
+              "path": ["projects", "create", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "04. Team Chat",
+      "item": [
+        {
+          "name": "List Channels",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chat/channels/",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "channels", ""]
+            }
+          }
+        },
+        {
+          "name": "List Messages",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chat/messages/?channel_id=ch-general",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "messages", ""],
+              "query": [
+                { "key": "channel_id", "value": "ch-general" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Send Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "channel", "value": "ch-general", "type": "text" },
+                { "key": "content", "value": "Hello team!", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/chat/messages/",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "messages", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "05. Boards & Lists",
+      "item": [
+        {
+          "name": "List Custom Boards",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/boards/",
+              "host": ["{{base_url}}"],
+              "path": ["boards", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "06. Calendar & Meetings",
+      "item": [
+        {
+          "name": "List Meetings",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/calendar/meetings/",
+              "host": ["{{base_url}}"],
+              "path": ["calendar", "meetings", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "07. Workflows",
+      "item": [
+        {
+          "name": "List Workflows",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/workflows/",
+              "host": ["{{base_url}}"],
+              "path": ["workflows", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "08. HR & Directory",
+      "item": [
+        {
+          "name": "List Employees Directory",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/directory/",
+              "host": ["{{base_url}}"],
+              "path": ["directory", ""]
+            }
+          }
+        },
+        {
+          "name": "List HR Requests",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/hr/requests/",
+              "host": ["{{base_url}}"],
+              "path": ["hr", "requests", ""]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

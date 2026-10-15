@@ -37,6 +37,7 @@ import ForgotPassword from "@/pages/ForgotPassword";
 import Home from "@/pages/public/Home";
 import PrivacyPolicy from "@/pages/public/PrivacyPolicy";
 import TermsOfService from "@/pages/public/TermsOfService";
+import ApiDocs from "@/pages/ApiDocs";
 
 // HR & Employees additions
 import Attendance from "@/pages/Attendance";
@@ -145,6 +146,11 @@ const App = () => (
               <Route path="/home" element={<Home />} />
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
               <Route path="/terms-of-service" element={<TermsOfService />} />
+              
+              {/* API Documentation */}
+              <Route path="/api/docs" element={<ApiDocs />} />
+              <Route path="/docs" element={<ApiDocs />} />
+              <Route path="/api-docs" element={<ApiDocs />} />
               
               {/* Task & Project Management */}
               <Route path="/tasks/my-day" element={<ProtectedRoute route="/tasks/my-day"><MyDay /></ProtectedRoute>} />

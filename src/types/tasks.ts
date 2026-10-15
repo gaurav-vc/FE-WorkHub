@@ -66,6 +66,7 @@ export interface Task {
   priority: "P1" | "P2" | "P3" | "P4";
   status: string;
   project: string;
+  project_id?: number | string;
   assignees: Array<{ id?: string | number; name: string; initials: string }>;
   createdBy: { name: string; initials: string };
   createdDate: string;

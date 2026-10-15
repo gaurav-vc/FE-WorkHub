@@ -329,50 +329,86 @@ export default function TemplateMarketplace() {
           <TabsTrigger value="my-templates">My Templates <Badge variant="secondary" className="ml-1.5 text-[10px]">{myTemplates.length}</Badge></TabsTrigger>
         </TabsList>
 
-        <TabsContent value="marketplace" className="mt-4 space-y-4">
-          {/* Search */}
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search templates..." value={search} onChange={handleSearchChange} className="pl-9" />
-          </div>
-
-          <div className="flex gap-6">
-            {/* Category sidebar */}
-            <div className="hidden lg:block w-48 shrink-0 space-y-1">
-              {categories.map(cat => {
-                const Icon = categoryIcons[cat] || LayoutTemplate;
-                const count = cat === "All" ? normalizedTemplates.length : normalizedTemplates.filter(t => t.category === cat).length;
-                return (
-                  <button key={cat} onClick={() => handleCategoryChange(cat)}
-                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-left transition-colors ${activeCategory === cat ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground hover:bg-muted"}`}>
-                    <Icon className="h-3.5 w-3.5" />
-                    <span className="flex-1">{cat}</span>
-                    <span className="text-[10px]">{count}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Mobile category tabs */}
-            <div className="flex-1 space-y-4">
-              <div className="lg:hidden flex gap-1.5 overflow-x-auto pb-2">
-                {categories.map(cat => (
-                  <Badge key={cat} variant={activeCategory === cat ? "default" : "outline"}
-                    className="cursor-pointer whitespace-nowrap text-xs" onClick={() => handleCategoryChange(cat)}>
-                    {cat}
-                  </Badge>
-                ))}
+        <TabsContent value="marketplace" className="mt-4 space-y-6">
+          {/* Controls: Search & Template Types Dropdown */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-card/60 backdrop-blur-xl border border-white/10 p-4 rounded-2xl shadow-sm">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1">
+              {/* Search Bar */}
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3.5 top-3 h-4 w-4 text-muted-foreground" />
+                <Input 
+                  placeholder="Search templates..." 
+                  value={search} 
+                  onChange={handleSearchChange} 
+                  className="pl-10 h-10 rounded-xl bg-background/50 border-white/10 focus-visible:ring-primary/50 text-sm" 
+                />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {currentTemplates.map((tmpl, index) => {
-                  const CatIcon = categoryIcons[tmpl.category] || LayoutTemplate;
-                  return (
-                    <Card key={tmpl.id} className="relative shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.1)] transition-all duration-500 cursor-pointer group border-white/10 hover:-translate-y-1 overflow-hidden rounded-3xl bg-card/60 backdrop-blur-xl animate-in fade-in slide-in-from-bottom-8" style={{ animationDelay: `${index * 50}ms`, animationFillMode: 'both' }} onClick={() => handlePreviewClick(tmpl)}>
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none group-hover:bg-primary/20 transition-colors duration-500"></div>
-                      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                      
-                      <CardContent className="p-6 relative z-10">
+              {/* Template Types Dropdown */}
+              <div className="w-full sm:w-72">
+                <Select value={activeCategory} onValueChange={handleCategoryChange}>
+                  <SelectTrigger className="h-10 rounded-xl bg-background/50 border-white/10 focus:ring-primary/50 text-sm">
+                    <div className="flex items-center gap-2 truncate">
+                      {(() => {
+                        const SelectedIcon = categoryIcons[activeCategory] || LayoutTemplate;
+                        return <SelectedIcon className="h-4 w-4 text-primary shrink-0" />;
+                      })()}
+                      <span className="font-medium truncate">
+                        {activeCategory === "All" ? "All Template Types" : activeCategory}
+                      </span>
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent className="max-h-80 rounded-xl border-white/10 backdrop-blur-xl">
+                    {categories.map(cat => {
+                      const Icon = categoryIcons[cat] || LayoutTemplate;
+                      const count = cat === "All" ? normalizedTemplates.length : normalizedTemplates.filter(t => t.category === cat).length;
+                      return (
+                        <SelectItem key={cat} value={cat} className="rounded-lg py-2.5 cursor-pointer">
+                          <div className="flex items-center justify-between w-full gap-4">
+                            <div className="flex items-center gap-2.5">
+                              <Icon className="h-4 w-4 text-primary shrink-0" />
+                              <span className="font-medium text-sm">{cat}</span>
+                            </div>
+                            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                              {count}
+                            </span>
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="text-xs text-muted-foreground font-medium shrink-0 hidden sm:block">
+              Showing <span className="font-bold text-foreground">{filtered.length}</span> templates
+            </div>
+          </div>
+
+          {/* Full-width Responsive Template Cards Grid */}
+          {filtered.length === 0 ? (
+            <div className="text-center py-16 bg-card/40 rounded-3xl border border-dashed border-white/10">
+              <LayoutTemplate className="h-12 w-12 text-muted-foreground/40 mx-auto mb-3" />
+              <h3 className="text-base font-semibold text-foreground">No templates found</h3>
+              <p className="text-xs text-muted-foreground mt-1">Try selecting a different template type or clearing your search.</p>
+              {activeCategory !== "All" && (
+                <Button variant="outline" size="sm" onClick={() => handleCategoryChange("All")} className="mt-4 rounded-xl">
+                  View All Templates
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {currentTemplates.map((tmpl, index) => {
+                const CatIcon = categoryIcons[tmpl.category] || LayoutTemplate;
+                return (
+                  <Card key={tmpl.id} className="relative shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.1)] transition-all duration-500 cursor-pointer group border-white/10 hover:-translate-y-1 overflow-hidden rounded-3xl bg-card/60 backdrop-blur-xl animate-in fade-in slide-in-from-bottom-8 flex flex-col justify-between" style={{ animationDelay: `${index * 50}ms`, animationFillMode: 'both' }} onClick={() => handlePreviewClick(tmpl)}>
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none group-hover:bg-primary/20 transition-colors duration-500"></div>
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    
+                    <CardContent className="p-6 relative z-10 flex flex-col h-full justify-between">
+                      <div>
                         <div className="flex items-start gap-4">
                           <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-gradient-to-br group-hover:from-primary group-hover:to-purple-600 group-hover:text-white transition-all duration-300 shadow-sm border border-primary/20">
                             <CatIcon className="h-6 w-6 text-primary group-hover:text-white transition-colors" />
@@ -383,28 +419,29 @@ export default function TemplateMarketplace() {
                               {tmpl.popular && <Star className="h-4 w-4 text-warning fill-warning shrink-0 drop-shadow-sm" />}
                             </div>
                             <p className="text-sm text-muted-foreground mt-1 line-clamp-2 leading-relaxed">{tmpl.description}</p>
-                            <div className="flex items-center gap-2 mt-4 pt-4 border-t border-white/5">
-                              <Badge variant="secondary" className="text-[10px] font-bold uppercase tracking-wide bg-primary/10 text-primary border-primary/20">{tmpl.category}</Badge>
-                              <span className="text-[11px] text-muted-foreground font-semibold flex items-center gap-1"><CheckSquare className="h-3.5 w-3.5" /> {tmpl.tasks} tasks</span>
-                            </div>
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-              
-              {filtered.length > 0 && (
-                <PagedPagination 
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={setCurrentPage}
-                  itemsPerPage={itemsPerPage}
-                />
-              )}
+                      </div>
+
+                      <div className="flex items-center justify-between gap-2 mt-6 pt-4 border-t border-white/5">
+                        <Badge variant="secondary" className="text-[10px] font-bold uppercase tracking-wide bg-primary/10 text-primary border-primary/20">{tmpl.category}</Badge>
+                        <span className="text-[11px] text-muted-foreground font-semibold flex items-center gap-1"><CheckSquare className="h-3.5 w-3.5" /> {tmpl.tasks} tasks</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
-          </div>
+          )}
+          
+          {filtered.length > 0 && totalPages > 1 && (
+            <PagedPagination 
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              itemsPerPage={itemsPerPage}
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="my-templates" className="mt-4">

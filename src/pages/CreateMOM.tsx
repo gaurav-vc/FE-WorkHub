@@ -277,15 +277,59 @@ export default function CreateMOM() {
   });
 
   return (
-    <div className="p-4 md:p-8 w-full max-w-7xl mx-auto space-y-10 pb-32 animate-fade-in relative">
+    <div className="w-full max-w-7xl mx-auto space-y-6 pb-28 animate-fade-in relative pt-1">
       {/* Background ambient light */}
       <div className="fixed top-0 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-[100px] pointer-events-none -z-10 animate-pulse" />
       <div className="fixed bottom-0 right-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-[100px] pointer-events-none -z-10 animate-pulse delay-1000" />
       
-      <div className="flex justify-between items-center -ml-4 md:ml-0 sticky top-4 z-50">
-        <Button variant="outline" className="gap-2 bg-background/60 backdrop-blur-md border-white/10 shadow-sm hover:bg-background/80 transition-all rounded-xl" onClick={() => navigate('/collaboration/moms')}>
-          <ArrowLeft className="h-4 w-4" /> Back to List
-        </Button>
+      {/* Executive Header Bar */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-card/60 backdrop-blur-xl border border-white/10 p-4 sm:p-5 rounded-2xl shadow-sm">
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="outline" 
+            size="sm"
+            className="gap-2 rounded-xl bg-background/60 border-white/10 shadow-sm hover:bg-background/90 transition-all h-9 text-xs font-semibold" 
+            onClick={() => navigate('/collaboration/moms')}
+          >
+            <ArrowLeft className="h-3.5 w-3.5" /> Back to List
+          </Button>
+          <div className="h-5 w-px bg-white/10 hidden sm:block" />
+          <div>
+            <h1 className="text-xl md:text-2xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-500 flex items-center gap-2">
+              <FileText className="h-6 w-6 text-primary" /> Create Minutes of Meeting
+            </h1>
+            <p className="text-xs text-muted-foreground font-medium">Record key discussions, attendance, and action items</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <Button 
+            variant="ghost" 
+            size="sm"
+            className="rounded-xl h-9 text-xs font-semibold text-muted-foreground hover:text-foreground"
+            onClick={() => navigate('/collaboration/moms')}
+            disabled={isSaving}
+          >
+            Cancel
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm"
+            className="gap-1.5 rounded-xl h-9 text-xs font-semibold border-white/10"
+            onClick={() => handleSubmit('Draft')}
+            disabled={isSaving}
+          >
+            <Save className="h-3.5 w-3.5" /> Save Draft
+          </Button>
+          <Button 
+            onClick={() => handleSubmit('Completed')} 
+            disabled={isSaving} 
+            size="sm"
+            className="gap-1.5 gradient-primary text-primary-foreground rounded-xl h-9 text-xs font-semibold shadow-md shadow-primary/20 hover:scale-105 transition-all"
+          >
+            <Send className="h-3.5 w-3.5" /> Create MOM
+          </Button>
+        </div>
       </div>
 
       {/* 01 Meeting Information */}

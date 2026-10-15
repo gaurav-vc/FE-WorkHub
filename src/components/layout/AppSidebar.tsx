@@ -28,7 +28,7 @@ import {
   Mail
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import { useLocation } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
 import {
   Sidebar,
   SidebarContent,
@@ -125,6 +125,7 @@ const getNavGroups = (portalType: PortalType) => {
           { title: "Setup", url: "/admin/setup", icon: Settings },
           { title: "Branding", url: "/admin/branding", icon: Palette },
           { title: "Integrations", url: "/admin/integrations", icon: Plug },
+          { title: "API Docs", url: "/api/docs", icon: FileText },
         ],
       }
     ];
@@ -261,8 +262,11 @@ export function AppSidebar() {
 
       <SidebarFooter className="p-3">
         {!collapsed && (
-          <div className="rounded-lg bg-sidebar-accent/50 p-3">
-            <p className="text-xs text-sidebar-foreground/60">v1.0 — Phase 1</p>
+          <div className="rounded-lg bg-sidebar-accent/50 p-2.5 flex items-center justify-between">
+            <p className="text-xs text-sidebar-foreground/60">WorkHub v2.4</p>
+            <Link to="/api/docs" className="text-xs text-indigo-600 dark:text-indigo-400 font-medium hover:underline flex items-center gap-1">
+              API Docs
+            </Link>
           </div>
         )}
       </SidebarFooter>

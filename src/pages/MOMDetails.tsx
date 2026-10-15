@@ -358,26 +358,26 @@ export default function MOMDetails() {
   });
 
   return (
-    <div className="min-h-screen bg-background print:bg-white print:m-0 print:p-0">
+    <div className="bg-background print:bg-white print:m-0 print:p-0">
       {/* --- INTERACTIVE VIEW --- */}
-      <div className="p-2 md:p-6 max-w-5xl mx-auto space-y-8 pb-20 print:hidden animate-fade-in">
+      <div className="max-w-5xl mx-auto space-y-6 pb-20 print:hidden animate-fade-in pt-1">
         
-        <div className="flex justify-between items-center -ml-4 md:ml-0">
-          <Button variant="ghost" className="gap-2" onClick={() => navigate('/collaboration/moms')}>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-card/60 backdrop-blur-xl border border-border p-4 rounded-2xl shadow-sm">
+          <Button variant="ghost" size="sm" className="gap-2 rounded-xl text-xs font-semibold" onClick={() => navigate('/collaboration/moms')}>
             <ArrowLeft className="h-4 w-4" /> Back to List
           </Button>
-          <div className="flex items-center gap-3 flex-wrap justify-end">
-            <Button variant="outline" className="gap-2 font-semibold border-border" onClick={handleShare}>
-              <Share2 className="h-4 w-4" /> Share
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            <Button variant="outline" size="sm" className="gap-1.5 rounded-xl text-xs font-semibold border-border" onClick={handleShare}>
+              <Share2 className="h-3.5 w-3.5" /> Share
             </Button>
-            <Button variant="outline" className="gap-2 font-semibold border-border" onClick={handleDownloadPDF}>
-              <Download className="h-4 w-4" /> Download PDF
+            <Button variant="outline" size="sm" className="gap-1.5 rounded-xl text-xs font-semibold border-border" onClick={handleDownloadPDF}>
+              <Download className="h-3.5 w-3.5" /> Download PDF
             </Button>
-            <Button variant="outline" className="gap-2 border-border" onClick={handleSavePoints} disabled={isSaving}>
-              <Save className="h-4 w-4" /> Save MOM Draft
+            <Button variant="outline" size="sm" className="gap-1.5 rounded-xl text-xs font-semibold border-border" onClick={handleSavePoints} disabled={isSaving}>
+              <Save className="h-3.5 w-3.5" /> Save Draft
             </Button>
-            <Button className="gap-2 gradient-primary text-primary-foreground shadow-sm hover:shadow-md transition-shadow" onClick={handleSubmitMOM} disabled={isSaving}>
-              <Send className="h-4 w-4" /> Submit MOM
+            <Button size="sm" className="gap-1.5 rounded-xl text-xs font-semibold gradient-primary text-primary-foreground shadow-sm hover:shadow-md transition-shadow" onClick={handleSubmitMOM} disabled={isSaving}>
+              <Send className="h-3.5 w-3.5" /> Submit MOM
             </Button>
           </div>
         </div>

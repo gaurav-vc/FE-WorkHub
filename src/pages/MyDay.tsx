@@ -116,15 +116,49 @@ export default function MyDay() {
     }
   }, [token]);
 
-  useEffect(() => {
+  const refreshAdminSummary = () => {
     if (token) {
       getAdminTaskSummary({
         created_by: adminFilterCreatedBy,
         assigned_to: adminFilterAssignedTo,
         start_date: adminFilterStartDate,
         end_date: adminFilterEndDate
-      }).then((res: any) => setAdminSummary(res)).catch(console.error);
+      }).then((res: any) => {
+        if (res) setAdminSummary(res);
+      }).catch(console.error);
     }
+  };
+
+  useEffect(() => {
+    refreshAdminSummary();
+  }, [token, adminFilterCreatedBy, adminFilterAssignedTo, adminFilterStartDate, adminFilterEndDate]);
+
+  useEffect(() => {
+    const handleSync = () => {
+      refreshAdminSummary();
+    };
+    const handleTaskCreated = (e: any) => {
+      const task = e.detail;
+      const s = task?.status;
+      const key = (s === 'done' || s === 'completed') ? 'completed' : (s === 'in-progress' || s === 'in_progress') ? 'inProgress' : (s === 'blocked' || s === 'delayed') ? 'blocked' : 'open';
+      setAdminSummary(prev => ({
+        ...prev,
+        totalTasks: prev.totalTasks + 1,
+        [key]: (prev[key as keyof typeof prev] || 0) + 1,
+      }));
+      refreshAdminSummary();
+    };
+    const handleTaskDeleted = () => {
+      refreshAdminSummary();
+    };
+    window.addEventListener('tasks-updated', handleSync);
+    window.addEventListener('task-created', handleTaskCreated);
+    window.addEventListener('task-deleted', handleTaskDeleted);
+    return () => {
+      window.removeEventListener('tasks-updated', handleSync);
+      window.removeEventListener('task-created', handleTaskCreated);
+      window.removeEventListener('task-deleted', handleTaskDeleted);
+    };
   }, [token, adminFilterCreatedBy, adminFilterAssignedTo, adminFilterStartDate, adminFilterEndDate]);
 
   useEffect(() => {
@@ -147,10 +181,41 @@ export default function MyDay() {
     }
   }, [searchQuery, filterPriority, filterStatus, filterAssignee, filterCreator, filterDelayed, filterStartDate, filterEndDate, viewMode, currentPage, token]);
 
+  const handleTaskStatusChange = (taskId: string, newStatus: Task["status"], oldStatus?: Task["status"]) => {
+    const currentStatus = oldStatus || tasks.find(t => t.id.toString() === taskId.toString())?.status || "todo";
+    if (currentStatus === newStatus) return;
+
+    // Optimistically update adminSummary immediately without waiting for server
+    setAdminSummary(prev => {
+      const getStatusKey = (s: string) => {
+        if (s === 'done' || s === 'completed') return 'completed';
+        if (s === 'in-progress' || s === 'in_progress') return 'inProgress';
+        if (s === 'blocked' || s === 'delayed') return 'blocked';
+        return 'open';
+      };
+      const oldKey = getStatusKey(currentStatus);
+      const newKey = getStatusKey(newStatus);
+      if (oldKey === newKey) return prev;
+      return {
+        ...prev,
+        [oldKey]: Math.max(0, (prev[oldKey as keyof typeof prev] || 0) - 1),
+        [newKey]: (prev[newKey as keyof typeof prev] || 0) + 1,
+      };
+    });
+
+    updateTask(taskId, { status: newStatus });
+  };
 
   const toggleComplete = (task: Task) => {
-    updateTask(task.id, { status: (task.status === "done" ? "todo" : "done") as any });
+    const newStatus = (task.status === "done" ? "todo" : "done") as any;
+    handleTaskStatusChange(task.id, newStatus, task.status);
   };
+
+  const isDefaultAdminFilter = adminFilterCreatedBy === 'all' && adminFilterAssignedTo === 'all' && !adminFilterStartDate && !adminFilterEndDate;
+  const displayTotal = isDefaultAdminFilter && totalTasks > 0 ? totalTasks : adminSummary.totalTasks;
+  const displayCompleted = isDefaultAdminFilter && (statusCounts.done > 0 || totalTasks > 0) ? statusCounts.done : adminSummary.completed;
+  const displayInProgress = isDefaultAdminFilter && (statusCounts.inProgress > 0 || totalTasks > 0) ? statusCounts.inProgress : adminSummary.inProgress;
+  const displayOpen = isDefaultAdminFilter && (statusCounts.todo > 0 || totalTasks > 0) ? statusCounts.todo : adminSummary.open;
 
   const handleCardClick = (status: string) => {
     setViewMode(isSiteAdmin ? "team_tasks" : "my_tasks");
@@ -201,28 +266,28 @@ export default function MyDay() {
             <div className="absolute inset-0 bg-gradient-to-r from-slate-800/0 via-slate-800/5 to-slate-800/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
             <CardContent className="p-5 relative z-10">
               <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Total Tasks</p>
-              <p className="text-3xl font-black text-slate-800 mt-2 tracking-tight">{adminSummary.totalTasks}</p>
+              <p className="text-3xl font-black text-slate-800 mt-2 tracking-tight">{displayTotal}</p>
             </CardContent>
           </Card>
           <Card className="border-0 bg-gradient-to-br from-emerald-50 to-emerald-100/80 shadow-[0_2px_10px_-3px_rgba(16,185,129,0.1)] hover:shadow-[0_8px_30px_rgba(16,185,129,0.2)] transition-all duration-300 transform hover:-translate-y-1 cursor-pointer overflow-hidden relative group" onClick={() => handleCardClick("done")}>
             <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 via-emerald-500/10 to-emerald-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
             <CardContent className="p-5 relative z-10">
               <p className="text-sm font-semibold text-emerald-600 uppercase tracking-wider">Completed</p>
-              <p className="text-3xl font-black text-emerald-700 mt-2 tracking-tight">{adminSummary.completed}</p>
+              <p className="text-3xl font-black text-emerald-700 mt-2 tracking-tight">{displayCompleted}</p>
             </CardContent>
           </Card>
           <Card className="border-0 bg-gradient-to-br from-indigo-50 to-indigo-100/80 shadow-[0_2px_10px_-3px_rgba(99,102,241,0.1)] hover:shadow-[0_8px_30px_rgba(99,102,241,0.2)] transition-all duration-300 transform hover:-translate-y-1 cursor-pointer overflow-hidden relative group" onClick={() => handleCardClick("in-progress")}>
             <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/0 via-indigo-500/10 to-indigo-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
             <CardContent className="p-5 relative z-10">
               <p className="text-sm font-semibold text-indigo-600 uppercase tracking-wider">In Progress</p>
-              <p className="text-3xl font-black text-indigo-700 mt-2 tracking-tight">{adminSummary.inProgress}</p>
+              <p className="text-3xl font-black text-indigo-700 mt-2 tracking-tight">{displayInProgress}</p>
             </CardContent>
           </Card>
           <Card className="border-0 bg-gradient-to-br from-orange-50 to-orange-100/80 shadow-[0_2px_10px_-3px_rgba(249,115,22,0.1)] hover:shadow-[0_8px_30px_rgba(249,115,22,0.2)] transition-all duration-300 transform hover:-translate-y-1 cursor-pointer overflow-hidden relative group" onClick={() => handleCardClick("todo")}>
             <div className="absolute inset-0 bg-gradient-to-r from-orange-500/0 via-orange-500/10 to-orange-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
             <CardContent className="p-5 relative z-10">
               <p className="text-sm font-semibold text-orange-600 uppercase tracking-wider">Open</p>
-              <p className="text-3xl font-black text-orange-700 mt-2 tracking-tight">{adminSummary.open}</p>
+              <p className="text-3xl font-black text-orange-700 mt-2 tracking-tight">{displayOpen}</p>
             </CardContent>
           </Card>
         </div>
@@ -434,7 +499,7 @@ export default function MyDay() {
             </CardHeader>
             <CardContent className="p-0">
               <div className="divide-y divide-border max-h-[650px] overflow-y-auto custom-scrollbar">
-                {(isLoadingTasks || isAuthLoading) ? (
+                {(isLoadingTasks && tasks.length === 0) || (isAuthLoading && tasks.length === 0) ? (
                   <div className="p-12 flex items-center justify-center">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
@@ -444,7 +509,13 @@ export default function MyDay() {
                     <p className="text-sm font-medium">{viewMode === 'team_tasks' ? 'No team task' : 'No task'}</p>
                   </div>
                 ) : (
-                  tasks.map((task, idx) => {
+                  <>
+                    {isLoadingTasks && (
+                      <div className="h-0.5 w-full bg-primary/20 overflow-hidden">
+                        <div className="h-full bg-primary animate-pulse w-full" />
+                      </div>
+                    )}
+                    {tasks.map((task, idx) => {
                   const done = task.status === "done";
                   const pConfig = priorityConfig[task.priority] || priorityConfig.P4;
                   const checklistDone = (task.checklist || []).filter(c => c.completed).length;
@@ -501,11 +572,11 @@ export default function MyDay() {
                               <span className="flex items-center gap-1.5 border-l pl-4 border-border/60">
                                 <span className="font-semibold text-slate-500">Created on:</span> 
                                 <span className="text-foreground text-xs">
-                                  {(task as any).created_at
+                                  {(task as any).created_at && !isNaN(new Date((task as any).created_at).getTime())
                                     ? new Date((task as any).created_at).toLocaleString(undefined, { 
                                         month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' 
                                       }) 
-                                    : (task.createdDate ? new Date(task.createdDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : "Unknown")}
+                                    : (task.createdDate && !isNaN(new Date(task.createdDate).getTime()) ? new Date(task.createdDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : "Unknown")}
                                 </span>
                               </span>
                               {viewMode !== 'my_tasks' && (
@@ -581,7 +652,9 @@ export default function MyDay() {
                               <span className="flex items-center gap-1.5">
                                 <span className="font-semibold text-slate-500">Due Date:</span> 
                                 <span className={getDueColor(task.dueDate || (task as any).due_date, (task as any).status === 'delayed' || (task as any).status === 'delay' || task.healthStatus === 'red', done)}>
-                                  {task.dueDate || (task as any).due_date ? new Date(task.dueDate || (task as any).due_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : "No due date"}
+                                  {(task.dueDate || (task as any).due_date) && !isNaN(new Date(task.dueDate || (task as any).due_date).getTime())
+                                    ? new Date(task.dueDate || (task as any).due_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+                                    : "No due date"}
                                 </span>
                               </span>
                             </div>
@@ -604,7 +677,7 @@ export default function MyDay() {
                       <div className="flex items-center shrink-0 gap-3 ml-auto">
                         {/* Status Dropdown */}
                         <div className="shrink-0" onClick={e => e.stopPropagation()}>
-                          <Select value={task.status} onValueChange={v => updateTask(task.id, { status: v as any })}>
+                          <Select value={task.status} onValueChange={v => handleTaskStatusChange(task.id, v as any, task.status)}>
                             <SelectTrigger className={`w-[105px] h-7 text-[10px] font-semibold border-none ${task.status === 'done' ? 'bg-success/10 text-success' : task.status === 'in-progress' ? 'bg-primary/10 text-primary' : task.status === 'blocked' ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground'}`}>
                               <SelectValue />
                             </SelectTrigger>
@@ -633,7 +706,9 @@ export default function MyDay() {
                       </div>
                     </div>
                   );
-                }))}
+                })}
+                  </>
+                )}
               </div>
 
               <PagedPagination
