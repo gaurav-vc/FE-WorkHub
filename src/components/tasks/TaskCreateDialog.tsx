@@ -24,6 +24,7 @@ import { Task, ChecklistItem, SubTask, RepeatConfig } from "@/types/tasks";
 import { useAuth } from "@/context/AuthContext";
 import { API_BASE } from "@/config";
 import { getProjects } from "@/api/projects";
+import { BulkTaskUpload } from "./BulkTaskUpload";
 import { toast } from "sonner";
 
 interface TaskCreateDialogProps {
@@ -66,7 +67,7 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
   }, [token, open]);
 
   const defaultForm = {
-    title: "", description: "", taskType: "self" as "self" | "assign",
+    title: "", description: "", taskType: "self" as "self" | "assign" | "bulk",
     type: "", platform: "",
     priority: "P3" as Task["priority"], project: "", dueDate: "", dueTime: "",
     startDate: "", estimatedEffort: 0, effortUnit: "hours" as "hours" | "days" | "minutes" | "weeks",
@@ -263,7 +264,7 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-4xl w-[95vw] max-h-[90vh] flex flex-col overflow-hidden">
+      <DialogContent className={cn("w-[95vw] max-h-[90vh] flex flex-col overflow-hidden transition-all duration-300", form.taskType === "bulk" ? "sm:max-w-6xl md:max-w-7xl" : "sm:max-w-4xl")}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Plus className="h-5 w-5 text-primary" />
@@ -273,7 +274,7 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
 
         <ScrollArea className="flex-1 -mx-6 px-6 overflow-y-auto">
           <Tabs defaultValue="details" className="w-full">
-            <TabsList className="grid w-full grid-cols-4 mb-6 h-14 bg-muted/40 p-1.5 rounded-xl">
+            <TabsList className={`grid w-full ${form.taskType === 'bulk' ? 'hidden' : 'grid-cols-4'} mb-6 h-14 bg-muted/40 p-1.5 rounded-xl`}>
               <TabsTrigger value="details" className="text-base rounded-lg data-[state=active]:shadow-sm">Details</TabsTrigger>
               <TabsTrigger value="checklist" className="text-base rounded-lg data-[state=active]:shadow-sm">Checklist</TabsTrigger>
               <TabsTrigger value="subtasks" className="text-base rounded-lg data-[state=active]:shadow-sm">Subtasks</TabsTrigger>
@@ -281,15 +282,51 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
             </TabsList>
 
             <TabsContent value="details" className="space-y-4 mt-0 pb-10">
-              {/* Task Type */}
-              <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-2">
+              {/* Task Type Toggle */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-4">
                 <Label className="text-base font-semibold w-24">Task Type</Label>
-                <div className="flex bg-muted/40 p-1 rounded-lg w-full sm:w-[360px]">
-                  <Button size="sm" variant={form.taskType === "self" ? "default" : "ghost"} onClick={() => setForm(f => ({ ...f, taskType: "self" }))} className={`flex-1 text-base h-10 ${form.taskType === "self" ? "shadow-sm" : ""}`}>Self Task</Button>
-                  <Button size="sm" variant={form.taskType === "assign" ? "default" : "ghost"} onClick={() => setForm(f => ({ ...f, taskType: "assign" }))} className={`flex-1 text-base h-10 ${form.taskType === "assign" ? "shadow-sm" : ""}`}>Assign to Others</Button>
+                <div className="flex bg-muted/40 p-1 rounded-xl w-full sm:w-[480px] shadow-xs">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={form.taskType === "self" ? "default" : "ghost"}
+                    onClick={() => setForm(f => ({ ...f, taskType: "self" }))}
+                    className={`flex-1 text-sm font-bold h-10 rounded-lg ${form.taskType === "self" ? "shadow-sm bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                  >
+                    Self Task
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={form.taskType === "assign" ? "default" : "ghost"}
+                    onClick={() => setForm(f => ({ ...f, taskType: "assign" }))}
+                    className={`flex-1 text-sm font-bold h-10 rounded-lg ${form.taskType === "assign" ? "shadow-sm bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                  >
+                    Assign to Others
+                  </Button>
+                  {!editTask && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={form.taskType === "bulk" ? "default" : "ghost"}
+                      onClick={() => setForm(f => ({ ...f, taskType: "bulk" }))}
+                      className={`flex-1 text-sm font-bold h-10 rounded-lg ${form.taskType === "bulk" ? "shadow-sm bg-[#2563eb] text-white hover:bg-[#1d4ed8]" : "text-muted-foreground hover:text-foreground"}`}
+                    >
+                      Bulk Upload
+                    </Button>
+                  )}
                 </div>
               </div>
 
+              {form.taskType === "bulk" ? (
+                <BulkTaskUpload
+                  projects={projects}
+                  teamMembers={teamMembers}
+                  defaultProjectId={form.project}
+                  onClose={() => onOpenChange(false)}
+                />
+              ) : (
+                <>
               {/* Type & Platform */}
               <div className="grid grid-cols-2 gap-3 mb-2">
                 <div className="space-y-1.5">
@@ -583,6 +620,8 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
                   </div>
                 )}
               </div>
+                </>
+              )}
             </TabsContent>
 
             <TabsContent value="checklist" className="space-y-4 mt-0">
@@ -736,9 +775,11 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
 
         <DialogFooter className="mt-4 pt-4 border-t">
           <DialogClose asChild><Button variant="outline" disabled={isSubmitting}>Cancel</Button></DialogClose>
-          <Button className="gradient-primary text-primary-foreground" onClick={handleSave} disabled={isSubmitting}>
-            {isSubmitting ? "Saving..." : (editTask ? "Save Changes" : "Create Task")}
-          </Button>
+          {form.taskType !== "bulk" && (
+            <Button className="gradient-primary text-primary-foreground" onClick={handleSave} disabled={isSubmitting}>
+              {isSubmitting ? "Saving..." : (editTask ? "Save Changes" : "Create Task")}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

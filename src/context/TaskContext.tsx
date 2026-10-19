@@ -101,14 +101,22 @@ export function TaskProvider({ children }: { children: ReactNode }) {
 
   const lastFiltersRef = React.useRef<any>({});
   const inFlightStatusUpdatesRef = React.useRef<Map<string, string>>(new Map());
+  const fetchSeqRef = React.useRef<number>(0);
   
   const fetchTasks = async (filters: any = {}, silent: boolean = false) => {
     lastFiltersRef.current = filters;
-    if (!silent) {
+    const currentSeq = ++fetchSeqRef.current;
+    
+    // Only show full loader if there are no existing tasks loaded yet
+    if (!silent && tasks.length === 0) {
       setIsLoadingTasks(true);
     }
     try {
       const data = await getTasks(filters);
+      // Discard stale out-of-order responses from rapid clicking
+      if (currentSeq !== fetchSeqRef.current) {
+        return;
+      }
       const rawTasks = Array.isArray(data) ? data : (data?.results && Array.isArray(data.results)) ? data.results : [];
       if (rawTasks.length > 0 || !silent) {
         setTasks((prevTasks) => {
@@ -138,22 +146,32 @@ export function TaskProvider({ children }: { children: ReactNode }) {
           });
         });
       }
-      if (data?.count !== undefined) {
-        setTotalTasks(data.count);
+      if (data?.overall_total !== undefined) {
+        setTotalTasks(data.overall_total);
+        setTotalPages(Math.ceil((data.count ?? data.overall_total) / 12));
+      } else if (data?.count !== undefined) {
+        const totalSum = data.status_counts 
+          ? (data.status_counts.todo || 0) + (data.status_counts.in_progress || 0) + (data.status_counts.blocked || 0) + (data.status_counts.done || 0)
+          : 0;
+        if (totalSum > 0) {
+          setTotalTasks(totalSum);
+        } else if (!filters?.status || filters?.status === 'all') {
+          setTotalTasks(data.count);
+        }
         setTotalPages(Math.ceil(data.count / 12));
       } else if (rawTasks.length > 0) {
         setTotalTasks(rawTasks.length);
         setTotalPages(1);
       }
       
-      if (data.status_counts) {
+      if (data?.status_counts) {
         setStatusCounts({
           todo: data.status_counts.todo || 0,
           inProgress: data.status_counts.in_progress || 0,
           blocked: data.status_counts.blocked || 0,
           done: data.status_counts.done || 0,
         });
-      } else {
+      } else if (!filters?.status || filters?.status === 'all') {
         setStatusCounts({
           todo: rawTasks.filter((t: any) => t.status === "pending" || t.status === "todo" || t.status === "open").length,
           inProgress: rawTasks.filter((t: any) => t.status === "in_progress" || t.status === "in-progress").length,
@@ -166,7 +184,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
         console.error("Failed to fetch tasks", err);
       }
     } finally {
-      if (!silent) {
+      if (!silent || tasks.length === 0) {
         setIsLoadingTasks(false);
       }
     }
@@ -320,9 +338,9 @@ export function TaskProvider({ children }: { children: ReactNode }) {
 
       toast.success("Task created");
       return true;
-    } catch (err) {
-      toast.error("Failed to create task");
-      console.error(err);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to create task");
+      console.error("Failed to create task:", err);
       return false;
     }
   };

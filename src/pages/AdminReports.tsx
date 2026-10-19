@@ -189,22 +189,26 @@ const AdminReports = () => {
     
     const summaryHeaders = ['Metric', 'Count'];
     const summaryRows = [
-      ['Total Assigned', reportData.kpis.total_assigned],
+      ['Total Volume (Assigned + Added)', reportData.kpis.total_volume ?? reportData.kpis.total_assigned],
+      ['Total Assigned', reportData.kpis.strictly_assigned ?? reportData.kpis.total_assigned],
+      ['Total Added/Created', reportData.kpis.total_created],
       ['Total Completed', reportData.kpis.total_completed],
       ['Total Delayed', reportData.kpis.total_delayed],
       ['Total Issues', reportData.kpis.total_issues],
       [],
     ];
 
-    const headers = ['Task ID', 'Title', 'Assignee', 'Status', 'Priority', 'Created Date', 'Due Date'];
+    const headers = ['Task ID', 'Title', 'Assignee', 'Created By', 'Status', 'Priority', 'Created Date', 'Due Date', 'Completed Date / Time'];
     const rows = reportData.raw_tasks.map((task: any) => [
       task.id,
       `"${task.title.replace(/"/g, '""')}"`,
       `"${task.assignee || 'Unassigned'}"`,
+      `"${task.created_by || 'Unassigned'}"`,
       task.status.toUpperCase(),
       task.priority,
       `"\t${task.created_at}"`,
-      task.due_date ? `"\t${task.due_date}"` : '"N/A"'
+      task.due_date ? `"\t${task.due_date}"` : '"N/A"',
+      task.completed_at ? `"\t${task.completed_at}"` : '"N/A"'
     ]);
     
     const csvContent = [
@@ -449,11 +453,16 @@ const AdminReports = () => {
               <CardContent className="p-6 relative z-10">
                 <p className="text-xs uppercase tracking-wider font-semibold text-muted-foreground mb-2">Total Volume</p>
                 <div className="flex items-end gap-3">
-                  <h3 className="text-5xl font-black gradient-text">{reportData.kpis.total_assigned}</h3>
+                  <h3 className="text-5xl font-black gradient-text">{reportData.kpis.total_volume ?? reportData.kpis.total_assigned}</h3>
                   <span className="text-sm text-primary font-medium mb-1 flex items-center gap-1">
                     <TrendingUp className="w-4 h-4" /> tasks
                   </span>
                 </div>
+                {reportData.kpis.total_created !== undefined && (
+                  <p className="text-[11px] text-muted-foreground mt-2 font-medium">
+                    {reportData.kpis.strictly_assigned ?? reportData.kpis.total_assigned} assigned • {reportData.kpis.total_created} added
+                  </p>
+                )}
               </CardContent>
             </Card>
             
@@ -690,7 +699,14 @@ const AdminReports = () => {
                     {currentTasks.map((task: any) => (
                       <tr key={task.id} className="hover:bg-muted/30 transition-colors">
                         <td className="px-5 py-3 font-mono text-xs text-muted-foreground">#{task.id}</td>
-                        <td className="px-5 py-3 font-medium">{task.title}</td>
+                        <td className="px-5 py-3 font-medium">
+                          <div>{task.title}</div>
+                          {task.created_by && (
+                            <div className="text-[11px] text-muted-foreground/70 font-normal mt-0.5">
+                              Added by: {task.created_by}
+                            </div>
+                          )}
+                        </td>
                         <td className="px-5 py-3">
                           <div className="flex items-center gap-2">
                             <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary">
@@ -720,7 +736,19 @@ const AdminReports = () => {
                           </Badge>
                         </td>
                         <td className="px-5 py-3 text-muted-foreground">{task.created_at}</td>
-                        <td className="px-5 py-3 text-muted-foreground">{task.due_date || 'N/A'}</td>
+                        <td className="px-5 py-3 text-muted-foreground">
+                          <div>{task.due_date || 'N/A'}</div>
+                          {task.completed_at && (
+                            <div className="text-[11px] text-green-500 font-medium mt-0.5">
+                              Done: {task.completed_at}
+                            </div>
+                          )}
+                          {!task.completed_at && task.status_change_time && (task.status === 'in_progress' || task.status === 'in-progress') && (
+                            <div className="text-[11px] text-blue-400 font-medium mt-0.5">
+                              Started: {task.status_change_time}
+                            </div>
+                          )}
+                        </td>
                       </tr>
                     ))}
                     {currentTasks.length === 0 && (

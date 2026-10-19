@@ -7,7 +7,9 @@ export interface EmployeeStats {
     email: string;
   };
   kpis: {
+    total_volume?: number;
     total_assigned: number;
+    strictly_assigned?: number;
     total_created: number;
     total_completed: number;
     total_delayed: number;
@@ -15,6 +17,7 @@ export interface EmployeeStats {
   };
   trend_data: { date: string; completed: number }[];
   raw_tasks: any[];
+  activity_logs?: any[];
 }
 
 export const fetchEmployeeReport = async (

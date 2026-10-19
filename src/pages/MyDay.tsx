@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
   CheckSquare, Plus, Clock, Flag, Circle, CheckCircle2, Calendar, Users, Video,
   RotateCcw, AlertTriangle, Link2, MoreHorizontal, Edit, Trash2, Eye, PartyPopper, Cake, Loader2,
@@ -161,8 +161,13 @@ export default function MyDay() {
     };
   }, [token, adminFilterCreatedBy, adminFilterAssignedTo, adminFilterStartDate, adminFilterEndDate]);
 
+  const allTasksCacheRef = useRef<Task[]>([]);
+  const isInitialMount = useRef(true);
+
   useEffect(() => {
     if (token) {
+      const isInitial = isInitialMount.current;
+      isInitialMount.current = false;
       const delay = setTimeout(() => {
         fetchTasks({
           search: searchQuery,
@@ -175,11 +180,48 @@ export default function MyDay() {
           start_date: filterStartDate,
           end_date: filterEndDate,
           page: currentPage
-        });
-      }, 300);
+        }, !isInitial);
+      }, isInitial ? 0 : 150);
       return () => clearTimeout(delay);
     }
   }, [searchQuery, filterPriority, filterStatus, filterAssignee, filterCreator, filterDelayed, filterStartDate, filterEndDate, viewMode, currentPage, token]);
+
+  // Keep a cached pool of all tasks when status is 'all'
+  useEffect(() => {
+    if ((!filterStatus || filterStatus === "all") && tasks.length > 0) {
+      allTasksCacheRef.current = tasks;
+    }
+  }, [tasks, filterStatus]);
+
+  // Instant 0ms filtering so tasks never vanish or blink on card click
+  const displayedTasks = useMemo(() => {
+    if (!filterStatus || filterStatus === "all") return tasks;
+
+    // Check if tasks state from server already matches this filter
+    const matchesCurrent = tasks.length > 0 && tasks.every(t => {
+      const s = (t.status || "").toLowerCase();
+      if (filterStatus === "done") return s === "done" || s === "completed";
+      if (filterStatus === "in-progress") return s === "in-progress" || s === "in_progress";
+      if (filterStatus === "todo") return s === "todo" || s === "pending" || s === "open";
+      if (filterStatus === "blocked") return s === "blocked" || s === "delayed" || s === "on_hold";
+      return s === filterStatus;
+    });
+
+    if (matchesCurrent) {
+      return tasks;
+    }
+
+    // Filter immediately in-memory from cached task pool or current tasks
+    const sourcePool = allTasksCacheRef.current.length > 0 ? allTasksCacheRef.current : tasks;
+    return sourcePool.filter(t => {
+      const s = (t.status || "").toLowerCase();
+      if (filterStatus === "done") return s === "done" || s === "completed";
+      if (filterStatus === "in-progress") return s === "in-progress" || s === "in_progress";
+      if (filterStatus === "todo") return s === "todo" || s === "pending" || s === "open";
+      if (filterStatus === "blocked") return s === "blocked" || s === "delayed" || s === "on_hold";
+      return s === filterStatus;
+    });
+  }, [tasks, filterStatus]);
 
   const handleTaskStatusChange = (taskId: string, newStatus: Task["status"], oldStatus?: Task["status"]) => {
     const currentStatus = oldStatus || tasks.find(t => t.id.toString() === taskId.toString())?.status || "todo";
@@ -211,15 +253,22 @@ export default function MyDay() {
     handleTaskStatusChange(task.id, newStatus, task.status);
   };
 
-  const isDefaultAdminFilter = adminFilterCreatedBy === 'all' && adminFilterAssignedTo === 'all' && !adminFilterStartDate && !adminFilterEndDate;
-  const displayTotal = isDefaultAdminFilter && totalTasks > 0 ? totalTasks : adminSummary.totalTasks;
-  const displayCompleted = isDefaultAdminFilter && (statusCounts.done > 0 || totalTasks > 0) ? statusCounts.done : adminSummary.completed;
-  const displayInProgress = isDefaultAdminFilter && (statusCounts.inProgress > 0 || totalTasks > 0) ? statusCounts.inProgress : adminSummary.inProgress;
-  const displayOpen = isDefaultAdminFilter && (statusCounts.todo > 0 || totalTasks > 0) ? statusCounts.todo : adminSummary.open;
+  // Robust card count metrics that never collapse or vanish when clicking status filters
+  const totalFromStatusCounts = (statusCounts.done || 0) + (statusCounts.inProgress || 0) + (statusCounts.todo || 0) + (statusCounts.blocked || 0);
+  const displayTotal = adminSummary.totalTasks > 0
+    ? adminSummary.totalTasks
+    : totalFromStatusCounts > 0
+      ? totalFromStatusCounts
+      : totalTasks;
+  const displayCompleted = adminSummary.totalTasks > 0 ? adminSummary.completed : statusCounts.done;
+  const displayInProgress = adminSummary.totalTasks > 0 ? adminSummary.inProgress : statusCounts.inProgress;
+  const displayOpen = adminSummary.totalTasks > 0 ? adminSummary.open : statusCounts.todo;
 
   const handleCardClick = (status: string) => {
+    // If clicking already selected card, toggle back to "all", otherwise set status
+    const nextStatus = filterStatus === status ? "all" : status;
     setViewMode(isSiteAdmin ? "team_tasks" : "my_tasks");
-    setFilterStatus(status);
+    setFilterStatus(nextStatus);
     if (isSiteAdmin) {
       setFilterAssignee(adminFilterAssignedTo);
       setFilterCreator(adminFilterCreatedBy);
@@ -231,9 +280,6 @@ export default function MyDay() {
       setFilterStartDate("");
       setFilterEndDate("");
     }
-    
-    // Scroll to the task list so user sees the update
-    window.scrollTo({ top: document.body.scrollHeight / 2, behavior: 'smooth' });
   };
 
   const today = new Date();
@@ -262,28 +308,28 @@ export default function MyDay() {
 
       <div className="space-y-4 mb-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="border-0 bg-gradient-to-br from-slate-50 to-slate-100/80 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-300 transform hover:-translate-y-1 cursor-pointer overflow-hidden relative group" onClick={() => handleCardClick("all")}>
+          <Card className={`border-0 bg-gradient-to-br from-slate-50 to-slate-100/80 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-200 transform hover:-translate-y-0.5 cursor-pointer overflow-hidden relative group ${filterStatus === 'all' ? 'ring-2 ring-slate-700/80 shadow-md scale-[1.01]' : 'opacity-90 hover:opacity-100'}`} onClick={() => handleCardClick("all")}>
             <div className="absolute inset-0 bg-gradient-to-r from-slate-800/0 via-slate-800/5 to-slate-800/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
             <CardContent className="p-5 relative z-10">
               <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Total Tasks</p>
               <p className="text-3xl font-black text-slate-800 mt-2 tracking-tight">{displayTotal}</p>
             </CardContent>
           </Card>
-          <Card className="border-0 bg-gradient-to-br from-emerald-50 to-emerald-100/80 shadow-[0_2px_10px_-3px_rgba(16,185,129,0.1)] hover:shadow-[0_8px_30px_rgba(16,185,129,0.2)] transition-all duration-300 transform hover:-translate-y-1 cursor-pointer overflow-hidden relative group" onClick={() => handleCardClick("done")}>
+          <Card className={`border-0 bg-gradient-to-br from-emerald-50 to-emerald-100/80 shadow-[0_2px_10px_-3px_rgba(16,185,129,0.1)] hover:shadow-[0_8px_30px_rgba(16,185,129,0.2)] transition-all duration-200 transform hover:-translate-y-0.5 cursor-pointer overflow-hidden relative group ${filterStatus === 'done' ? 'ring-2 ring-emerald-500 shadow-md scale-[1.01]' : 'opacity-90 hover:opacity-100'}`} onClick={() => handleCardClick("done")}>
             <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 via-emerald-500/10 to-emerald-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
             <CardContent className="p-5 relative z-10">
               <p className="text-sm font-semibold text-emerald-600 uppercase tracking-wider">Completed</p>
               <p className="text-3xl font-black text-emerald-700 mt-2 tracking-tight">{displayCompleted}</p>
             </CardContent>
           </Card>
-          <Card className="border-0 bg-gradient-to-br from-indigo-50 to-indigo-100/80 shadow-[0_2px_10px_-3px_rgba(99,102,241,0.1)] hover:shadow-[0_8px_30px_rgba(99,102,241,0.2)] transition-all duration-300 transform hover:-translate-y-1 cursor-pointer overflow-hidden relative group" onClick={() => handleCardClick("in-progress")}>
+          <Card className={`border-0 bg-gradient-to-br from-indigo-50 to-indigo-100/80 shadow-[0_2px_10px_-3px_rgba(99,102,241,0.1)] hover:shadow-[0_8px_30px_rgba(99,102,241,0.2)] transition-all duration-200 transform hover:-translate-y-0.5 cursor-pointer overflow-hidden relative group ${filterStatus === 'in-progress' ? 'ring-2 ring-indigo-500 shadow-md scale-[1.01]' : 'opacity-90 hover:opacity-100'}`} onClick={() => handleCardClick("in-progress")}>
             <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/0 via-indigo-500/10 to-indigo-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
             <CardContent className="p-5 relative z-10">
               <p className="text-sm font-semibold text-indigo-600 uppercase tracking-wider">In Progress</p>
               <p className="text-3xl font-black text-indigo-700 mt-2 tracking-tight">{displayInProgress}</p>
             </CardContent>
           </Card>
-          <Card className="border-0 bg-gradient-to-br from-orange-50 to-orange-100/80 shadow-[0_2px_10px_-3px_rgba(249,115,22,0.1)] hover:shadow-[0_8px_30px_rgba(249,115,22,0.2)] transition-all duration-300 transform hover:-translate-y-1 cursor-pointer overflow-hidden relative group" onClick={() => handleCardClick("todo")}>
+          <Card className={`border-0 bg-gradient-to-br from-orange-50 to-orange-100/80 shadow-[0_2px_10px_-3px_rgba(249,115,22,0.1)] hover:shadow-[0_8px_30px_rgba(249,115,22,0.2)] transition-all duration-200 transform hover:-translate-y-0.5 cursor-pointer overflow-hidden relative group ${filterStatus === 'todo' ? 'ring-2 ring-orange-500 shadow-md scale-[1.01]' : 'opacity-90 hover:opacity-100'}`} onClick={() => handleCardClick("todo")}>
             <div className="absolute inset-0 bg-gradient-to-r from-orange-500/0 via-orange-500/10 to-orange-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
             <CardContent className="p-5 relative z-10">
               <p className="text-sm font-semibold text-orange-600 uppercase tracking-wider">Open</p>
@@ -487,7 +533,7 @@ export default function MyDay() {
                 </div>
               </>
             )}
-            <Badge variant="secondary" className="text-xs h-8 px-3 flex items-center">{totalTasks || tasks.length} tasks</Badge>
+            <Badge variant="secondary" className="text-xs h-8 px-3 flex items-center">{displayedTasks.length} tasks</Badge>
           </div>
 
           {/* Task List */}
@@ -503,7 +549,7 @@ export default function MyDay() {
                   <div className="p-12 flex items-center justify-center">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
-                ) : tasks.length === 0 ? (
+                ) : displayedTasks.length === 0 ? (
                   <div className="p-8 text-center text-muted-foreground flex flex-col items-center justify-center">
                     <CheckSquare className="h-10 w-10 text-slate-200 mb-3" />
                     <p className="text-sm font-medium">{viewMode === 'team_tasks' ? 'No team task' : 'No task'}</p>
@@ -515,16 +561,15 @@ export default function MyDay() {
                         <div className="h-full bg-primary animate-pulse w-full" />
                       </div>
                     )}
-                    {tasks.map((task, idx) => {
+                    {displayedTasks.map((task) => {
                   const done = task.status === "done";
                   const pConfig = priorityConfig[task.priority] || priorityConfig.P4;
                   const checklistDone = (task.checklist || []).filter(c => c.completed).length;
                   const checklistTotal = (task.checklist || []).length;
                   return (
                     <div key={task.id}
-                      className={`flex flex-wrap items-start justify-between gap-x-6 gap-y-4 px-4 py-3 hover:bg-white hover:shadow-md hover:border-primary/20 transition-all duration-300 transform hover:-translate-y-0.5 group cursor-pointer rounded-lg border border-transparent mb-1 mx-1 animate-in fade-in slide-in-from-bottom-2 ${done ? "opacity-50 grayscale-[0.3]" : ""} ${task.isUrgent && !done ? "bg-destructive/5 border-l-2 border-l-destructive shadow-sm" : ""}`}
+                      className={`flex flex-wrap items-start justify-between gap-x-6 gap-y-4 px-4 py-3 hover:bg-white hover:shadow-md hover:border-primary/20 transition-all duration-200 transform hover:-translate-y-0.5 group cursor-pointer rounded-lg border border-transparent mb-1 mx-1 ${done ? "opacity-50 grayscale-[0.3]" : ""} ${task.isUrgent && !done ? "bg-destructive/5 border-l-2 border-l-destructive shadow-sm" : ""}`}
                       onClick={() => setSelectedTask(task)}
-                      style={{ animationFillMode: "both", animationDelay: `${Math.min(idx * 50, 500)}ms` }}
                     >
                       <div className="flex items-start gap-3 flex-1 min-w-[250px]">
                         <div className={`w-2 h-2 rounded-full shrink-0 mt-2 ${

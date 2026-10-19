@@ -13,6 +13,7 @@ import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, Command
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { API_BASE } from "@/config";
+import { BulkTaskUpload } from "./BulkTaskUpload";
 import { ErrorBoundary } from "../ErrorBoundary";
 import { toast } from "sonner";
 
@@ -27,7 +28,7 @@ interface CreateTaskModalProps {
 
 export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tasks, defaultProjectId }: CreateTaskModalProps) {
   const [activeTab, setActiveTab] = useState("details");
-  const [taskType, setTaskType] = useState<"self" | "assign">("self");
+  const [taskType, setTaskType] = useState<"self" | "assign" | "bulk">("self");
   
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -183,7 +184,7 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[95vh] flex flex-col p-0 overflow-hidden bg-background">
+      <DialogContent className={cn("max-h-[95vh] flex flex-col p-0 overflow-hidden bg-background transition-all duration-300", taskType === "bulk" ? "sm:max-w-6xl md:max-w-7xl w-[96vw]" : "sm:max-w-2xl")}>
         <ErrorBoundary>
           <DialogHeader className="px-6 pt-6 pb-2 border-b border-border/50">
             <DialogTitle className="flex items-center gap-2 text-xl font-semibold mb-4">
@@ -192,7 +193,7 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
             </DialogTitle>
             
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="w-full bg-transparent border-b border-border p-0 h-auto grid grid-cols-5 justify-start">
+              <TabsList className={`w-full bg-transparent border-b border-border p-0 h-auto ${taskType === 'bulk' ? 'hidden' : 'grid grid-cols-5'} justify-start`}>
                 <TabsTrigger value="details" className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:bg-transparent rounded-none px-4 py-2 text-muted-foreground font-semibold">Details</TabsTrigger>
                 <TabsTrigger value="attachments" className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:bg-transparent rounded-none px-4 py-2 text-muted-foreground font-semibold">Attachments</TabsTrigger>
                 <TabsTrigger value="checklist" className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:bg-transparent rounded-none px-4 py-2 text-muted-foreground font-semibold">Checklist</TabsTrigger>
@@ -205,30 +206,46 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
           <div className="flex-1 overflow-y-auto px-6 py-5">
             <Tabs value={activeTab} className="w-full">
               <TabsContent value="details" className="space-y-6 mt-0">
-                {/* Task Type, Type & Platform */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-b border-border/50 pb-6">
-                  
-                  {/* Task Type Toggle */}
-                  <div className="space-y-2 md:col-span-2">
-                    <Label className="text-sm font-semibold">Task Type</Label>
-                    <div className="flex items-center bg-muted/50 rounded-xl p-1.5 shadow-inner w-full">
-                      <button 
-                        onClick={() => setTaskType("self")}
-                        className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${taskType === 'self' ? 'bg-[#2563eb] text-white shadow-md' : 'text-muted-foreground hover:text-foreground'}`}
-                      >
-                        Self Task
-                      </button>
-                      <button 
-                        onClick={() => setTaskType("assign")}
-                        className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${taskType === 'assign' ? 'bg-[#2563eb] text-white shadow-md' : 'text-muted-foreground hover:text-foreground'}`}
-                      >
-                        Assign to Others
-                      </button>
-                    </div>
+                {/* Task Type Toggle */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold">Task Type</Label>
+                  <div className="flex items-center bg-muted/50 rounded-xl p-1.5 shadow-inner w-full">
+                    <button 
+                      type="button"
+                      onClick={() => setTaskType("self")}
+                      className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${taskType === 'self' ? 'bg-[#2563eb] text-white shadow-md' : 'text-muted-foreground hover:text-foreground'}`}
+                    >
+                      Self Task
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => setTaskType("assign")}
+                      className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${taskType === 'assign' ? 'bg-[#2563eb] text-white shadow-md' : 'text-muted-foreground hover:text-foreground'}`}
+                    >
+                      Assign to Others
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => setTaskType("bulk")}
+                      className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${taskType === 'bulk' ? 'bg-[#2563eb] text-white shadow-md' : 'text-muted-foreground hover:text-foreground'}`}
+                    >
+                      Bulk Upload
+                    </button>
                   </div>
+                </div>
 
-                  {/* Type */}
-                  <div className="space-y-1.5">
+                {taskType === "bulk" ? (
+                  <BulkTaskUpload
+                    projects={projects}
+                    teamMembers={globalUsers}
+                    defaultProjectId={projectId}
+                    onClose={() => onOpenChange(false)}
+                  />
+                ) : (
+                  <>
+                    {/* Type & Platform */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-b border-border/50 pb-6">
+                      <div className="space-y-1.5">
                     <Label className="text-sm font-semibold">Type</Label>
                     <Select value={type} onValueChange={setType}>
                       <SelectTrigger className="bg-muted/30 h-10">
@@ -517,7 +534,8 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
                     </div>
                   )}
                 </div>
-
+                  </>
+                )}
               </TabsContent>
               <TabsContent value="attachments" className="mt-0 py-6 space-y-4">
                 <div className="space-y-4">
@@ -604,13 +622,15 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
 
           <DialogFooter className="px-6 py-4 border-t border-border/50 bg-card">
             <Button variant="outline" onClick={() => onOpenChange(false)} className="rounded-md font-semibold px-6">Cancel</Button>
-            <Button 
-              className="rounded-md font-semibold px-6 bg-[#4f46e5] hover:bg-[#4338ca] text-white"
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? "Creating..." : "Create Task"}
-            </Button>
+            {taskType !== "bulk" && (
+              <Button 
+                className="rounded-md font-semibold px-6 bg-[#4f46e5] hover:bg-[#4338ca] text-white"
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Creating..." : "Create Task"}
+              </Button>
+            )}
           </DialogFooter>
         </ErrorBoundary>
       </DialogContent>

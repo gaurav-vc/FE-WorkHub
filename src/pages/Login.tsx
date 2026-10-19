@@ -19,8 +19,12 @@ const Login: React.FC = () => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const data = await loginApi({ username, password });
+      const cleanUsername = username.trim();
+      const data = await loginApi({ username: cleanUsername, password });
       toast.success('Logged in successfully');
+      if (data.refresh) {
+        localStorage.setItem('refresh_token', data.refresh);
+      }
       login(data.access, data.id, data.role, data.user_type);
     } catch (error: any) {
       toast.error(error.message);
