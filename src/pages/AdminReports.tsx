@@ -38,6 +38,7 @@ const formatLocalDateTime = (dateStr?: string | null) => {
   if (!dateStr) return '';
   try {
     let clean = dateStr.trim();
+    if (clean.includes('AM') || clean.includes('PM')) return clean;
     if (!clean.includes('T') && clean.includes(' ')) {
       clean = clean.replace(' ', 'T');
     }
