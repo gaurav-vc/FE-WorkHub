@@ -34,6 +34,34 @@ import html2pdf from 'html2pdf.js';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
+const formatLocalDateTime = (dateStr?: string | null) => {
+  if (!dateStr) return '';
+  try {
+    let clean = dateStr.trim();
+    if (!clean.includes('T') && clean.includes(' ')) {
+      clean = clean.replace(' ', 'T');
+    }
+    if (clean.includes('T') && !clean.endsWith('Z') && !clean.slice(clean.indexOf('T')).includes('+') && !clean.slice(clean.indexOf('T')).includes('-')) {
+      clean += 'Z';
+    }
+    const d = new Date(clean);
+    if (isNaN(d.getTime())) return dateStr;
+    
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    let hours = d.getHours();
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    const seconds = String(d.getSeconds()).padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const hour12 = String(hours % 12 || 12).padStart(2, '0');
+    
+    return `${year}-${month}-${day} ${hour12}:${minutes}:${seconds} ${ampm}`;
+  } catch {
+    return dateStr;
+  }
+};
+
 const processRadarData = (tasks: any[]) => {
   if (!tasks || tasks.length === 0) return [];
   const total = tasks.length;
@@ -198,17 +226,18 @@ const AdminReports = () => {
       [],
     ];
 
-    const headers = ['Task ID', 'Title', 'Assignee', 'Created By', 'Status', 'Priority', 'Created Date', 'Due Date', 'Completed Date / Time'];
+    const headers = ['Task ID', 'Title', 'Project', 'Assignee', 'Created By', 'Status', 'Priority', 'Created Date', 'Due Date', 'Completed Date / Time'];
     const rows = reportData.raw_tasks.map((task: any) => [
       task.id,
       `"${task.title.replace(/"/g, '""')}"`,
+      task.project ? `"${task.project.replace(/"/g, '""')}"` : '"General"',
       `"${task.assignee || 'Unassigned'}"`,
       `"${task.created_by || 'Unassigned'}"`,
       task.status.toUpperCase(),
       task.priority,
       `"\t${task.created_at}"`,
       task.due_date ? `"\t${task.due_date}"` : '"N/A"',
-      task.completed_at ? `"\t${task.completed_at}"` : '"N/A"'
+      task.completed_at ? `"\t${formatLocalDateTime(task.completed_at)}"` : '"N/A"'
     ]);
     
     const csvContent = [
@@ -700,7 +729,14 @@ const AdminReports = () => {
                       <tr key={task.id} className="hover:bg-muted/30 transition-colors">
                         <td className="px-5 py-3 font-mono text-xs text-muted-foreground">#{task.id}</td>
                         <td className="px-5 py-3 font-medium">
-                          <div>{task.title}</div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span>{task.title}</span>
+                            {task.project && (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-primary/5 text-primary border-primary/20 font-medium">
+                                {task.project}
+                              </Badge>
+                            )}
+                          </div>
                           {task.created_by && (
                             <div className="text-[11px] text-muted-foreground/70 font-normal mt-0.5">
                               Added by: {task.created_by}
@@ -740,12 +776,12 @@ const AdminReports = () => {
                           <div>{task.due_date || 'N/A'}</div>
                           {task.completed_at && (
                             <div className="text-[11px] text-green-500 font-medium mt-0.5">
-                              Done: {task.completed_at}
+                              Done: {formatLocalDateTime(task.completed_at)}
                             </div>
                           )}
                           {!task.completed_at && task.status_change_time && (task.status === 'in_progress' || task.status === 'in-progress') && (
                             <div className="text-[11px] text-blue-400 font-medium mt-0.5">
-                              Started: {task.status_change_time}
+                              Started: {formatLocalDateTime(task.status_change_time)}
                             </div>
                           )}
                         </td>
