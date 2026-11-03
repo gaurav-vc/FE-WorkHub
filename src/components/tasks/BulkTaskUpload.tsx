@@ -3,7 +3,7 @@ import {
   Upload, Download, FileSpreadsheet, CheckCircle2, AlertCircle, Trash2, Plus,
   Clock, RefreshCw, Layers, ArrowRight, Check, Sparkles, Terminal, Copy,
   Eye, EyeOff, ChevronLeft, ChevronRight, SlidersHorizontal, ChevronDown, ChevronUp,
-  Sliders, Calendar, ChevronsUpDown
+  Sliders, Calendar, ChevronsUpDown, MoveHorizontal
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,9 @@ export interface BulkTaskRow {
   topic: string;
   description?: string;
   priority: string;
+  status: "todo" | "in-progress" | "done" | "blocked" | string;
+  createdDate?: string;
+  createdTime?: string;
   dueDate: string;
   dueTime?: string;
   project?: string;
@@ -38,6 +41,23 @@ export interface BulkTaskRow {
   isValid: boolean;
   validationError?: string;
 }
+
+export const STATUS_OPTIONS = [
+  { value: "todo", label: "Yet to Start", badgeClass: "bg-muted text-muted-foreground border-border" },
+  { value: "in-progress", label: "In Progress", badgeClass: "bg-primary/10 text-primary border-primary/30" },
+  { value: "done", label: "Done", badgeClass: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30" },
+  { value: "blocked", label: "Blocked", badgeClass: "bg-destructive/15 text-destructive border-destructive/30" },
+] as const;
+
+export const normalizeStatus = (raw: any): "todo" | "in-progress" | "done" | "blocked" => {
+  if (!raw) return "todo";
+  const s = String(raw).trim().toLowerCase();
+  if (s.includes("done") || s.includes("complet") || s.includes("finish") || s.includes("close")) return "done";
+  if (s.includes("in_progress") || s.includes("in progress") || s.includes("inprogress") || s.includes("progress") || s.includes("active") || s.includes("working")) return "in-progress";
+  if (s.includes("block") || s.includes("delay") || s.includes("hold") || s.includes("waiting")) return "blocked";
+  if (s.includes("yet") || s.includes("todo") || s.includes("to-do") || s.includes("pending") || s.includes("open") || s.includes("plan")) return "todo";
+  return "todo";
+};
 
 export interface BulkUploadLog {
   timestamp: string;
@@ -225,6 +245,7 @@ export function BulkTaskUpload({
   );
   const [defaultAssignee, setDefaultAssignee] = useState<string>("none");
   const [defaultPriority, setDefaultPriority] = useState<string>("P3");
+  const [defaultStatus, setDefaultStatus] = useState<string>("todo");
 
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -359,6 +380,41 @@ export function BulkTaskUpload({
       const dueDate = normalizeDateToISO(rawDueDate);
       
       const dueTime = rowDict["duetime"] || rowDict["time"] || "";
+
+      // Extract status from row
+      const rawStatus = rowDict["status"] || rowDict["taskstatus"] || rowDict["state"] || "";
+      const status = rawStatus ? normalizeStatus(rawStatus) : (defaultStatus || "todo");
+
+      // Extract created date & time
+      let rawCreatedDate = "";
+      for (const [k, v] of Object.entries(rowDict)) {
+        if (!v) continue;
+        if (
+          k.includes("createddate") ||
+          k.includes("created_date") ||
+          k.includes("createdat") ||
+          k.includes("created_at") ||
+          k.includes("creationdate") ||
+          k.includes("creation_date") ||
+          k.includes("datecreated") ||
+          k === "created"
+        ) {
+          rawCreatedDate = v;
+          break;
+        }
+      }
+      let createdTime = rowDict["createdtime"] || rowDict["created_time"] || rowDict["creationtime"] || "";
+      if (rawCreatedDate && (rawCreatedDate.includes("T") || rawCreatedDate.includes(" "))) {
+        if (rawCreatedDate.includes("T")) {
+          const parts = rawCreatedDate.split("T");
+          if (!createdTime && parts[1]) createdTime = parts[1].replace("Z", "").slice(0, 5);
+        } else if (rawCreatedDate.includes(" ") && rawCreatedDate.includes(":")) {
+          const parts = rawCreatedDate.split(" ");
+          if (!createdTime && parts[1]) createdTime = parts[1].slice(0, 5);
+        }
+      }
+      const createdDate = rawCreatedDate ? normalizeDateToISO(rawCreatedDate) : "";
+
       const project = rowDict["project"] || rowDict["projectname"] || "";
       const assignedTo = rowDict["assignedto"] || rowDict["assignee"] || "";
       const type = rowDict["type"] || "";
@@ -375,6 +431,9 @@ export function BulkTaskUpload({
         topic: topic.trim(),
         description,
         priority,
+        status,
+        createdDate,
+        createdTime,
         dueDate,
         dueTime,
         project,
@@ -429,6 +488,9 @@ export function BulkTaskUpload({
       topic: "",
       description: "",
       priority: defaultPriority,
+      status: defaultStatus || "todo",
+      createdDate: getTodayISO(),
+      createdTime: new Date().toTimeString().slice(0, 5),
       dueDate: new Date().toISOString().split("T")[0],
       dueTime: "17:00",
       project: defaultProject && defaultProject !== "general" ? (availableProjects.find(p => p.id.toString() === defaultProject)?.name || defaultProject) : "",
@@ -451,6 +513,9 @@ export function BulkTaskUpload({
         const updated = { ...r, ...updates };
         if (updates.dueDate) {
           updated.dueDate = normalizeDateToISO(updates.dueDate);
+        }
+        if (updates.createdDate) {
+          updated.createdDate = normalizeDateToISO(updates.createdDate);
         }
         updated.isValid = Boolean(updated.topic && updated.topic.trim().length > 0);
         updated.validationError = !updated.isValid ? "Task Topic is required" : undefined;
@@ -561,6 +626,9 @@ export function BulkTaskUpload({
         task_topic: r.topic.trim(),
         description: r.description || "",
         priority: r.priority || defaultPriority || "P3",
+        status: r.status || defaultStatus || "todo",
+        created_date: r.createdDate || null,
+        created_time: r.createdTime || null,
         due_date: r.dueDate || new Date().toISOString().split("T")[0],
         due_time: r.dueTime || null,
         project: r.project || (defaultProject && defaultProject !== "general" ? (availableProjects.find(p => p.id.toString() === defaultProject)?.name || defaultProject) : ""),
@@ -577,7 +645,8 @@ export function BulkTaskUpload({
         tasks: payloadTasks,
         default_project_id: defaultProject && defaultProject !== "general" ? defaultProject : undefined,
         default_assigned_to_id: defaultAssignee !== "none" ? defaultAssignee : undefined,
-        default_priority: defaultPriority
+        default_priority: defaultPriority,
+        default_status: defaultStatus
       });
 
       setProgress(85);
@@ -608,10 +677,26 @@ export function BulkTaskUpload({
       setCreatedTasksResult(created);
 
       if (created.length > 0) {
+        const mappedCreated = created.map((t: any) => {
+          let s = "todo";
+          const rawS = (t.status || "").toLowerCase();
+          if (rawS === "completed" || rawS === "done") s = "done";
+          else if (rawS === "in_progress" || rawS === "in-progress") s = "in-progress";
+          else if (rawS === "delayed" || rawS === "blocked" || rawS === "on_hold") s = "blocked";
+          else s = "todo";
+
+          return {
+            ...t,
+            status: s,
+            createdDate: t.created_at ? new Date(t.created_at).toISOString().split('T')[0] : getTodayISO(),
+            createdTime: t.created_at ? new Date(t.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : undefined,
+          };
+        });
+
         setTasks(prev => {
-          const newMap = new Map(created.map((t: any) => [t.id.toString(), t]));
+          const newMap = new Map(mappedCreated.map((t: any) => [t.id.toString(), t]));
           const filteredOld = prev.filter(t => !newMap.has(t.id.toString()));
-          return [...created, ...filteredOld];
+          return [...mappedCreated, ...filteredOld];
         });
 
         if (fetchTasks) {
@@ -619,7 +704,7 @@ export function BulkTaskUpload({
         }
 
         window.dispatchEvent(new CustomEvent('tasks-updated'));
-        created.forEach((t: any) => {
+        mappedCreated.forEach((t: any) => {
           window.dispatchEvent(new CustomEvent('task-created', { detail: t }));
         });
 
@@ -747,7 +832,7 @@ export function BulkTaskUpload({
       )}
 
       {/* Dynamic Defaults Configuration */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 bg-muted/30 rounded-xl border border-border/60">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 p-3.5 bg-muted/30 rounded-xl border border-border/60">
         <div className="space-y-1">
           <Label className="text-xs font-semibold text-muted-foreground">Default Project (Optional)</Label>
           <Popover open={projectSearchOpen} onOpenChange={setProjectSearchOpen}>
@@ -805,8 +890,26 @@ export function BulkTaskUpload({
             <SelectContent>
               <SelectItem value="none">Assign to Self (Logged-in User)</SelectItem>
               {teamMembers.map(m => (
-                <SelectItem key={m.id} value={m.id.toString()}>{m.name || m.username}</SelectItem>
+                <SelectItem key={m.id || m.username || m.email} value={m.username || m.id.toString()}>
+                  {m.name ? `${m.name} (@${m.username || m.name})` : (m.username || m.email)}
+                  {m.email ? ` (${m.email})` : ""}
+                </SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1">
+          <Label className="text-xs font-semibold text-muted-foreground">Default Status (Optional)</Label>
+          <Select value={defaultStatus} onValueChange={setDefaultStatus}>
+            <SelectTrigger className="h-9 text-xs bg-background">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todo">Yet to Start</SelectItem>
+              <SelectItem value="in-progress">In Progress</SelectItem>
+              <SelectItem value="done">Done</SelectItem>
+              <SelectItem value="blocked">Blocked</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -927,7 +1030,7 @@ export function BulkTaskUpload({
               </div>
               <p className="text-sm font-bold text-foreground">Click to upload or drag & drop CSV file</p>
               <p className="text-xs text-muted-foreground mt-1 text-center max-w-sm">
-                Supported columns: Task Topic, Description, Priority, Due Date, Due Time, Project, Assigned To, Type, Platform, Estimated Effort, Urgent, Tags
+                Supported columns: Task Topic, Description, Status, Priority, Created Date, Due Date, Due Time, Project, Assigned To, Type, Platform, Estimated Effort, Urgent, Tags
               </p>
               <div className="flex items-center gap-2 mt-4">
                 <Button
@@ -1059,88 +1162,86 @@ export function BulkTaskUpload({
                       </Button>
                     </div>
 
-                    {/* Controls specific to All Columns Wide mode */}
-                    {tableLayoutMode === "all_columns" ? (
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {/* Interactive Slide Range Slider */}
-                        <div className="flex items-center gap-2 bg-background/90 px-3 py-1 rounded-lg border border-border/80 shadow-2xs">
-                          <Sliders className="h-3.5 w-3.5 text-primary shrink-0" />
-                          <span className="text-[11px] font-semibold text-foreground shrink-0 hidden sm:inline">
-                            Slide Columns:
-                          </span>
-                          <input
-                            type="range"
-                            min={0}
-                            max={100}
-                            value={scrollPercent}
-                            onChange={handleSliderScroll}
-                            className="w-24 sm:w-36 h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
-                            title="Drag slider left/right to view all task columns"
-                          />
-                          <span className="text-[10px] font-mono text-muted-foreground w-7 text-right">
-                            {scrollPercent}%
-                          </span>
-                          <div className="flex items-center gap-0.5 ml-1">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => slideTable(-350)}
-                              className="h-6 w-6 rounded hover:bg-muted"
-                              title="Slide Left"
-                            >
-                              <ChevronLeft className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => slideTable(350)}
-                              className="h-6 w-6 rounded hover:bg-muted"
-                              title="Slide Right"
-                            >
-                              <ChevronRight className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                        </div>
-
-                        {/* Column Quick Jump Presets */}
-                        <div className="inline-flex rounded-lg border border-border/80 bg-background p-0.5 shadow-2xs">
-                          <button
+                    {/* Interactive Horizontal Scroll Controls (Available for Both Table Layouts) */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {/* Interactive Slide Range Slider */}
+                      <div className="flex items-center gap-2 bg-background/90 px-3 py-1 rounded-lg border border-border/80 shadow-2xs">
+                        <Sliders className="h-3.5 w-3.5 text-primary shrink-0" />
+                        <span className="text-[11px] font-semibold text-foreground shrink-0 hidden sm:inline">
+                          Slide Columns:
+                        </span>
+                        <input
+                          type="range"
+                          min={0}
+                          max={100}
+                          value={scrollPercent}
+                          onChange={handleSliderScroll}
+                          className="w-24 sm:w-36 h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                          title="Drag slider left/right to scroll table columns"
+                        />
+                        <span className="text-[10px] font-mono text-muted-foreground w-7 text-right">
+                          {scrollPercent}%
+                        </span>
+                        <div className="flex items-center gap-0.5 ml-1">
+                          <Button
                             type="button"
-                            onClick={() => slideToPosition(0)}
-                            className="px-2 py-0.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground rounded hover:bg-muted transition-colors"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => slideTable(-280)}
+                            className="h-6 w-6 rounded hover:bg-muted"
+                            title="Slide Left"
                           >
-                            Basic
-                          </button>
-                          <button
+                            <ChevronLeft className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
                             type="button"
-                            onClick={() => slideToPosition(380)}
-                            className="px-2 py-0.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground rounded hover:bg-muted transition-colors"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => slideTable(280)}
+                            className="h-6 w-6 rounded hover:bg-muted"
+                            title="Slide Right"
                           >
-                            Dates
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => slideToPosition(850)}
-                            className="px-2 py-0.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground rounded hover:bg-muted transition-colors"
-                          >
-                            Type & Effort
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => slideToPosition(1450)}
-                            className="px-2 py-0.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground rounded hover:bg-muted transition-colors"
-                          >
-                            More Details
-                          </button>
+                            <ChevronRight className="h-3.5 w-3.5" />
+                          </Button>
                         </div>
                       </div>
-                    ) : (
-                      <span className="text-[11px] text-muted-foreground bg-muted/30 px-2.5 py-1 rounded-md border border-border/40">
-                        💡 Click <strong className="text-foreground">Slide Down Fields</strong> or row <strong className="text-foreground">#</strong> to view Type, Platform, Effort, Urgent, Description & Tags.
-                      </span>
-                    )}
+
+                      {/* Column Quick Jump Presets */}
+                      <div className="inline-flex rounded-lg border border-border/80 bg-background p-0.5 shadow-2xs">
+                        <button
+                          type="button"
+                          onClick={() => slideToPosition(0)}
+                          className="px-2 py-0.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground rounded hover:bg-muted transition-colors"
+                          title="Jump to Task Topic & Status"
+                        >
+                          Basic
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => slideToPosition(tableLayoutMode === "compact" ? 280 : 380)}
+                          className="px-2 py-0.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground rounded hover:bg-muted transition-colors"
+                          title="Jump to Status & Dates"
+                        >
+                          Dates
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => slideToPosition(tableLayoutMode === "compact" ? 640 : 850)}
+                          className="px-2 py-0.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground rounded hover:bg-muted transition-colors"
+                          title={tableLayoutMode === "compact" ? "Jump to Project & Assignee" : "Jump to Type & Effort"}
+                        >
+                          {tableLayoutMode === "compact" ? "Assign" : "Type & Effort"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => slideToPosition(tableLayoutMode === "compact" ? 1100 : 1500)}
+                          className="px-2 py-0.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground rounded hover:bg-muted transition-colors"
+                          title="Jump to Extra Fields & Actions"
+                        >
+                          {tableLayoutMode === "compact" ? "Other Fields" : "Details"}
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -1254,6 +1355,54 @@ export function BulkTaskUpload({
                                 </Select>
                               </div>
 
+                              {/* Status */}
+                              <div className="space-y-1">
+                                <Label className="text-xs font-semibold">Status</Label>
+                                <Select
+                                  value={currentRow.status || defaultStatus || "todo"}
+                                  onValueChange={(val) => handleUpdateRow(currentRow.id, { status: val })}
+                                >
+                                  <SelectTrigger className="h-8 text-xs">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="todo">Yet to Start</SelectItem>
+                                    <SelectItem value="in-progress">In Progress</SelectItem>
+                                    <SelectItem value="done">Done</SelectItem>
+                                    <SelectItem value="blocked">Blocked</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              {/* Created Date */}
+                              <div className="space-y-1">
+                                <div className="flex items-center justify-between">
+                                  <Label className="text-xs font-semibold">Created Date</Label>
+                                  {currentRow.createdDate && (
+                                    <span className="text-[10px] text-muted-foreground flex items-center gap-1 font-medium">
+                                      {formatFriendlyDate(currentRow.createdDate)}
+                                    </span>
+                                  )}
+                                </div>
+                                <Input
+                                  type="date"
+                                  value={currentRow.createdDate || ""}
+                                  onChange={(e) => handleUpdateRow(currentRow.id, { createdDate: e.target.value })}
+                                  className="h-8 text-xs font-mono"
+                                />
+                              </div>
+
+                              {/* Created Time */}
+                              <div className="space-y-1">
+                                <Label className="text-xs font-semibold">Created Time</Label>
+                                <Input
+                                  value={currentRow.createdTime || ""}
+                                  onChange={(e) => handleUpdateRow(currentRow.id, { createdTime: e.target.value })}
+                                  placeholder="Auto (Now)"
+                                  className="h-8 text-xs font-mono"
+                                />
+                              </div>
+
                               {/* Due Date with Clear Friendly Badge */}
                               <div className="space-y-1">
                                 <div className="flex items-center justify-between">
@@ -1301,13 +1450,21 @@ export function BulkTaskUpload({
 
                               {/* Assignee */}
                               <div className="space-y-1">
-                                <Label className="text-xs font-semibold">Assignee</Label>
+                                <Label className="text-xs font-semibold">Assignee (Username / Email / Name)</Label>
                                 <Input
+                                  list={`bulk-assignee-card-${currentRow.id}`}
                                   value={currentRow.assignedTo || ""}
                                   onChange={(e) => handleUpdateRow(currentRow.id, { assignedTo: e.target.value })}
-                                  placeholder={defaultAssignee !== "none" ? "Default selected" : "Self"}
+                                  placeholder={defaultAssignee !== "none" ? "Default selected" : "Self / Username / Email"}
                                   className="h-8 text-xs"
                                 />
+                                <datalist id={`bulk-assignee-card-${currentRow.id}`}>
+                                  {teamMembers.map((m: any) => (
+                                    <option key={m.id || m.username || m.email} value={m.username || m.name || m.email}>
+                                      {m.name ? `${m.name} (@${m.username || m.name})` : m.username} {m.email ? `<${m.email}>` : ""}
+                                    </option>
+                                  ))}
+                                </datalist>
                               </div>
 
                               {/* Type */}
@@ -1405,51 +1562,69 @@ export function BulkTaskUpload({
 
               {/* View 2: Slidable Table Container */}
               {viewMode === "table" && (
-                <div className="border border-border/80 rounded-xl overflow-hidden shadow-xs bg-background">
+                <div className="relative border border-border/80 rounded-xl overflow-hidden shadow-xs bg-background">
+                  {/* Interactive Horizontal Scroll Hint Bar */}
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground px-3.5 py-1.5 bg-muted/40 border-b border-border/60">
+                    <span className="flex items-center gap-1.5 font-medium text-foreground">
+                      <MoveHorizontal className="h-3.5 w-3.5 text-primary shrink-0" />
+                      <span>
+                        Scrollable Table ({tableLayoutMode === "compact" ? "11 Columns" : "18 Columns Wide"}). Drag the slider above, use trackpad/wheel, or click quick-jump buttons.
+                      </span>
+                    </span>
+                    <span className="font-mono text-[10px] text-muted-foreground hidden md:inline">
+                      📌 Pinned: #, Task Topic &amp; Delete
+                    </span>
+                  </div>
+
                   <div 
                     ref={tableScrollRef}
                     onScroll={handleTableScroll}
-                    className="overflow-x-auto max-h-[380px] overflow-y-auto scrollbar-thin scroll-smooth"
+                    className="overflow-x-auto max-h-[420px] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/30 hover:scrollbar-thumb-muted-foreground/50 scroll-smooth"
                   >
-                    <table className={`${tableLayoutMode === "compact" ? "w-full" : "min-w-[1550px] w-full"} text-xs border-collapse`}>
+                    <table className={`${tableLayoutMode === "compact" ? "min-w-[1640px]" : "min-w-[2450px]"} w-full text-xs border-collapse`}>
                       <thead className="bg-muted/80 sticky top-0 z-20 text-muted-foreground uppercase tracking-wider font-semibold shadow-xs">
                         {tableLayoutMode === "compact" ? (
                           <tr className="border-b border-border">
-                            <th className="py-2.5 px-3 text-center w-14 sticky left-0 bg-muted/95 z-30 shadow-r">#</th>
-                            <th className="py-2.5 px-3 text-left min-w-[200px] sticky left-14 bg-muted/95 z-30">
+                            <th className="py-2.5 px-2 text-center w-14 min-w-[56px] sticky left-0 bg-muted/95 z-30 shadow-r whitespace-nowrap">#</th>
+                            <th className="py-2.5 px-3 text-left w-72 min-w-[280px] sticky left-14 bg-muted/95 z-30 border-r border-border/60 shadow-r whitespace-nowrap">
                               Task Topic <span className="text-destructive">*</span>
                             </th>
-                            <th className="py-2.5 px-3 text-left w-28">Priority</th>
-                            <th className="py-2.5 px-3 text-left w-36">
+                            <th className="py-2.5 px-3 text-left w-40 min-w-[155px] whitespace-nowrap">Status</th>
+                            <th className="py-2.5 px-3 text-left w-32 min-w-[125px] whitespace-nowrap">Priority</th>
+                            <th className="py-2.5 px-3 text-left w-40 min-w-[155px] whitespace-nowrap">Created Date</th>
+                            <th className="py-2.5 px-3 text-left w-40 min-w-[155px] whitespace-nowrap">
                               Due Date <span className="text-destructive">*</span>
                             </th>
-                            <th className="py-2.5 px-3 text-left w-24">Due Time</th>
-                            <th className="py-2.5 px-3 text-left w-36">Project</th>
-                            <th className="py-2.5 px-3 text-left w-32">Assignee</th>
-                            <th className="py-2.5 px-3 text-center min-w-[160px]">Other Fields</th>
-                            <th className="py-2.5 px-3 text-center w-12">Action</th>
+                            <th className="py-2.5 px-3 text-left w-28 min-w-[110px] whitespace-nowrap">Due Time</th>
+                            <th className="py-2.5 px-3 text-left w-48 min-w-[185px] whitespace-nowrap">Project</th>
+                            <th className="py-2.5 px-3 text-left w-48 min-w-[185px] whitespace-nowrap">Assignee</th>
+                            <th className="py-2.5 px-3 text-center w-44 min-w-[170px] whitespace-nowrap">Other Fields</th>
+                            <th className="py-2.5 px-3 text-center w-16 min-w-[64px] sticky right-0 bg-muted/95 z-30 border-l border-border/60 shadow-l whitespace-nowrap">Action</th>
                           </tr>
                         ) : (
                           <tr className="border-b border-border">
-                            <th className="py-2.5 px-3 text-left w-14 sticky left-0 bg-muted/95 z-30 shadow-r">#</th>
-                            <th className="py-2.5 px-3 text-left w-56 sticky left-14 bg-muted/95 z-30">
+                            <th className="py-2.5 px-2 text-center w-14 min-w-[56px] sticky left-0 bg-muted/95 z-30 shadow-r whitespace-nowrap">#</th>
+                            <th className="py-2.5 px-3 text-left w-72 min-w-[280px] sticky left-14 bg-muted/95 z-30 border-r border-border/60 shadow-r whitespace-nowrap">
                               Task Topic <span className="text-destructive">*</span>
                             </th>
-                            <th className="py-2.5 px-3 text-left w-28">Priority</th>
-                            <th className="py-2.5 px-3 text-left w-40">
+                            <th className="py-2.5 px-3 text-left w-40 min-w-[155px] whitespace-nowrap">Status</th>
+                            <th className="py-2.5 px-3 text-left w-32 min-w-[125px] whitespace-nowrap">Priority</th>
+                            <th className="py-2.5 px-3 text-left w-40 min-w-[155px] whitespace-nowrap">Created Date</th>
+                            <th className="py-2.5 px-3 text-left w-28 min-w-[110px] whitespace-nowrap">Created Time</th>
+                            <th className="py-2.5 px-3 text-left w-40 min-w-[155px] whitespace-nowrap">
                               Due Date <span className="text-destructive">*</span>
                             </th>
-                            <th className="py-2.5 px-3 text-left w-28">Due Time</th>
-                            <th className="py-2.5 px-3 text-left w-44">Project</th>
-                            <th className="py-2.5 px-3 text-left w-40">Assignee</th>
-                            <th className="py-2.5 px-3 text-left w-32">Type</th>
-                            <th className="py-2.5 px-3 text-left w-28">Platform</th>
-                            <th className="py-2.5 px-3 text-left w-24">Effort (Hrs)</th>
-                            <th className="py-2.5 px-3 text-center w-20">Urgent</th>
-                            <th className="py-2.5 px-3 text-left w-52">Description</th>
-                            <th className="py-2.5 px-3 text-left w-36">Tags</th>
-                            <th className="py-2.5 px-center w-28">Slide Detail</th>
-                            <th className="py-2.5 px-3 text-center w-12">Action</th>
+                            <th className="py-2.5 px-3 text-left w-28 min-w-[110px] whitespace-nowrap">Due Time</th>
+                            <th className="py-2.5 px-3 text-left w-48 min-w-[185px] whitespace-nowrap">Project</th>
+                            <th className="py-2.5 px-3 text-left w-48 min-w-[185px] whitespace-nowrap">Assignee</th>
+                            <th className="py-2.5 px-3 text-left w-32 min-w-[130px] whitespace-nowrap">Type</th>
+                            <th className="py-2.5 px-3 text-left w-28 min-w-[110px] whitespace-nowrap">Platform</th>
+                            <th className="py-2.5 px-3 text-left w-24 min-w-[95px] whitespace-nowrap">Effort (Hrs)</th>
+                            <th className="py-2.5 px-3 text-center w-20 min-w-[80px] whitespace-nowrap">Urgent</th>
+                            <th className="py-2.5 px-3 text-left w-64 min-w-[240px] whitespace-nowrap">Description</th>
+                            <th className="py-2.5 px-3 text-left w-40 min-w-[160px] whitespace-nowrap">Tags</th>
+                            <th className="py-2.5 px-3 text-center w-28 min-w-[110px] whitespace-nowrap">Slide Detail</th>
+                            <th className="py-2.5 px-3 text-center w-16 min-w-[64px] sticky right-0 bg-muted/95 z-30 border-l border-border/60 shadow-l whitespace-nowrap">Action</th>
                           </tr>
                         )}
                       </thead>
@@ -1462,7 +1637,7 @@ export function BulkTaskUpload({
                                 className={`hover:bg-muted/30 transition-colors ${!row.isValid ? "bg-destructive/5" : ""} ${isExpanded ? "bg-primary/5 border-l-4 border-l-primary" : ""}`}
                               >
                                 {/* # Row Number & Slide Down Chevron Toggle */}
-                                <td className="py-2 px-2 text-center text-muted-foreground font-mono text-[11px] sticky left-0 bg-background z-10">
+                                <td className="py-2 px-2 text-center text-muted-foreground font-mono text-[11px] w-14 min-w-[56px] sticky left-0 bg-background z-20 shadow-r">
                                   <button
                                     type="button"
                                     onClick={() => toggleRowExpand(row.id)}
@@ -1479,25 +1654,63 @@ export function BulkTaskUpload({
                                 </td>
 
                                 {/* Task Topic */}
-                                <td className="py-2 px-3 sticky left-14 bg-background z-10">
+                                <td className="py-2 px-3 w-72 min-w-[280px] sticky left-14 bg-background z-20 border-r border-border/60 shadow-r">
                                   <Input
                                     value={row.topic}
                                     onChange={(e) => handleUpdateRow(row.id, { topic: e.target.value })}
                                     placeholder="Task topic (required)..."
-                                    className={`h-7 text-xs ${!row.isValid ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                                    className={`h-7 text-xs w-full ${!row.isValid ? "border-destructive focus-visible:ring-destructive" : ""}`}
                                   />
                                   {row.validationError && (
                                     <p className="text-[10px] text-destructive mt-0.5">{row.validationError}</p>
                                   )}
                                 </td>
 
+                                {/* Status */}
+                                <td className="py-2 px-3 w-40 min-w-[155px]">
+                                  <Select
+                                    value={row.status || defaultStatus || "todo"}
+                                    onValueChange={(val) => handleUpdateRow(row.id, { status: val })}
+                                  >
+                                    <SelectTrigger className="h-7 text-xs font-medium bg-background w-full whitespace-nowrap shrink-0">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="todo">
+                                        <div className="flex items-center gap-1.5 font-medium">
+                                          <span className="h-2 w-2 rounded-full bg-slate-400" />
+                                          <span>Yet to Start</span>
+                                        </div>
+                                      </SelectItem>
+                                      <SelectItem value="in-progress">
+                                        <div className="flex items-center gap-1.5 font-medium text-primary">
+                                          <span className="h-2 w-2 rounded-full bg-primary" />
+                                          <span>In Progress</span>
+                                        </div>
+                                      </SelectItem>
+                                      <SelectItem value="done">
+                                        <div className="flex items-center gap-1.5 font-medium text-emerald-600 dark:text-emerald-400">
+                                          <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                                          <span>Done</span>
+                                        </div>
+                                      </SelectItem>
+                                      <SelectItem value="blocked">
+                                        <div className="flex items-center gap-1.5 font-medium text-destructive">
+                                          <span className="h-2 w-2 rounded-full bg-destructive" />
+                                          <span>Blocked</span>
+                                        </div>
+                                      </SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </td>
+
                                 {/* Priority */}
-                                <td className="py-2 px-3">
+                                <td className="py-2 px-3 w-32 min-w-[125px]">
                                   <Select
                                     value={row.priority}
                                     onValueChange={(val) => handleUpdateRow(row.id, { priority: val })}
                                   >
-                                    <SelectTrigger className="h-7 text-xs">
+                                    <SelectTrigger className="h-7 text-xs w-full whitespace-nowrap">
                                       <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -1509,14 +1722,44 @@ export function BulkTaskUpload({
                                   </Select>
                                 </td>
 
+                                {/* Created Date */}
+                                <td className="py-2 px-3 w-40 min-w-[155px]">
+                                  <div className="space-y-0.5 w-full">
+                                    <Input
+                                      type="date"
+                                      value={row.createdDate || ""}
+                                      onChange={(e) => handleUpdateRow(row.id, { createdDate: e.target.value })}
+                                      className="h-7 text-xs font-mono w-full"
+                                    />
+                                    <div className="text-[9px] text-muted-foreground flex items-center gap-1 truncate">
+                                      <Calendar className="h-2.5 w-2.5 text-muted-foreground shrink-0" />
+                                      <span className="truncate">
+                                        {row.createdDate ? formatFriendlyDate(row.createdDate) : "Today (Auto)"}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </td>
+
+                                {/* Created Time in All Columns Mode */}
+                                {tableLayoutMode !== "compact" && (
+                                  <td className="py-2 px-3 w-28 min-w-[110px]">
+                                    <Input
+                                      value={row.createdTime || ""}
+                                      onChange={(e) => handleUpdateRow(row.id, { createdTime: e.target.value })}
+                                      placeholder="Auto"
+                                      className="h-7 text-xs font-mono w-full"
+                                    />
+                                  </td>
+                                )}
+
                                 {/* Due Date (Normalized with fallback & friendly preview) */}
-                                <td className="py-2 px-3">
-                                  <div className="space-y-1 min-w-[125px]">
+                                <td className="py-2 px-3 w-40 min-w-[155px]">
+                                  <div className="space-y-1 w-full">
                                     <Input
                                       type="date"
                                       value={row.dueDate || getTodayISO()}
                                       onChange={(e) => handleUpdateRow(row.id, { dueDate: e.target.value })}
-                                      className="h-7 text-xs font-mono"
+                                      className="h-7 text-xs font-mono w-full"
                                     />
                                     <div className="text-[10px] text-muted-foreground flex items-center gap-1 font-medium truncate">
                                       <Calendar className="h-3 w-3 text-primary shrink-0" />
@@ -1526,23 +1769,23 @@ export function BulkTaskUpload({
                                 </td>
 
                                 {/* Due Time */}
-                                <td className="py-2 px-3">
+                                <td className="py-2 px-3 w-28 min-w-[110px]">
                                   <Input
                                     value={row.dueTime || ""}
                                     onChange={(e) => handleUpdateRow(row.id, { dueTime: e.target.value })}
                                     placeholder="17:00 / EOD"
-                                    className="h-7 text-xs font-mono"
+                                    className="h-7 text-xs font-mono w-full"
                                   />
                                 </td>
 
                                 {/* Project (with Datalist Autocomplete) */}
-                                <td className="py-2 px-3">
+                                <td className="py-2 px-3 w-48 min-w-[185px]">
                                   <Input
                                     list="bulk-project-options"
                                     value={row.project || ""}
                                     onChange={(e) => handleUpdateRow(row.id, { project: e.target.value })}
                                     placeholder={`Default: ${defaultProjectName}`}
-                                    className="h-7 text-xs"
+                                    className="h-7 text-xs w-full"
                                   />
                                   <datalist id="bulk-project-options">
                                     {availableProjects.map(p => (
@@ -1552,18 +1795,26 @@ export function BulkTaskUpload({
                                 </td>
 
                                 {/* Assignee */}
-                                <td className="py-2 px-3">
+                                <td className="py-2 px-3 w-48 min-w-[185px]">
                                   <Input
+                                    list={`bulk-assignee-table-${row.id}`}
                                     value={row.assignedTo || ""}
                                     onChange={(e) => handleUpdateRow(row.id, { assignedTo: e.target.value })}
-                                    placeholder={defaultAssignee !== "none" ? "Default selected" : "Self"}
-                                    className="h-7 text-xs"
+                                    placeholder={defaultAssignee !== "none" ? "Default selected" : "Self / User / Email"}
+                                    className="h-7 text-xs w-full"
                                   />
+                                  <datalist id={`bulk-assignee-table-${row.id}`}>
+                                    {teamMembers.map((m: any) => (
+                                      <option key={m.id || m.username || m.email} value={m.username || m.name || m.email}>
+                                        {m.name ? `${m.name} (@${m.username || m.name})` : m.username} {m.email ? `<${m.email}>` : ""}
+                                      </option>
+                                    ))}
+                                  </datalist>
                                 </td>
 
                                 {tableLayoutMode === "compact" ? (
                                   /* Slide Down Trigger Column in Compact Mode */
-                                  <td className="py-2 px-3 text-center">
+                                  <td className="py-2 px-3 text-center w-44 min-w-[170px]">
                                     <Button
                                       type="button"
                                       variant={isExpanded ? "default" : "outline"}
@@ -1695,7 +1946,7 @@ export function BulkTaskUpload({
                                 )}
 
                                 {/* Delete Row Action */}
-                                <td className="py-2 px-3 text-center">
+                                <td className="py-2 px-3 text-center w-16 min-w-[64px] sticky right-0 bg-background z-20 border-l border-border/60 shadow-l">
                                   <Button
                                     type="button"
                                     variant="ghost"
@@ -1712,8 +1963,8 @@ export function BulkTaskUpload({
                               {/* Slide-Down Detail Panel for This Row */}
                               {isExpanded && (
                                 <tr className="bg-muted/15 border-b-2 border-primary/20 transition-all">
-                                  <td colSpan={tableLayoutMode === "compact" ? 9 : 15} className="p-3 sm:p-4">
-                                    <div className="bg-background rounded-xl p-4 border border-border/80 shadow-md space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                                  <td colSpan={tableLayoutMode === "compact" ? 11 : 18} className="p-3 sm:p-4">
+                                    <div className="sticky left-3 max-w-5xl bg-background rounded-xl p-4 border border-border/80 shadow-md space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
                                       {/* Slide-Down Header */}
                                       <div className="flex items-center justify-between border-b border-border/60 pb-2.5">
                                         <div className="flex items-center gap-2">
@@ -1740,6 +1991,70 @@ export function BulkTaskUpload({
                                           <span>Slide Up (Done)</span>
                                           <ChevronUp className="h-3.5 w-3.5" />
                                         </Button>
+                                      </div>
+
+                                      {/* Status & Creation Properties */}
+                                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs border-b border-border/40 pb-3">
+                                        {/* Status */}
+                                        <div className="space-y-1">
+                                          <Label className="text-xs font-semibold text-muted-foreground">Status</Label>
+                                          <Select
+                                            value={row.status || defaultStatus || "todo"}
+                                            onValueChange={(val) => handleUpdateRow(row.id, { status: val })}
+                                          >
+                                            <SelectTrigger className="h-8 text-xs bg-muted/20">
+                                              <SelectValue placeholder="Select status..." />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              <SelectItem value="todo">
+                                                <div className="flex items-center gap-1.5 font-medium">
+                                                  <span className="h-2 w-2 rounded-full bg-slate-400" />
+                                                  <span>Yet to Start</span>
+                                                </div>
+                                              </SelectItem>
+                                              <SelectItem value="in-progress">
+                                                <div className="flex items-center gap-1.5 font-medium text-primary">
+                                                  <span className="h-2 w-2 rounded-full bg-primary" />
+                                                  <span>In Progress</span>
+                                                </div>
+                                              </SelectItem>
+                                              <SelectItem value="done">
+                                                <div className="flex items-center gap-1.5 font-medium text-emerald-600 dark:text-emerald-400">
+                                                  <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                                                  <span>Done</span>
+                                                </div>
+                                              </SelectItem>
+                                              <SelectItem value="blocked">
+                                                <div className="flex items-center gap-1.5 font-medium text-destructive">
+                                                  <span className="h-2 w-2 rounded-full bg-destructive" />
+                                                  <span>Blocked</span>
+                                                </div>
+                                              </SelectItem>
+                                            </SelectContent>
+                                          </Select>
+                                        </div>
+
+                                        {/* Created Date */}
+                                        <div className="space-y-1">
+                                          <Label className="text-xs font-semibold text-muted-foreground">Created Date</Label>
+                                          <Input
+                                            type="date"
+                                            value={row.createdDate || ""}
+                                            onChange={(e) => handleUpdateRow(row.id, { createdDate: e.target.value })}
+                                            className="h-8 text-xs bg-muted/20 font-mono"
+                                          />
+                                        </div>
+
+                                        {/* Created Time */}
+                                        <div className="space-y-1">
+                                          <Label className="text-xs font-semibold text-muted-foreground">Created Time</Label>
+                                          <Input
+                                            value={row.createdTime || ""}
+                                            onChange={(e) => handleUpdateRow(row.id, { createdTime: e.target.value })}
+                                            placeholder="e.g. 10:30"
+                                            className="h-8 text-xs bg-muted/20 font-mono"
+                                          />
+                                        </div>
                                       </div>
 
                                       {/* Top Grid: Classification & Effort Fields */}
@@ -2327,34 +2642,74 @@ export function BulkTaskUpload({
                   <tr className="border-b border-border">
                     <th className="py-2 px-3 text-left">Task ID</th>
                     <th className="py-2 px-3 text-left">Title</th>
+                    <th className="py-2 px-3 text-left">Status</th>
                     <th className="py-2 px-3 text-left">Project</th>
                     <th className="py-2 px-3 text-left">Priority</th>
                     <th className="py-2 px-3 text-left">Created Date & Time</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/50">
-                  {createdTasksResult.map((t: any) => (
-                    <tr key={t.id} className="hover:bg-muted/30">
-                      <td className="py-2 px-3 font-mono font-bold text-primary">#{t.id}</td>
-                      <td className="py-2 px-3 font-medium text-foreground">{t.title}</td>
-                      <td className="py-2 px-3 text-muted-foreground">{t.project || defaultProjectName || "Project"}</td>
-                      <td className="py-2 px-3">
-                        <Badge
-                          variant="outline"
-                          className={`text-[10px] ${
-                            t.priority === 'P1' ? 'border-rose-400 text-rose-500 bg-rose-50' :
-                            t.priority === 'P2' ? 'border-amber-400 text-amber-500 bg-amber-50' :
-                            'border-blue-400 text-blue-500 bg-blue-50'
-                          }`}
-                        >
-                          {t.priority}
-                        </Badge>
-                      </td>
-                      <td className="py-2 px-3 font-mono text-[11px] text-muted-foreground">
-                        {t.created_at ? new Date(t.created_at).toLocaleString() : new Date().toLocaleString()}
-                      </td>
-                    </tr>
-                  ))}
+                  {createdTasksResult.map((t: any) => {
+                    const statusStr = (t.status || "todo").toLowerCase();
+                    const isDone = statusStr === "completed" || statusStr === "done";
+                    const isInProgress = statusStr === "in_progress" || statusStr === "in-progress";
+                    const isBlocked = statusStr === "delayed" || statusStr === "blocked" || statusStr === "on_hold";
+                    
+                    const statusLabel = isDone ? "Done" : isInProgress ? "In Progress" : isBlocked ? "Blocked" : "Yet to Start";
+                    const statusBadgeClass = isDone 
+                      ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                      : isInProgress
+                      ? "bg-primary/10 text-primary border-primary/30"
+                      : isBlocked
+                      ? "bg-destructive/15 text-destructive border-destructive/30"
+                      : "bg-muted text-muted-foreground border-border";
+
+                    const createdFormatted = t.created_at
+                      ? new Date(t.created_at).toLocaleString(undefined, {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hour12: true
+                        })
+                      : new Date().toLocaleString(undefined, {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hour12: true
+                        });
+
+                    return (
+                      <tr key={t.id} className="hover:bg-muted/30">
+                        <td className="py-2 px-3 font-mono font-bold text-primary">#{t.id}</td>
+                        <td className="py-2 px-3 font-medium text-foreground">{t.title}</td>
+                        <td className="py-2 px-3">
+                          <Badge variant="outline" className={`text-[10px] font-semibold ${statusBadgeClass}`}>
+                            {statusLabel}
+                          </Badge>
+                        </td>
+                        <td className="py-2 px-3 text-muted-foreground">{t.project || defaultProjectName || "Project"}</td>
+                        <td className="py-2 px-3">
+                          <Badge
+                            variant="outline"
+                            className={`text-[10px] ${
+                              t.priority === 'P1' ? 'border-rose-400 text-rose-500 bg-rose-50' :
+                              t.priority === 'P2' ? 'border-amber-400 text-amber-500 bg-amber-50' :
+                              'border-blue-400 text-blue-500 bg-blue-50'
+                            }`}
+                          >
+                            {t.priority}
+                          </Badge>
+                        </td>
+                        <td className="py-2 px-3 font-mono text-[11px] text-muted-foreground">
+                          {createdFormatted}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </ScrollArea>

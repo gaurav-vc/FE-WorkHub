@@ -24,9 +24,11 @@ interface CreateTaskModalProps {
   teamMembers?: any[];
   tasks?: any[];
   defaultProjectId?: string;
+  defaultDueDate?: string;
+  defaultStartDate?: string;
 }
 
-export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tasks, defaultProjectId }: CreateTaskModalProps) {
+export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tasks, defaultProjectId, defaultDueDate, defaultStartDate }: CreateTaskModalProps) {
   const [activeTab, setActiveTab] = useState("details");
   const [taskType, setTaskType] = useState<"self" | "assign" | "bulk">("self");
   
@@ -70,6 +72,11 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
     if (open) {
       if (defaultProjectId) setProjectId(defaultProjectId);
       else setProjectId("general");
+
+      if (defaultDueDate) {
+        setDueDate(defaultDueDate);
+        setStartDate(defaultStartDate || defaultDueDate);
+      }
       
       const token = localStorage.getItem("token") || sessionStorage.getItem("token");
       const headers = token ? { "Authorization": `Bearer ${token}` } : {};
@@ -84,7 +91,7 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
         .then(data => setProjects(Array.isArray(data) ? data : data.results || []))
         .catch(console.error);
     }
-  }, [open, defaultProjectId]);
+  }, [open, defaultProjectId, defaultDueDate, defaultStartDate]);
 
   const handleAddTag = (e: React.KeyboardEvent | React.MouseEvent) => {
     if (('key' in e && e.key === 'Enter') || e.type === 'click') {

@@ -9,6 +9,9 @@ import {
   MapPin,
   RotateCcw,
   Plus,
+  CheckSquare,
+  X,
+  Sparkles,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -49,7 +52,7 @@ const hours = Array.from({ length: 12 }, (_, i) => i + 7); // 7 AM to 6 PM
 
 export default function CalendarMeetings() {
   const { token } = useAuth();
-  const { tasks, setSelectedTask } = useTaskContext();
+  const { tasks, setSelectedTask, addTask } = useTaskContext();
   const [view, setView] = useState<"month" | "week" | "day">("month");
   const today = new Date();
   const [currentDate, setCurrentDate] = useState(today);
@@ -62,20 +65,24 @@ export default function CalendarMeetings() {
   const [attendeeInput, setAttendeeInput] = useState("");
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [employees, setEmployees] = useState<{ id: number, name: string, email: string }[]>([]);
+  const [projects, setProjects] = useState<{ id: number, name: string }[]>([]);
   const [form, setForm] = useState({
     title: "",
-    type: "meeting",
+    type: "meeting" as "task" | "event" | "meeting",
     date: "",
     startTime: "10:00",
     endTime: "11:00",
     description: "",
-    platform: "Zoom",
+    platform: "Google Meet",
     meetingLink: "",
     recurring: false,
     recurrence_type: "daily",
     recurrence_end_date: "",
     internal_attendees: [] as number[],
-    attendees: [] as string[]
+    attendees: [] as string[],
+    priority: "P3 Medium",
+    projectId: "",
+    assigneeId: ""
   });
 
   const fetchEvents = () => {
@@ -136,19 +143,87 @@ export default function CalendarMeetings() {
           console.error(err);
           toast.error("Failed to load employees");
         });
+
+      fetch(`${API_BASE}/projects/?paginate=false`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => {
+          if (!r.ok) return [];
+          return r.json();
+        })
+        .then(data => {
+          const list = Array.isArray(data) ? data : data.results || [];
+          setProjects(list);
+        })
+        .catch(console.error);
         
       const handleSync = () => fetchEvents();
       window.addEventListener('tasks-updated', handleSync);
-      return () => window.removeEventListener('tasks-updated', handleSync);
+      window.addEventListener('task-created', handleSync);
+      return () => {
+        window.removeEventListener('tasks-updated', handleSync);
+        window.removeEventListener('task-created', handleSync);
+      };
     }
   }, [token]);
 
+  const resetForm = () => {
+    setForm({
+      title: "",
+      type: "meeting",
+      date: "",
+      startTime: "10:00",
+      endTime: "11:00",
+      description: "",
+      platform: "Google Meet",
+      meetingLink: "",
+      recurring: false,
+      recurrence_type: "daily",
+      recurrence_end_date: "",
+      internal_attendees: [],
+      attendees: [],
+      priority: "P3 Medium",
+      projectId: projects[0]?.id?.toString() || "",
+      assigneeId: ""
+    });
+    setAttendeeInput("");
+    setEditingEventId(null);
+  };
+
   const handleAddEvent = async () => {
     if (!form.title.trim()) {
-      toast.error("Topic is required");
+      toast.error(`${form.type === 'task' ? 'Task title' : 'Topic'} is required`);
       return;
     }
 
+    // 1. Task Creation Flow (Simplified & Directly Synced with Task System)
+    if (form.type === 'task' && !editingEventId) {
+      try {
+        const selectedProject = projects.find(p => p.id.toString() === form.projectId) || projects[0];
+        const taskPayload = {
+          title: form.title.trim(),
+          description: form.description || "",
+          dueDate: form.date || (selectedDate ? `${selectedDate.getFullYear()}-${(selectedDate.getMonth() + 1).toString().padStart(2, '0')}-${selectedDate.getDate().toString().padStart(2, '0')}` : new Date().toISOString().split('T')[0]),
+          dueTime: form.startTime || "10:00",
+          priority: form.priority || "P3 Medium",
+          project: selectedProject?.name || "General Workspace",
+          project_id: selectedProject ? Number(selectedProject.id) : undefined,
+          assignedTo: form.assigneeId ? Number(form.assigneeId) : undefined,
+          assigneeIds: form.assigneeId ? [Number(form.assigneeId)] : [],
+          status: "todo"
+        };
+        const success = await addTask(taskPayload as any);
+        if (success !== false) {
+          setShowAddEvent(false);
+          resetForm();
+          fetchEvents();
+        }
+        return;
+      } catch (err: any) {
+        toast.error(err?.message || "Failed to create task");
+        return;
+      }
+    }
+
+    // 2. Event / Meeting Flow (100% Preserved & Isolated)
     const startD = form.date ? new Date(form.date) : (selectedDate || new Date());
     if (form.startTime) {
       const [h, m] = form.startTime.split(':');
@@ -167,6 +242,7 @@ export default function CalendarMeetings() {
     const payload = {
       title: form.title,
       type: form.type,
+      meeting_type: form.type,
       start_time: startD.toISOString(),
       duration: `${form.startTime} - ${form.endTime}`,
       location: form.meetingLink || "TBD",
@@ -200,8 +276,7 @@ export default function CalendarMeetings() {
       if (res.ok) {
         toast.success(`${form.type.charAt(0).toUpperCase() + form.type.slice(1)} ${isEditing ? 'updated' : 'created'} successfully`);
         setShowAddEvent(false);
-        setEditingEventId(null);
-        setForm({ title: "", type: "meeting", date: "", startTime: "10:00", endTime: "11:00", description: "", platform: "Zoom", meetingLink: "", recurring: false, recurrence_type: "daily", recurrence_end_date: "", internal_attendees: [], attendees: [] });
+        resetForm();
         fetchEvents();
       } else {
         toast.error(`Failed to ${isEditing ? 'update' : 'create'} ${form.type}`);
@@ -211,26 +286,29 @@ export default function CalendarMeetings() {
     }
   };
 
-  const openAddEvent = (date: Date) => {
+  const openAddEvent = (date: Date, defaultType?: "task" | "event" | "meeting") => {
     setSelectedDate(date);
     setEditingEventId(null);
-    // Format date as yyyy-mm-dd in local timezone instead of UTC
     const dateStr = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
     setForm({ 
       title: "", 
-      type: "meeting", 
+      type: defaultType || form.type || "meeting", 
       date: dateStr, 
       startTime: "10:00", 
       endTime: "11:00",
       description: "",
-      platform: "Zoom",
+      platform: "Google Meet",
       meetingLink: "",
       recurring: false,
       recurrence_type: "daily",
       recurrence_end_date: "",
       internal_attendees: [],
-      attendees: []
+      attendees: [],
+      priority: "P3 Medium",
+      projectId: projects[0]?.id?.toString() || "",
+      assigneeId: ""
     });
+    setAttendeeInput("");
     setShowAddEvent(true);
   };
 
@@ -279,7 +357,7 @@ export default function CalendarMeetings() {
     setForm({
       ...form,
       title: ev.title,
-      type: ev.type,
+      type: (ev.type === "task" || ev.type === "meeting") ? ev.type : "event",
       date: dateStr,
       startTime: startTimeStr,
       endTime: endTimeStr,
@@ -345,22 +423,22 @@ export default function CalendarMeetings() {
       <div className="fixed top-20 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-[120px] pointer-events-none -z-10 animate-pulse" />
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-card/60 backdrop-blur-xl border border-white/10 p-6 rounded-3xl shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-card/90 backdrop-blur-xl border border-slate-200 dark:border-slate-800 p-6 rounded-2xl md:rounded-3xl shadow-sm">
         <div>
           <h1 className="text-3xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-purple-600 flex items-center gap-3">
             <CalendarDays className="h-8 w-8 text-primary animate-bounce-slow" />
             Calendar
           </h1>
         </div>
-        <div className="flex items-center gap-2 bg-background/50 p-1.5 rounded-2xl border border-white/5 backdrop-blur-sm">
-          <Button size="sm" variant="outline" className="rounded-xl border-white/10 hover:bg-card" onClick={() => setCurrentDate(new Date())}>Today</Button>
+        <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900/60 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800 backdrop-blur-sm">
+          <Button size="sm" variant="outline" className="rounded-xl border-slate-200 dark:border-slate-800 hover:bg-card shadow-xs" onClick={() => setCurrentDate(new Date())}>Today</Button>
           <div className="flex items-center gap-1 mx-2">
             <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full hover:bg-card" onClick={() => navigate(-1)}><ChevronLeft className="h-4 w-4" /></Button>
             <span className="text-sm font-bold text-foreground min-w-[140px] text-center">{monthName}</span>
             <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full hover:bg-card" onClick={() => navigate(1)}><ChevronRight className="h-4 w-4" /></Button>
           </div>
           <Tabs value={view} onValueChange={(v) => setView(v as typeof view)} className="bg-transparent">
-            <TabsList className="h-9 bg-card/50 border border-white/5 rounded-xl p-1">
+            <TabsList className="h-9 bg-card/50 border border-slate-200 dark:border-slate-800 rounded-xl p-1">
               <TabsTrigger value="day" className="text-xs h-7 px-3 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">Day</TabsTrigger>
               <TabsTrigger value="week" className="text-xs h-7 px-3 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">Week</TabsTrigger>
               <TabsTrigger value="month" className="text-xs h-7 px-3 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">Month</TabsTrigger>
@@ -374,41 +452,68 @@ export default function CalendarMeetings() {
 
       {/* Month View */}
       {view === "month" && (
-        <Card className="shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/10 overflow-hidden bg-card/60 backdrop-blur-xl rounded-3xl animate-in fade-in slide-in-from-bottom-8">
+        <Card className="shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden bg-card rounded-2xl md:rounded-3xl animate-in fade-in slide-in-from-bottom-4">
           <CardContent className="p-0">
-            <div className="grid grid-cols-7 text-center border-b border-white/5 bg-background/30">
+            <div className="grid grid-cols-7 text-center border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 font-semibold">
               {weekDays.map((d) => (
-                <div key={d} className="py-3 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">{d}</div>
+                <div key={d} className="py-3 text-[11px] font-bold text-muted-foreground uppercase tracking-wider border-r border-slate-200/80 dark:border-slate-800/80 last:border-r-0">{d}</div>
               ))}
             </div>
             <div className="grid grid-cols-7 text-left">
               {Array.from({ length: firstDayOfMonth }).map((_, i) => (
-                <div key={`e-${i}`} className="min-h-[120px] border-b border-r border-white/5 bg-background/10" />
+                <div key={`e-${i}`} className="min-h-[120px] border-b border-r border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30" />
               ))}
               {Array.from({ length: daysInMonth }).map((_, i) => {
                 const day = i + 1;
                 const isToday = day === todayDate && currentDate.getMonth() === today.getMonth() && currentDate.getFullYear() === today.getFullYear();
                 const cellDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+                const cellDateStr = `${cellDate.getFullYear()}-${(cellDate.getMonth() + 1).toString().padStart(2, '0')}-${cellDate.getDate().toString().padStart(2, '0')}`;
                 const dateKey = `${currentDate.getFullYear()}-${currentDate.getMonth()}-${day}`;
                 const dayEvents = events[dateKey] || [];
                 return (
                   <div
                     key={day}
                     onClick={() => openAddEvent(cellDate)}
-                    className="min-h-[120px] border-b border-r border-white/5 p-2 hover:bg-card/80 transition-colors cursor-pointer group flex flex-col relative"
+                    className={cn(
+                      "min-h-[120px] border-b border-r border-slate-200 dark:border-slate-800 p-2 hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors cursor-pointer group flex flex-col relative",
+                      isToday ? "bg-primary/[0.04]" : "bg-card"
+                    )}
                   >
-                    <div className="flex justify-end w-full mb-1">
+                    <div className="flex justify-between items-center w-full mb-1">
+                      <button
+                        type="button"
+                        title="Create Task for this date"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openAddEvent(cellDate, "task");
+                        }}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-primary/10 text-muted-foreground hover:text-primary"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                      </button>
                       <span className={cn(
                         "inline-flex h-7 w-7 items-center justify-center rounded-full text-xs transition-all font-semibold z-10", 
-                        isToday ? "bg-primary text-primary-foreground shadow-md font-bold scale-110" : "text-muted-foreground group-hover:bg-muted"
+                        isToday ? "bg-primary text-primary-foreground shadow-md font-bold scale-110" : "text-slate-600 dark:text-slate-300 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 group-hover:text-foreground"
                       )}>{day}</span>
                     </div>
                     <div className="space-y-1.5 w-full flex-1 overflow-y-auto custom-scrollbar pr-0.5 z-10">
                       {dayEvents.slice(0, 3).map((ev) => (
                         <div 
                           key={ev.id} 
-                          onClick={(e) => { e.stopPropagation(); setSelectedEvent(ev); }} 
-                          className={cn("text-[10px] px-2 py-1.5 rounded-lg truncate text-left shadow-sm hover:shadow-md transition-all cursor-pointer font-medium leading-tight flex flex-col gap-0.5 border border-white/5", getEventStyles(ev.color))}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const isTask = ev.type === "task" || (ev.id && ev.id.startsWith("task_"));
+                            if (isTask) {
+                              const realId = ev.id.startsWith("task_") ? ev.id.split("_")[1] : ev.id;
+                              const fullTask = tasks.find(t => t.id.toString() === realId.toString());
+                              if (fullTask) {
+                                setSelectedTask(fullTask);
+                                return;
+                              }
+                            }
+                            setSelectedEvent(ev);
+                          }} 
+                          className={cn("text-[10px] px-2 py-1.5 rounded-lg truncate text-left shadow-xs hover:shadow-md transition-all cursor-pointer font-medium leading-tight flex flex-col gap-0.5 border border-slate-200/60 dark:border-slate-700/60", getEventStyles(ev.color))}
                         >
                           <span className="truncate">{ev.title}</span>
                           <span className="text-[9px] opacity-80 font-normal">{ev.time}</span>
@@ -426,15 +531,15 @@ export default function CalendarMeetings() {
 
       {/* Week View */}
       {view === "week" && (
-        <Card className="shadow-sm border-border overflow-hidden bg-card">
+        <Card className="shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden bg-card">
           <CardContent className="p-0">
             {/* Day headers */}
-            <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-border bg-muted/30">
-              <div className="border-r border-border" />
+            <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60">
+              <div className="border-r border-slate-200 dark:border-slate-800" />
               {weekDates.map((d, i) => {
                 const isToday = d.toDateString() === today.toDateString();
                 return (
-                  <div key={i} onClick={() => openAddEvent(d)} className={cn("text-center py-2.5 border-r border-border cursor-pointer hover:bg-muted/50 transition-colors flex flex-col items-center justify-center", isToday && "bg-primary/5")}>
+                  <div key={i} onClick={() => openAddEvent(d)} className={cn("text-center py-2.5 border-r border-slate-200 dark:border-slate-800 cursor-pointer hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors flex flex-col items-center justify-center", isToday && "bg-primary/5")}>
                     <div className={cn("text-[11px] font-semibold uppercase tracking-wider mb-1", isToday ? "text-primary" : "text-muted-foreground")}>{weekDays[i]}</div>
                     <div className={cn("inline-flex h-8 w-8 items-center justify-center rounded-full text-[13px] font-medium transition-colors", isToday ? "bg-primary text-primary-foreground shadow-md" : "text-foreground bg-muted")}>{d.getDate()}</div>
                   </div>
@@ -442,10 +547,10 @@ export default function CalendarMeetings() {
               })}
             </div>
             {/* Time grid */}
-            <div className="grid grid-cols-[60px_repeat(7,1fr)] max-h-[600px] overflow-auto custom-scrollbar bg-muted/10">
+            <div className="grid grid-cols-[60px_repeat(7,1fr)] max-h-[600px] overflow-auto custom-scrollbar bg-slate-50/20 dark:bg-slate-900/20">
               {hours.map((hour) => (
                 <div key={hour} className="contents group/row">
-                  <div className="h-16 border-r border-b border-border flex items-start justify-end pr-2.5 pt-1.5 bg-card">
+                  <div className="h-16 border-r border-b border-slate-200 dark:border-slate-800 flex items-start justify-end pr-2.5 pt-1.5 bg-card">
                     <span className="text-[10px] font-medium text-muted-foreground tracking-wide">{hour > 12 ? hour - 12 : hour} {hour >= 12 ? "PM" : "AM"}</span>
                   </div>
                   {weekDates.map((d, di) => {
@@ -463,7 +568,7 @@ export default function CalendarMeetings() {
                     cellDate.setMinutes(0);
 
                     return (
-                      <div key={`${hour}-${di}`} onClick={() => { setForm({ ...form, startTime: `${hour.toString().padStart(2, '0')}:00` }); openAddEvent(cellDate); }} className="h-16 border-r border-b border-border relative p-0.5 hover:bg-muted/30 cursor-pointer transition-colors bg-card/50">
+                      <div key={`${hour}-${di}`} onClick={() => { setForm({ ...form, startTime: `${hour.toString().padStart(2, '0')}:00` }); openAddEvent(cellDate); }} className="h-16 border-r border-b border-slate-200 dark:border-slate-800 relative p-0.5 hover:bg-slate-50/80 dark:hover:bg-slate-800/40 cursor-pointer transition-colors bg-card/50">
                         {hourEvents.map((ev) => (
                           <div key={ev.id} onClick={(e) => { e.stopPropagation(); setSelectedEvent(ev); }} className={cn("text-[10px] px-2 py-1 rounded-md leading-tight absolute inset-x-0.5 shadow-sm hover:shadow-md transition-all z-10 cursor-pointer flex flex-col justify-center", getEventStyles(ev.color))}>
                             <p className="font-semibold truncate">{ev.title}</p>
@@ -484,15 +589,15 @@ export default function CalendarMeetings() {
       {view === "day" && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
-            <Card className="shadow-sm border-border overflow-hidden bg-card">
-              <CardHeader className="border-b border-border bg-muted/30 py-4">
+            <Card className="shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden bg-card">
+              <CardHeader className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60 py-4">
                 <CardTitle className="text-sm font-semibold flex justify-between items-center text-foreground">
                   <span className="text-primary">{currentDate.toLocaleDateString("en-US", { weekday: "long" })}</span>
                   <span className="text-muted-foreground">{currentDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
-                <div className="max-h-[600px] overflow-auto custom-scrollbar bg-muted/5">
+                <div className="max-h-[600px] overflow-auto custom-scrollbar bg-slate-50/20 dark:bg-slate-900/20">
                   {hours.map((hour) => {
                     const dateKey = `${currentDate.getFullYear()}-${currentDate.getMonth()}-${currentDate.getDate()}`;
                     const dayEvents = events[dateKey] || [];
@@ -508,13 +613,13 @@ export default function CalendarMeetings() {
                     cellDate.setMinutes(0);
 
                     return (
-                      <div key={hour} onClick={() => { setForm({ ...form, startTime: `${hour.toString().padStart(2, '0')}:00` }); openAddEvent(cellDate); }} className="grid grid-cols-[80px_1fr] border-b border-border min-h-[80px] hover:bg-muted/30 transition-colors cursor-pointer group">
-                        <div className="border-r border-border p-3 text-right bg-card">
+                      <div key={hour} onClick={() => { setForm({ ...form, startTime: `${hour.toString().padStart(2, '0')}:00` }); openAddEvent(cellDate); }} className="grid grid-cols-[80px_1fr] border-b border-slate-200 dark:border-slate-800 min-h-[80px] hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors cursor-pointer group">
+                        <div className="border-r border-slate-200 dark:border-slate-800 p-3 text-right bg-card">
                           <span className="text-[11px] font-medium text-muted-foreground">{hour > 12 ? hour - 12 : hour} {hour >= 12 ? "PM" : "AM"}</span>
                         </div>
                         <div className="relative p-2 bg-card/50">
                           {hourEvents.map((ev, i) => (
-                            <div key={ev.id} onClick={(e) => { e.stopPropagation(); setSelectedEvent(ev); }} className={cn("text-xs p-2 rounded-md shadow-sm hover:shadow-md transition-all cursor-pointer mb-1 w-full sm:w-[80%] flex flex-col sm:flex-row sm:items-center justify-between gap-2 border border-border/50", getEventStyles(ev.color))} style={{ marginTop: i > 0 ? '4px' : '0' }}>
+                            <div key={ev.id} onClick={(e) => { e.stopPropagation(); setSelectedEvent(ev); }} className={cn("text-xs p-2 rounded-md shadow-sm hover:shadow-md transition-all cursor-pointer mb-1 w-full sm:w-[80%] flex flex-col sm:flex-row sm:items-center justify-between gap-2 border border-slate-200/60 dark:border-slate-700/60", getEventStyles(ev.color))} style={{ marginTop: i > 0 ? '4px' : '0' }}>
                               <div className="flex flex-col gap-0.5">
                                 <span className="font-semibold">{ev.title}</span>
                                 <span className="text-[10px] opacity-80 flex items-center gap-1"><Clock className="h-2.5 w-2.5" /> {ev.time} - {ev.duration}</span>
@@ -565,208 +670,377 @@ export default function CalendarMeetings() {
 
       {/* Add Event Toggle/Dialog */}
       <Dialog open={showAddEvent} onOpenChange={setShowAddEvent}>
-        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto p-0 border-border bg-card shadow-2xl">
+        <DialogContent className="sm:max-w-2xl max-h-[92vh] overflow-y-auto p-0 border border-slate-200 dark:border-slate-800 bg-card shadow-2xl rounded-2xl">
           {/* Header Segmented Control */}
-          <div className="pt-6 pb-2 px-6 flex justify-between items-center bg-muted/50 border-b border-border">
-            <div className="w-full flex justify-center mt-2 px-6">
-              <div className="bg-muted p-2 md:p-2.5 rounded-full flex items-center shadow-inner w-full border border-border gap-2">
-                {(editingEventId ? ["Event", "Meeting"] : ["Task", "Event", "Meeting"]).map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => setForm({ ...form, type: t.toLowerCase() as any })}
-                    className={cn(
-                      "flex-1 py-3 text-base md:text-lg font-bold rounded-full transition-all text-center",
-                      form.type === t.toLowerCase()
-                        ? "bg-primary text-primary-foreground shadow-md scale-[1.02]"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted-foreground/10"
-                    )}
-                  >
-                    {t}
-                  </button>
-                ))}
+          <div className="pt-6 pb-3 px-6 flex justify-between items-center bg-slate-50/70 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800">
+            <div className="w-full flex justify-center px-2">
+              <div className="bg-slate-200/70 dark:bg-slate-800 p-1 rounded-full flex items-center shadow-inner w-full max-w-md border border-slate-300/60 dark:border-slate-700 gap-1">
+                {(editingEventId ? ["Event", "Meeting"] : ["Task", "Event", "Meeting"]).map((t) => {
+                  const typeKey = t.toLowerCase() as "task" | "event" | "meeting";
+                  const isActive = form.type === typeKey;
+                  return (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setForm({ ...form, type: typeKey })}
+                      className={cn(
+                        "flex-1 py-2 text-xs md:text-sm font-semibold rounded-full transition-all text-center flex items-center justify-center gap-1.5",
+                        isActive
+                          ? "bg-white dark:bg-slate-900 text-foreground shadow-sm scale-[1.01]"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      {t === "Task" && <CheckSquare className="h-3.5 w-3.5 text-primary" />}
+                      {t === "Event" && <CalendarDays className="h-3.5 w-3.5 text-info" />}
+                      {t === "Meeting" && <Video className="h-3.5 w-3.5 text-accent" />}
+                      {t}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
 
           {/* Form Body */}
-          <div className="px-6 py-4 space-y-5 text-foreground">
-            <div className="grid grid-cols-2 gap-5">
+          <div className="px-6 py-5 space-y-4 text-foreground">
+            {/* Title / Topic */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
+                {form.type === 'meeting' ? 'Meeting Topic' : form.type === 'event' ? 'Event Title' : 'Task Title'} <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                placeholder={form.type === 'meeting' ? 'e.g., Q4 Planning & Strategy Sync' : form.type === 'event' ? 'e.g., Annual Company Townhall' : 'e.g., Review & submit audit documentation'}
+                value={form.title}
+                onChange={(e) => setForm({ ...form, title: e.target.value })}
+                className="h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-background text-sm font-medium"
+                autoFocus
+              />
+            </div>
+
+            {/* Date & Time Window */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label className="text-muted-foreground text-xs font-bold tracking-wide capitalize">{form.type} Topic</Label>
-                <Input
-                  value={form.title}
-                  onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  className="bg-muted/50 text-foreground border-0 h-10 rounded-md"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-muted-foreground text-xs font-bold tracking-wide">Date</Label>
+                <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Date</Label>
                 <Input
                   type="date"
                   value={form.date}
                   onChange={(e) => setForm({ ...form, date: e.target.value })}
-                  className="bg-muted/50 text-foreground border-0 h-10 rounded-md dark:[color-scheme:dark]"
+                  className="h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-background dark:[color-scheme:dark]"
                 />
               </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-5">
               <div className="space-y-1.5">
-                <Label className="text-muted-foreground text-xs font-bold tracking-wide capitalize">{form.type} Description</Label>
-                <Input
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  className="bg-muted/50 text-foreground border-0 h-10 rounded-md"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-muted-foreground text-xs font-bold tracking-wide">Time</Label>
+                <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Time</Label>
                 <div className="flex items-center gap-2">
                   <Input
                     type="time"
                     value={form.startTime}
                     onChange={(e) => setForm({ ...form, startTime: e.target.value, endTime: `${(parseInt(e.target.value.split(':')[0]) + 1).toString().padStart(2, '0')}:${e.target.value.split(':')[1]}` })}
-                    className="bg-muted/50 text-foreground border-0 h-10 rounded-md px-2 dark:[color-scheme:dark] w-full"
+                    className="h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-background dark:[color-scheme:dark] flex-1 text-center font-medium"
                   />
-                  <span className="text-muted-foreground font-medium">-</span>
+                  <span className="text-muted-foreground font-semibold text-xs uppercase px-1">to</span>
                   <Input
                     type="time"
                     value={form.endTime}
                     onChange={(e) => setForm({ ...form, endTime: e.target.value })}
-                    className="bg-muted/50 text-foreground border-0 h-10 rounded-md px-2 dark:[color-scheme:dark] w-full"
+                    className="h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-background dark:[color-scheme:dark] flex-1 text-center font-medium"
                   />
                 </div>
               </div>
             </div>
 
-            {form.type !== 'task' && (
-              <div className="grid grid-cols-2 gap-5">
-                <div className="space-y-1.5 relative">
-                  <Label className="text-muted-foreground text-xs font-bold tracking-wide">Platform</Label>
-                  <Select value={form.platform} onValueChange={(v) => setForm({ ...form, platform: v })}>
-                    <SelectTrigger className="bg-muted/50 text-foreground border-0 h-10 rounded-md">
-                      <SelectValue placeholder="Select platform" />
+            {/* Task-Specific Simplified Fields */}
+            {form.type === 'task' ? (
+              <div className="space-y-4 pt-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Priority</Label>
+                    <Select value={form.priority} onValueChange={(v) => setForm({ ...form, priority: v })}>
+                      <SelectTrigger className="h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-background">
+                        <div className="flex items-center gap-2">
+                          <span className={cn(
+                            "h-2.5 w-2.5 rounded-full shrink-0",
+                            form.priority?.includes("1") ? "bg-red-500" :
+                            form.priority?.includes("2") ? "bg-orange-500" :
+                            form.priority?.includes("3") ? "bg-blue-500" : "bg-emerald-500"
+                          )} />
+                          <SelectValue placeholder="Priority" />
+                        </div>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="P1 Critical">P1 Critical</SelectItem>
+                        <SelectItem value="P2 High">P2 High</SelectItem>
+                        <SelectItem value="P3 Medium">P3 Medium</SelectItem>
+                        <SelectItem value="P4 Low">P4 Low</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Project</Label>
+                    <Select 
+                      value={form.projectId || (projects[0]?.id?.toString() || "")} 
+                      onValueChange={(v) => setForm({ ...form, projectId: v })}
+                    >
+                      <SelectTrigger className="h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-background">
+                        <SelectValue placeholder="Select Project" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {projects.length > 0 ? (
+                          projects.map(p => (
+                            <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="general">General Workspace</SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Assignee</Label>
+                  <Select 
+                    value={form.assigneeId || "self"} 
+                    onValueChange={(v) => setForm({ ...form, assigneeId: v === "self" ? "" : v })}
+                  >
+                    <SelectTrigger className="h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-background">
+                      <SelectValue placeholder="Assign to Myself" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Google Meet">Google Meet</SelectItem>
-                      <SelectItem value="Microsoft Teams">Microsoft Teams</SelectItem>
-                      <SelectItem value="Jitsi Meet">Jitsi Meet (Instantly Working)</SelectItem>
+                      <SelectItem value="self">Assign to Myself</SelectItem>
+                      {employees.map(emp => (
+                        <SelectItem key={emp.id} value={emp.id.toString()}>{emp.name}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
 
-                <div className="space-y-1.5 relative">
-                  <Label className="text-muted-foreground text-xs font-bold tracking-wide capitalize">{form.type} Link</Label>
-                  <div className="flex items-center gap-2">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Description</Label>
+                  <Textarea
+                    placeholder="Add details, notes, or instructions for this task..."
+                    value={form.description}
+                    onChange={(e) => setForm({ ...form, description: e.target.value })}
+                    rows={3}
+                    className="rounded-xl border border-slate-200 dark:border-slate-700 bg-background resize-none text-sm"
+                  />
+                </div>
+              </div>
+            ) : (
+              /* Event / Meeting Specific Fields - Simplified & User-Friendly */
+              <div className="space-y-4 pt-1">
+                {/* Meeting: Platform & Link Generation */}
+                {form.type === 'meeting' ? (
+                  <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 p-3.5 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 uppercase tracking-wide">
+                        <Video className="h-3.5 w-3.5 text-accent" />
+                        Meeting Platform & Link
+                      </Label>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            const res = await fetch(`${API_BASE}/calendar/generate-link/`, {
+                              method: "POST",
+                              headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                              },
+                              body: JSON.stringify({ platform: form.platform })
+                            });
+                            const data = await res.json();
+                            if (data.link) {
+                              setForm({ ...form, meetingLink: data.link });
+                              if (data.source === 'jitsi_fallback' && data.note) {
+                                toast.info(`Using Jitsi fallback. ${data.note}`);
+                              } else if (data.source === 'google_calendar_api') {
+                                toast.success("Real Google Meet link generated!");
+                              } else if (data.source === 'teams_graph_api') {
+                                toast.success("Real Microsoft Teams link generated!");
+                              } else {
+                                toast.success("Meeting link generated!");
+                              }
+                            }
+                          } catch (err) {
+                            toast.error("Failed to generate link");
+                          }
+                        }}
+                        className="text-xs font-semibold text-primary hover:text-primary/80 flex items-center gap-1 transition-colors px-2.5 py-1 rounded-md hover:bg-primary/10"
+                      >
+                        <Sparkles className="h-3.5 w-3.5" />
+                        Generate Link
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="sm:col-span-1">
+                        <Select value={form.platform} onValueChange={(v) => setForm({ ...form, platform: v })}>
+                          <SelectTrigger className="h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-background text-xs font-medium">
+                            <SelectValue placeholder="Platform" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Google Meet">Google Meet</SelectItem>
+                            <SelectItem value="Microsoft Teams">Microsoft Teams</SelectItem>
+                            <SelectItem value="Jitsi Meet">Jitsi Meet</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <Input
+                          placeholder="Paste or click Generate"
+                          value={form.meetingLink}
+                          onChange={(e) => setForm({ ...form, meetingLink: e.target.value })}
+                          className="h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-background text-xs"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  /* Event: Location or Link */
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide flex items-center gap-1.5">
+                      <MapPin className="h-3.5 w-3.5 text-info" />
+                      Location or Event Link
+                    </Label>
                     <Input
+                      placeholder="e.g. Conference Room A, HQ Floor 3 or Virtual Link"
                       value={form.meetingLink}
                       onChange={(e) => setForm({ ...form, meetingLink: e.target.value })}
-                      className="bg-muted/50 text-foreground border-0 h-10 rounded-md flex-1"
+                      className="h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-background text-sm"
                     />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-10 px-3 text-primary font-semibold hover:text-primary/80 hover:bg-primary/10"
-                      onClick={async () => {
-                        try {
-                          const res = await fetch(`${API_BASE}/calendar/generate-link/`, {
-                            method: "POST",
-                            headers: {
-                              'Authorization': `Bearer ${token}`,
-                              'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({ platform: form.platform })
-                          });
-                          const data = await res.json();
-                          if (data.link) {
-                            setForm({ ...form, meetingLink: data.link });
-                            if (data.source === 'jitsi_fallback' && data.note) {
-                              toast.info(`Using Jitsi fallback. ${data.note}`);
-                            } else if (data.source === 'google_calendar_api') {
-                              toast.success("Real Google Meet link generated!");
-                            } else if (data.source === 'teams_graph_api') {
-                              toast.success("Real Microsoft Teams link generated!");
-                            } else {
-                              toast.success("Meeting link generated!");
-                            }
-                          }
-                        } catch (err) {
-                          toast.error("Failed to generate link");
+                  </div>
+                )}
+
+                {/* Description / Agenda */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
+                    {form.type === 'meeting' ? 'Agenda / Description' : 'Event Description'}
+                  </Label>
+                  <Textarea
+                    placeholder="Add agenda, notes, or details..."
+                    value={form.description}
+                    onChange={(e) => setForm({ ...form, description: e.target.value })}
+                    rows={2}
+                    className="rounded-xl border border-slate-200 dark:border-slate-700 bg-background resize-none text-sm"
+                  />
+                </div>
+
+                {/* Attendees & Guests Section */}
+                <div className="space-y-3 pt-1">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide flex items-center gap-1.5">
+                      <Users className="h-3.5 w-3.5 text-primary" />
+                      Internal Team Members
+                    </Label>
+                    <Select
+                      onValueChange={(v) => {
+                        const id = parseInt(v);
+                        if (!form.internal_attendees.includes(id)) {
+                          setForm({ ...form, internal_attendees: [...form.internal_attendees, id] });
                         }
                       }}
                     >
-                      Generate
-                    </Button>
+                      <SelectTrigger className="h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-background text-sm">
+                        <SelectValue placeholder="Select team member to add..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {employees.map(emp => (
+                          <SelectItem key={emp.id} value={emp.id.toString()}>{emp.name} ({emp.email})</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    {form.internal_attendees.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 pt-1.5">
+                        {form.internal_attendees.map(id => {
+                          const emp = employees.find(e => e.id === id);
+                          return emp ? (
+                            <Badge key={id} variant="secondary" className="px-2.5 py-1 rounded-lg text-xs font-medium gap-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                              <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                              {emp.name}
+                              <button
+                                type="button"
+                                onClick={() => setForm({ ...form, internal_attendees: form.internal_attendees.filter(i => i !== id) })}
+                                className="text-muted-foreground hover:text-foreground ml-1"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </Badge>
+                          ) : null;
+                        })}
+                      </div>
+                    )}
                   </div>
-                </div>
-              </div>
-            )}
 
-            <div className="space-y-1.5">
-              <Label className="text-muted-foreground text-xs font-bold tracking-wide">Internal Employees</Label>
-              <Select
-                onValueChange={(v) => {
-                  const id = parseInt(v);
-                  if (!form.internal_attendees.includes(id)) {
-                    setForm({ ...form, internal_attendees: [...form.internal_attendees, id] });
-                  }
-                }}
-              >
-                <SelectTrigger className="bg-muted/50 text-foreground border-0 h-10 rounded-md">
-                  <SelectValue placeholder="Add internal employee..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {employees.map(emp => (
-                    <SelectItem key={emp.id} value={emp.id.toString()}>{emp.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {form.internal_attendees.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  {form.internal_attendees.map(id => {
-                    const emp = employees.find(e => e.id === id);
-                    return emp ? (
-                      <Badge key={id} variant="secondary" className="bg-muted text-foreground border-0 text-xs gap-1">
-                        {emp.name}
-                        <button onClick={() => setForm({ ...form, internal_attendees: form.internal_attendees.filter(i => i !== id) })} className="text-muted-foreground hover:text-foreground ml-1">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                        </button>
-                      </Badge>
-                    ) : null;
-                  })}
-                </div>
-              )}
-            </div>
-
-            {form.type === "event" && (
-              <>
-                <div className="grid grid-cols-3 gap-4 items-end">
-                  <div className="col-span-2 space-y-1">
-                    <Label className="text-muted-foreground text-xs font-bold tracking-wide">Add Other Emails</Label>
+                  {/* External Guest Emails */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
+                      External Guests (Email)
+                    </Label>
                     <div className="flex items-center gap-2">
                       <Input
+                        placeholder="guest@example.com (press Enter to add)"
                         value={attendeeInput}
                         onChange={(e) => setAttendeeInput(e.target.value)}
                         onKeyDown={handleAddAttendee}
-                        className="bg-muted text-foreground border-0 h-9 rounded-md flex-1"
+                        className="h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-background flex-1 text-sm"
                       />
-                      <button onClick={() => handleAddAttendee({ key: 'Enter', preventDefault: () => { } } as any)} className="text-muted-foreground hover:text-foreground p-1 shrink-0">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-                      </button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleAddAttendee({ key: 'Enter', preventDefault: () => {} } as any)}
+                        className="h-10 px-4 rounded-xl border-slate-200 dark:border-slate-700 font-semibold shrink-0"
+                      >
+                        Add
+                      </Button>
                     </div>
+
+                    {form.attendees.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 pt-1.5">
+                        {form.attendees.map(email => (
+                          <Badge key={email} variant="secondary" className="px-2.5 py-1 rounded-lg text-xs font-medium gap-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                            {email}
+                            <button
+                              type="button"
+                              onClick={() => removeAttendee(email)}
+                              className="text-muted-foreground hover:text-foreground ml-1"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <div className="col-span-1 space-y-1 flex flex-col items-start bg-muted p-2 rounded-md">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Switch
-                        checked={form.recurring}
-                        onCheckedChange={(c) => setForm({ ...form, recurring: c })}
-                      />
-                      <Label className="text-muted-foreground text-xs font-bold tracking-wide">Recurring</Label>
+                </div>
+
+                {/* Recurrence Section - Clean & Uncluttered */}
+                <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30 p-3.5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                        <RotateCcw className="h-3.5 w-3.5" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">Repeat {form.type}</p>
+                        <p className="text-[11px] text-muted-foreground">Schedule this as a recurring {form.type}</p>
+                      </div>
                     </div>
-                    {form.recurring && (
-                      <div className="w-full space-y-2 mt-1">
+                    <Switch
+                      checked={form.recurring}
+                      onCheckedChange={(c) => setForm({ ...form, recurring: c })}
+                    />
+                  </div>
+
+                  {form.recurring && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2.5 border-t border-slate-200 dark:border-slate-800">
+                      <div className="space-y-1">
+                        <Label className="text-[11px] font-semibold text-muted-foreground uppercase">Frequency</Label>
                         <Select value={form.recurrence_type} onValueChange={(v) => setForm({ ...form, recurrence_type: v })}>
-                          <SelectTrigger className="bg-background text-foreground border-0 h-7 text-xs rounded">
+                          <SelectTrigger className="h-9 rounded-lg border-slate-200 dark:border-slate-700 bg-background text-xs">
                             <SelectValue placeholder="Daily" />
                           </SelectTrigger>
                           <SelectContent>
@@ -775,39 +1049,43 @@ export default function CalendarMeetings() {
                             <SelectItem value="monthly">Monthly</SelectItem>
                           </SelectContent>
                         </Select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[11px] font-semibold text-muted-foreground uppercase">Repeat Until</Label>
                         <Input
                           type="date"
                           value={form.recurrence_end_date}
                           onChange={(e) => setForm({ ...form, recurrence_end_date: e.target.value })}
-                          className="bg-background text-foreground border-0 h-7 text-xs rounded dark:[color-scheme:dark]"
-                          placeholder="End Date"
+                          className="h-9 rounded-lg border-slate-200 dark:border-slate-700 bg-background text-xs dark:[color-scheme:dark]"
                         />
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
-
-                {form.attendees.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {form.attendees.map(email => (
-                      <Badge key={email} variant="secondary" className="bg-muted text-foreground border-0 text-xs gap-1">
-                        {email}
-                        <button onClick={() => removeAttendee(email)} className="text-muted-foreground hover:text-foreground ml-1">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                        </button>
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-              </>
+              </div>
             )}
 
-            <Button
-              onClick={handleAddEvent}
-              className="w-full mt-6 gradient-primary text-primary-foreground font-semibold h-10 shadow-md transition-colors"
-            >
-              {editingEventId ? "Save Changes" : `Create ${form.type.charAt(0).toUpperCase() + form.type.slice(1)}`}
-            </Button>
+            {/* Action Buttons */}
+            <div className="flex items-center gap-3 pt-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setShowAddEvent(false);
+                  resetForm();
+                }}
+                className="h-11 px-5 rounded-xl border-slate-200 dark:border-slate-700 text-sm font-semibold"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={handleAddEvent}
+                className="flex-1 gradient-primary text-primary-foreground font-semibold h-11 rounded-xl shadow-md transition-all hover:opacity-95 text-sm"
+              >
+                {editingEventId ? "Save Changes" : `Create ${form.type.charAt(0).toUpperCase() + form.type.slice(1)}`}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

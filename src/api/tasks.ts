@@ -118,7 +118,13 @@ export const getUserTaskGraph = (userId: string, params: any = {}) => {
   return apiClient(`/myday/user-graph/${userId}/${query ? `?${query}` : ''}`);
 };
 
-export const bulkUploadTasks = async (data: FormData | { tasks: any[]; default_project_id?: string; default_assigned_to_id?: string; default_priority?: string }) => {
+export const bulkUploadTasks = async (data: FormData | {
+  tasks: any[];
+  default_project_id?: string;
+  default_assigned_to_id?: string;
+  default_priority?: string;
+  default_status?: string;
+}) => {
   const isFormData = typeof FormData !== "undefined" && data instanceof FormData;
   const res = await apiClient("/tasks/bulk_upload/", {
     method: "POST",
@@ -154,10 +160,10 @@ export const downloadTaskCsvTemplate = async (availableProjects: string[] = []) 
     const proj3 = availableProjects[2] || "General Workspace";
     const today = new Date().toISOString().split("T")[0];
     const templateContent = [
-      "Task Topic,Description,Priority,Due Date,Due Time,Project,Assigned To,Type,Platform,Estimated Effort,Effort Unit,Is Urgent,Tags",
-      `"Implement Authentication Flow","Integrate JWT token login, refresh endpoints and RBAC","P1","${today}","17:00","${proj1}","","Feature","Backend","6","hours","TRUE","auth, security, api"`,
-      `"Design Dashboard UI","Build modern widgets and activity charts","P2","${today}","18:30","${proj2}","","Enhancement","Web","8","hours","FALSE","ui, design, frontend"`,
-      `"Database Optimization","Add indexes on task tables to improve query speed","P3","${today}","15:00","${proj3}","","Issue","Database","4","hours","FALSE","db, performance"`
+      "Task Topic,Description,Priority,Status,Created Date,Due Date,Due Time,Project,Assigned To,Type,Platform,Estimated Effort,Effort Unit,Is Urgent,Tags",
+      `"Implement Authentication Flow","Integrate JWT token login, refresh endpoints and RBAC","P1","In Progress","${today}","${today}","17:00","${proj1}","","Feature","Backend","6","hours","TRUE","auth, security, api"`,
+      `"Design Dashboard UI","Build modern widgets and activity charts","P2","Yet to Start","${today}","${today}","18:30","${proj2}","","Enhancement","Web","8","hours","FALSE","ui, design, frontend"`,
+      `"Database Optimization","Add indexes on task tables to improve query speed","P3","Done","${today}","${today}","15:00","${proj3}","","Issue","Database","4","hours","FALSE","db, performance"`
     ].join("\n");
 
     const blob = new Blob([templateContent], { type: "text/csv;charset=utf-8;" });
