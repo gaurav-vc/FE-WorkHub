@@ -90,13 +90,13 @@ const getNavGroups = (portalType: PortalType) => {
       ],
     },
     {
-      label: "HR Services",
+      label: "Services",
       items: [
-        { title: "HR Requests", url: "/hr/requests", icon: ClipboardList },
+        // { title: "HR Requests", url: "/hr/requests", icon: ClipboardList },
         { title: "Directory", url: "/hr/directory", icon: UserCircle },
         { title: "Recognition", url: "/hr/recognition", icon: Award },
         { title: "Policies", url: "/hr/policies", icon: Shield },
-        { title: "Attendance", url: "/hr/attendance", icon: Clock },
+        // { title: "Attendance", url: "/hr/attendance", icon: Clock },
         { title: "Company Pulse", url: "/hr/company-pulse", icon: Activity },
       ],
     },
@@ -260,7 +260,8 @@ export function AppSidebar() {
         ))}
       </SidebarContent>
 
-      <SidebarFooter className="p-3">
+      {/* Footer hidden per user request */}
+      {/* <SidebarFooter className="p-3">
         {!collapsed && (
           <div className="rounded-lg bg-sidebar-accent/50 p-2.5 flex items-center justify-between">
             <p className="text-xs text-sidebar-foreground/60">WorkHub v2.4</p>
@@ -269,7 +270,7 @@ export function AppSidebar() {
             </Link>
           </div>
         )}
-      </SidebarFooter>
+      </SidebarFooter> */}
     </Sidebar>
   );
 }

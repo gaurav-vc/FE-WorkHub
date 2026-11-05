@@ -79,56 +79,89 @@ export default function ResourcePlanning() {
         })
         .catch(console.error);
 
-      fetch(`${API_BASE}/tasks/?paginate=false`, { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => r.json())
-        .then(data => {
-            const fetched = data.results || data;
-            if (Array.isArray(fetched)) {
-                const mapTaskFromApi = (t: any) => {
-                    const formatDate = (dateStr: string) => {
-                        if (!dateStr) return "";
-                        try {
-                            const d = new Date(dateStr);
-                            return isNaN(d.getTime()) ? dateStr : d.toISOString().split('T')[0];
-                        } catch {
-                            return dateStr;
-                        }
-                    };
-                    return {
-                        id: t.id,
-                        title: t.title,
-                        dueDate: formatDate(t.due_date || t.dueDate),
-                        startDate: formatDate(t.start_date || t.created_at || t.startDate),
-                        status: (t.status === "pending" || t.status === "open" || t.status === "planning") ? "todo" :
-                                (t.status === "in_progress") ? "in-progress" :
-                                (t.status === "delayed" || t.status === "on_hold") ? "blocked" :
-                                (t.status === "completed" || t.status === "done") ? "done" : t.status,
-                        assignees: (t.assignees_detail && t.assignees_detail.length > 0) ? t.assignees_detail.map((a: any) => ({
-                            id: a.id,
-                            name: a.name,
-                            initials: a.name ? a.name.substring(0, 2).toUpperCase() : ""
-                        })) : (Array.isArray(t.assignees) && t.assignees.length > 0 && typeof t.assignees[0] === 'object' ? t.assignees : (t.assignee_detail ? [{
-                            id: t.assignee_detail.id,
-                            name: t.assignee_detail.name,
-                            initials: t.assignee_detail.name.substring(0, 2).toUpperCase()
-                        }] : [])),
-                        estimatedEffort: t.estimated_effort !== undefined ? t.estimated_effort : (t.estimatedEffort || t.duration || 3),
-                        effortUnit: t.effort_unit || t.effortUnit || "hours",
-                        isUrgent: t.isUrgent || t.is_urgent || false,
-                        priority: t.priority || "P3"
-                    };
-                };
-                setAllTasks(fetched.map(mapTaskFromApi));
-                setApiError(null);
-            } else {
-                setApiError("Backend API returned an invalid format. It likely crashed with a 500 Error due to fetching too many tasks at once.");
-            }
-        })
-        .catch(err => {
-            console.error(err);
-            setApiError("Failed to fetch tasks from the backend. The server might have crashed or the database query exceeded its limits (e.g., SQLite 999 variable limit).");
-        });
+      fetchTasksData();
     }
+  }, [token]);
+
+  const mapTaskFromApi = (t: any) => {
+    const formatDate = (dateStr: string) => {
+      if (!dateStr) return "";
+      try {
+        const d = new Date(dateStr);
+        return isNaN(d.getTime()) ? dateStr : d.toISOString().split('T')[0];
+      } catch {
+        return dateStr;
+      }
+    };
+
+    const rawAssignees: any[] = [];
+    if (Array.isArray(t.assignees_detail) && t.assignees_detail.length > 0) {
+      rawAssignees.push(...t.assignees_detail);
+    }
+    if (t.assignee_detail) {
+      rawAssignees.push(t.assignee_detail);
+    }
+    if (Array.isArray(t.assignees)) {
+      t.assignees.forEach((a: any) => {
+        if (a && typeof a === 'object') rawAssignees.push(a);
+        else if (a !== undefined && a !== null) rawAssignees.push({ id: a });
+      });
+    }
+    if (t.assigned_to) {
+      if (typeof t.assigned_to === 'object') rawAssignees.push(t.assigned_to);
+      else rawAssignees.push({ id: t.assigned_to });
+    }
+    if (t.assignedTo) {
+      rawAssignees.push(typeof t.assignedTo === 'object' ? t.assignedTo : { name: t.assignedTo, username: t.assignedTo });
+    }
+
+    const effortVal = Number(t.estimated_effort !== undefined ? t.estimated_effort : (t.estimatedEffort || t.duration || 3)) || 3;
+
+    return {
+      id: t.id,
+      title: t.title || "Untitled Task",
+      dueDate: formatDate(t.due_date || t.dueDate),
+      startDate: formatDate(t.start_date || t.created_at || t.startDate),
+      status: (t.status === "pending" || t.status === "open" || t.status === "planning") ? "todo" :
+              (t.status === "in_progress") ? "in-progress" :
+              (t.status === "delayed" || t.status === "on_hold") ? "blocked" :
+              (t.status === "completed" || t.status === "done") ? "done" : (t.status || "todo"),
+      assignees: rawAssignees.map((a: any) => ({
+        id: a.id,
+        name: a.name || a.full_name || a.username || "",
+        username: a.username || "",
+        email: a.email || "",
+        initials: (a.name || a.username || "").substring(0, 2).toUpperCase()
+      })),
+      estimatedEffort: effortVal,
+      effortUnit: t.effort_unit || t.effortUnit || "hours",
+      isUrgent: Boolean(t.isUrgent || t.is_urgent),
+      priority: t.priority || "P3"
+    };
+  };
+
+  const fetchTasksData = () => {
+    if (!token) return;
+    fetch(`${API_BASE}/tasks/?paginate=false`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(data => {
+        const fetched = Array.isArray(data) ? data : (data.results || []);
+        if (Array.isArray(fetched)) {
+          setAllTasks(fetched.map(mapTaskFromApi));
+          setApiError(null);
+        } else {
+          setApiError("Backend API returned an invalid format.");
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        setApiError("Failed to fetch tasks from the backend.");
+      });
+  };
+
+  useEffect(() => {
+    window.addEventListener('tasks-updated', fetchTasksData);
+    return () => window.removeEventListener('tasks-updated', fetchTasksData);
   }, [token]);
 
   const resourceData = useMemo(() => {
@@ -137,12 +170,26 @@ export default function ResourcePlanning() {
 
     return teamMembers.map(member => {
       const assignedTasks = allTasks.filter(t => {
-        const isAssigned = (t.assignees || []).some((a: any) => (
-          (a.id && member.id && a.id.toString() === member.id.toString()) ||
-          (a.name && member.name && a.name.toLowerCase() === member.name.toLowerCase()) ||
-          (a.name && member.username && a.name.toLowerCase() === member.username.toLowerCase()) ||
-          (a.initials && member.initials && a.initials.toUpperCase() === member.initials.toUpperCase())
-        ));
+        const isAssigned = (t.assignees || []).some((a: any) => {
+          const aId = a?.id !== undefined ? a.id?.toString() : a?.toString();
+          const mId = member.id?.toString();
+          if (aId && mId && aId === mId) return true;
+
+          const aName = (a?.name || (typeof a === 'string' ? a : '')).toLowerCase().trim();
+          const aUser = (a?.username || '').toLowerCase().trim();
+          const aEmail = (a?.email || '').toLowerCase().trim();
+          const mName = (member.name || '').toLowerCase().trim();
+          const mUser = (member.username || '').toLowerCase().trim();
+          const mEmail = (member.email || '').toLowerCase().trim();
+
+          if (aEmail && mEmail && aEmail === mEmail) return true;
+          if (aUser && mUser && aUser === mUser) return true;
+          if (aName && mName && aName === mName) return true;
+          if (aName && mUser && aName === mUser) return true;
+          if (a?.initials && member.initials && a.initials.toUpperCase() === member.initials.toUpperCase()) return true;
+
+          return false;
+        });
         if (!isAssigned || t.status === "done") return false;
 
         // Check if task falls in the current week or is active / overdue
@@ -405,10 +452,20 @@ export default function ResourcePlanning() {
                       </div>
                       {weekDates.map((dayDate, di) => {
                         const dailyTasks = r.assignedTasks.filter(t => {
-                          let start = t.startDate ? new Date(t.startDate) : new Date();
-                          let end = t.dueDate ? new Date(t.dueDate) : new Date();
-                          start.setHours(0,0,0,0);
-                          end.setHours(23,59,59,999);
+                          let start = t.startDate ? new Date(t.startDate) : null;
+                          let end = t.dueDate ? new Date(t.dueDate) : null;
+                          const today = new Date();
+                          today.setHours(0, 0, 0, 0);
+
+                          if (!start && !end) {
+                            return dayDate.getTime() === today.getTime();
+                          }
+                          if (!start) start = new Date(end!);
+                          if (!end) end = new Date(start!);
+                          if (start > end) start = new Date(end);
+
+                          start.setHours(0, 0, 0, 0);
+                          end.setHours(23, 59, 59, 999);
                           return dayDate >= start && dayDate <= end;
                         });
                         

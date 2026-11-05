@@ -38,62 +38,66 @@ export function CompanyPulse() {
   const rest = leaderboard.slice(3);
 
   return (
-    <div className="space-y-6 w-full max-w-full mx-auto pb-12 bg-gradient-to-br from-indigo-50/50 via-white to-sky-50/50 min-h-screen px-4 sm:px-8 lg:px-12 pt-8 relative overflow-hidden">
+    <div className="space-y-6 w-full max-w-full mx-auto pb-12 bg-gradient-to-br from-indigo-50/50 via-white to-sky-50/50 min-h-screen px-4 sm:px-8 lg:px-12 pt-6 relative overflow-hidden">
       {/* Decorative background elements */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-64 bg-blue-500/5 blur-[100px] rounded-full pointer-events-none" />
       
-      {/* HEADER SECTION */}
-      <div className="flex flex-col items-center justify-center text-center space-y-3 animate-in fade-in slide-in-from-top-4 duration-700 relative z-10">
-        <div className="inline-flex items-center justify-center p-4 bg-gradient-to-tr from-blue-600 to-indigo-500 text-white rounded-2xl shadow-lg shadow-blue-500/20 mb-1 transform hover:scale-105 transition-transform">
-          <Trophy className="w-8 h-8" />
+      {/* HEADER SECTION - Top Left Aligned */}
+      <div className="flex flex-col items-start text-left space-y-1.5 pb-2 animate-in fade-in slide-in-from-top-4 duration-700 relative z-10 max-w-7xl mx-auto w-full">
+        <div className="flex items-center gap-3">
+          <div className="inline-flex items-center justify-center p-2.5 bg-gradient-to-tr from-blue-600 to-indigo-500 text-white rounded-xl shadow-md shadow-blue-500/20 transform hover:scale-105 transition-transform">
+            <Trophy className="w-6 h-6" />
+          </div>
+          <h1 className="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 tracking-tight">
+            Company Pulse
+          </h1>
         </div>
-        <h1 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 tracking-tight">Company Pulse</h1>
-        <p className="text-slate-500 max-w-lg text-base md:text-lg leading-relaxed font-medium">
-          Recognizing the top performers driving our projects forward.<br/>Complete tasks to earn points, level up, and climb the ranks.
+        <p className="text-slate-500 text-sm md:text-base font-medium max-w-full">
+          Recognizing the top performers driving our projects forward. Complete tasks to earn points, level up, and climb the ranks.
         </p>
       </div>
 
-      {/* TOP 3 PODIUM */}
+      {/* TOP 3 PODIUM - Scaled compact to keep clear breathing room below header */}
       {topThree.length > 0 && (
-        <div className="flex flex-row items-end justify-center gap-4 md:gap-8 mt-28 mb-16 h-56 relative z-10">
+        <div className="flex flex-row items-end justify-center gap-4 md:gap-8 mt-4 pt-10 pb-6 mb-8 h-56 relative z-10 max-w-4xl mx-auto w-full">
           
           {/* 2ND PLACE (SILVER) */}
-          <div className="w-[30%] max-w-[240px] flex flex-col items-center relative h-[160px] bg-gradient-to-b from-white to-slate-100 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-200/60 animate-in slide-in-from-bottom-12 duration-700 delay-150 hover:-translate-y-2 transition-all group">
+          <div className="w-[30%] max-w-[220px] flex flex-col items-center relative h-[145px] bg-gradient-to-b from-white to-slate-100 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-200/60 animate-in slide-in-from-bottom-12 duration-700 delay-150 hover:-translate-y-2 transition-all group">
             {topThree[1] && (
               <>
-                <div className="absolute -top-12 group-hover:-translate-y-1 transition-transform duration-300">
+                <div className="absolute -top-8 group-hover:-translate-y-1 transition-transform duration-300">
                   <div className="absolute inset-0 bg-slate-300 rounded-full blur-md opacity-50" />
-                  <Avatar className="w-24 h-24 border-[4px] border-white shadow-lg bg-white relative">
-                    <AvatarFallback className="bg-gradient-to-br from-slate-100 to-slate-200 text-slate-600 font-bold text-2xl">{topThree[1].initials}</AvatarFallback>
+                  <Avatar className="w-16 h-16 border-[3px] border-white shadow-md bg-white relative">
+                    <AvatarFallback className="bg-gradient-to-br from-slate-100 to-slate-200 text-slate-600 font-bold text-lg">{topThree[1].initials}</AvatarFallback>
                   </Avatar>
-                  <div className="absolute -bottom-2 -right-2 bg-slate-200 text-slate-700 w-8 h-8 rounded-full flex items-center justify-center font-bold border-2 border-white shadow-sm z-10">2</div>
+                  <div className="absolute -bottom-1 -right-1 bg-slate-200 text-slate-700 w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs border-2 border-white shadow-sm z-10">2</div>
                 </div>
-                <div className="mt-16 text-center flex flex-col items-center w-full px-4">
-                  <p className="font-bold text-slate-900 text-lg line-clamp-1">{topThree[1].name}</p>
-                  <Badge className="bg-slate-200 hover:bg-slate-300 text-slate-700 mt-1 border-0 rounded-full px-3 py-0.5 text-[10px] uppercase font-bold tracking-widest shadow-sm">Lvl {topThree[1].level}</Badge>
-                  <p className="text-base font-black text-slate-600 mt-3">{topThree[1].points} pts</p>
+                <div className="mt-10 text-center flex flex-col items-center w-full px-3">
+                  <p className="font-bold text-slate-900 text-base line-clamp-1">{topThree[1].name}</p>
+                  <Badge className="bg-slate-200 hover:bg-slate-300 text-slate-700 mt-1 border-0 rounded-full px-2.5 py-0.5 text-[10px] uppercase font-bold tracking-widest shadow-sm">Lvl {topThree[1].level}</Badge>
+                  <p className="text-sm font-black text-slate-600 mt-2.5">{topThree[1].points} pts</p>
                 </div>
               </>
             )}
           </div>
 
           {/* 1ST PLACE (GOLD) */}
-          <div className="w-[35%] max-w-[280px] flex flex-col items-center relative h-[200px] bg-gradient-to-b from-amber-50 to-orange-100 rounded-2xl shadow-[0_8px_30px_rgb(251,146,60,0.2)] border border-amber-200/60 z-20 animate-in slide-in-from-bottom-16 duration-700 hover:-translate-y-2 transition-all group">
-            <div className="absolute -top-20 -z-10 w-40 h-40 bg-amber-400/20 rounded-full blur-2xl" />
+          <div className="w-[35%] max-w-[250px] flex flex-col items-center relative h-[175px] bg-gradient-to-b from-amber-50 to-orange-100 rounded-2xl shadow-[0_8px_30px_rgb(251,146,60,0.2)] border border-amber-200/60 z-20 animate-in slide-in-from-bottom-16 duration-700 hover:-translate-y-2 transition-all group">
+            <div className="absolute -top-12 -z-10 w-28 h-28 bg-amber-400/20 rounded-full blur-xl" />
             {topThree[0] && (
               <>
-                <div className="absolute -top-16 group-hover:-translate-y-1 transition-transform duration-300">
+                <div className="absolute -top-10 group-hover:-translate-y-1 transition-transform duration-300">
                   <div className="absolute inset-0 bg-amber-400 rounded-full blur-md opacity-60 animate-pulse" />
-                  <Avatar className="w-32 h-32 border-[6px] border-white shadow-xl bg-white relative">
-                    <AvatarFallback className="bg-gradient-to-br from-amber-100 to-orange-200 text-orange-600 font-black text-4xl">{topThree[0].initials}</AvatarFallback>
+                  <Avatar className="w-20 h-20 border-[4px] border-white shadow-lg bg-white relative">
+                    <AvatarFallback className="bg-gradient-to-br from-amber-100 to-orange-200 text-orange-600 font-black text-2xl">{topThree[0].initials}</AvatarFallback>
                   </Avatar>
-                  <div className="absolute -bottom-2 -right-2 bg-gradient-to-br from-yellow-300 to-amber-500 text-white w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg border-[3px] border-white shadow-md z-10">1</div>
+                  <div className="absolute -bottom-1 -right-1 bg-gradient-to-br from-yellow-300 to-amber-500 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs border-2 border-white shadow-md z-10">1</div>
                 </div>
-                <div className="mt-20 text-center flex flex-col items-center w-full px-4">
-                  <p className="font-black text-slate-900 text-xl line-clamp-1">{topThree[0].name}</p>
-                  <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white mt-1.5 border-0 rounded-full px-4 py-0.5 text-[11px] uppercase font-black tracking-widest shadow-md">Level {topThree[0].level}</Badge>
-                  <p className="text-xl font-black text-orange-600 mt-4 flex items-center gap-1.5">
-                    <Trophy className="w-5 h-5 text-amber-500" /> {topThree[0].points} pts
+                <div className="mt-12 text-center flex flex-col items-center w-full px-4">
+                  <p className="font-black text-slate-900 text-lg line-clamp-1">{topThree[0].name}</p>
+                  <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white mt-1 border-0 rounded-full px-3 py-0.5 text-[10px] uppercase font-black tracking-widest shadow-md">Level {topThree[0].level}</Badge>
+                  <p className="text-lg font-black text-orange-600 mt-2.5 flex items-center gap-1.5">
+                    <Trophy className="w-4 h-4 text-amber-500" /> {topThree[0].points} pts
                   </p>
                 </div>
               </>
@@ -101,20 +105,20 @@ export function CompanyPulse() {
           </div>
 
           {/* 3RD PLACE (BRONZE) */}
-          <div className="w-[30%] max-w-[240px] flex flex-col items-center relative h-[140px] bg-gradient-to-b from-white to-orange-50/50 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-orange-100 animate-in slide-in-from-bottom-8 duration-700 delay-300 hover:-translate-y-2 transition-all group">
+          <div className="w-[30%] max-w-[220px] flex flex-col items-center relative h-[130px] bg-gradient-to-b from-white to-orange-50/50 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-orange-100 animate-in slide-in-from-bottom-8 duration-700 delay-300 hover:-translate-y-2 transition-all group">
             {topThree[2] && (
               <>
-                <div className="absolute -top-12 group-hover:-translate-y-1 transition-transform duration-300">
+                <div className="absolute -top-8 group-hover:-translate-y-1 transition-transform duration-300">
                   <div className="absolute inset-0 bg-orange-300 rounded-full blur-md opacity-40" />
-                  <Avatar className="w-24 h-24 border-[4px] border-white shadow-lg bg-white relative">
-                    <AvatarFallback className="bg-gradient-to-br from-orange-50 to-red-50 text-orange-700 font-bold text-2xl">{topThree[2].initials}</AvatarFallback>
+                  <Avatar className="w-16 h-16 border-[3px] border-white shadow-md bg-white relative">
+                    <AvatarFallback className="bg-gradient-to-br from-orange-50 to-red-50 text-orange-700 font-bold text-lg">{topThree[2].initials}</AvatarFallback>
                   </Avatar>
-                  <div className="absolute -bottom-2 -right-2 bg-orange-200 text-orange-800 w-8 h-8 rounded-full flex items-center justify-center font-bold border-2 border-white shadow-sm z-10">3</div>
+                  <div className="absolute -bottom-1 -right-1 bg-orange-200 text-orange-800 w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs border-2 border-white shadow-sm z-10">3</div>
                 </div>
-                <div className="mt-14 text-center flex flex-col items-center w-full px-4">
-                  <p className="font-bold text-slate-900 text-lg line-clamp-1">{topThree[2].name}</p>
-                  <Badge className="bg-orange-100 hover:bg-orange-200 text-orange-800 mt-1 border-0 rounded-full px-3 py-0.5 text-[10px] uppercase font-bold tracking-widest shadow-sm">Lvl {topThree[2].level}</Badge>
-                  <p className="text-base font-black text-orange-700 mt-3">{topThree[2].points} pts</p>
+                <div className="mt-10 text-center flex flex-col items-center w-full px-3">
+                  <p className="font-bold text-slate-900 text-base line-clamp-1">{topThree[2].name}</p>
+                  <Badge className="bg-orange-100 hover:bg-orange-200 text-orange-800 mt-1 border-0 rounded-full px-2.5 py-0.5 text-[10px] uppercase font-bold tracking-widest shadow-sm">Lvl {topThree[2].level}</Badge>
+                  <p className="text-sm font-black text-orange-700 mt-2.5">{topThree[2].points} pts</p>
                 </div>
               </>
             )}
@@ -124,7 +128,7 @@ export function CompanyPulse() {
       )}
 
       {/* THE REST OF THE LEADERBOARD */}
-      <Card className="max-w-4xl mx-auto shadow-xl shadow-slate-200/50 border-0 rounded-2xl overflow-hidden bg-white/80 backdrop-blur-xl animate-in fade-in slide-in-from-bottom-8 duration-700 delay-500 relative z-10">
+      <Card className="max-w-7xl mx-auto w-full shadow-xl shadow-slate-200/50 border-0 rounded-2xl overflow-hidden bg-white/80 backdrop-blur-xl animate-in fade-in slide-in-from-bottom-8 duration-700 delay-500 relative z-10">
         <CardHeader className="border-b border-slate-100/50 bg-white/50 py-6 px-8">
           <CardTitle className="text-xl flex items-center gap-3 text-slate-800 font-black">
             <TrendingUp className="w-6 h-6 text-blue-600" /> Current Standings

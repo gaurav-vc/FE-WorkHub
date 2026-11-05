@@ -276,30 +276,30 @@ export default function KnowledgeBase() {
   }
 
   return (
-    <div className="w-full max-w-7xl mx-auto space-y-6 pb-20 animate-fade-in relative pt-1">
+    <div className="w-full max-w-7xl mx-auto space-y-4 pb-12 animate-fade-in relative pt-0.5">
       {/* Background ambient light */}
       <div className="fixed top-0 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[120px] pointer-events-none -z-10 animate-pulse" />
       <div className="fixed bottom-0 right-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none -z-10 animate-pulse delay-1000" />
       
       {/* Header section with glassmorphic container */}
-      <div className="relative rounded-2xl p-6 md:p-8 overflow-hidden bg-gradient-to-br from-card/80 to-background/50 border border-white/10 shadow-lg backdrop-blur-xl">
+      <div className="relative rounded-2xl p-4 sm:p-5 overflow-hidden bg-gradient-to-br from-card/80 to-background/50 border border-white/10 shadow-md backdrop-blur-xl">
         <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/20 rounded-full blur-3xl animate-pulse" />
         
-        <div className="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
-          <div className="space-y-1">
-            <h1 className="text-3xl md:text-4xl font-display font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-primary flex items-center gap-3">
-              <BookOpen className="h-9 w-9 text-indigo-500 animate-bounce-slow" />
+        <div className="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="space-y-0.5">
+            <h1 className="text-2xl md:text-3xl font-display font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-primary flex items-center gap-2.5">
+              <BookOpen className="h-7 w-7 text-indigo-500 animate-bounce-slow" />
               Knowledge Base
             </h1>
-            <p className="text-xs md:text-sm text-muted-foreground font-medium pl-12">
+            <p className="text-xs text-muted-foreground font-medium pl-9.5">
               Explore resources, articles, and guides ({articles.length} items)
             </p>
           </div>
           
           <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg shadow-indigo-500/25 h-11 px-5 rounded-xl hover:-translate-y-0.5 transition-all duration-300 text-sm font-semibold">
-                <Plus className="h-4 w-4" /> Add Knowledge
+              <Button size="sm" className="gap-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-md shadow-indigo-500/25 h-9 px-4 rounded-lg hover:-translate-y-0.5 transition-all duration-300 text-xs font-semibold">
+                <Plus className="h-3.5 w-3.5" /> Add Knowledge
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl border-white/10 bg-card/95 backdrop-blur-xl shadow-2xl">
@@ -402,7 +402,7 @@ export default function KnowledgeBase() {
           <p className="text-xl font-medium animate-pulse">Curating knowledge base...</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
           {currentArticles.map((article, index) => (
             <Card
               key={article.id}

@@ -94,13 +94,13 @@ export const APP_ROUTES = [
   // Learning Center
   { id: "learning-center", path: "/learning", title: "Learning Center", category: "Learning Center" },
 
-  // HR Services
-  { id: "hr-requests", path: "/hr/requests", title: "HR Requests", category: "HR Services" },
-  { id: "employee-directory", path: "/hr/directory", title: "Directory", category: "HR Services" },
-  { id: "recognition", path: "/hr/recognition", title: "Recognition", category: "HR Services" },
-  { id: "company-policies", path: "/hr/policies", title: "Policies", category: "HR Services" },
-  { id: "attendance", path: "/hr/attendance", title: "Attendance", category: "HR Services" },
-  { id: "company-pulse", path: "/hr/company-pulse", title: "Company Pulse", category: "HR Services" },
+  // Services
+  // { id: "hr-requests", path: "/hr/requests", title: "HR Requests", category: "Services" },
+  { id: "employee-directory", path: "/hr/directory", title: "Directory", category: "Services" },
+  { id: "recognition", path: "/hr/recognition", title: "Recognition", category: "Services" },
+  { id: "company-policies", path: "/hr/policies", title: "Policies", category: "Services" },
+  // { id: "attendance", path: "/hr/attendance", title: "Attendance", category: "Services" },
+  { id: "company-pulse", path: "/hr/company-pulse", title: "Company Pulse", category: "Services" },
 
   // AI & Automation
   { id: "workflow-automation", path: "/ai/workflows", title: "Workflows", category: "AI & Automation" },
@@ -172,12 +172,12 @@ const App = () => (
               <Route path="/collaboration/moms/create" element={<ProtectedRoute route="/collaboration/moms"><CreateMOM /></ProtectedRoute>} />
               <Route path="/collaboration/moms/:id" element={<ProtectedRoute route="/collaboration/moms"><MOMDetails /></ProtectedRoute>} />
               
-              {/* HR Services */}
-              <Route path="/hr/requests" element={<ProtectedRoute route="/hr/requests"><HRRequests /></ProtectedRoute>} />
+              {/* Services */}
+              {/* <Route path="/hr/requests" element={<ProtectedRoute route="/hr/requests"><HRRequests /></ProtectedRoute>} /> */}
               <Route path="/hr/directory" element={<ProtectedRoute route="/hr/directory"><EmployeeDirectory /></ProtectedRoute>} />
               <Route path="/hr/recognition" element={<ProtectedRoute route="/hr/recognition"><RecognitionBirthdays /></ProtectedRoute>} />
               <Route path="/hr/policies" element={<ProtectedRoute route="/hr/policies"><CompanyPolicies /></ProtectedRoute>} />
-              <Route path="/hr/attendance" element={<ProtectedRoute route="/hr/attendance"><Attendance /></ProtectedRoute>} />
+              {/* <Route path="/hr/attendance" element={<ProtectedRoute route="/hr/attendance"><Attendance /></ProtectedRoute>} /> */}
               <Route path="/hr/company-pulse" element={<ProtectedRoute route="/hr/company-pulse"><CompanyPulse /></ProtectedRoute>} />
               <Route path="/hr/approvals" element={<ProtectedRoute route="/hr/approvals"><PendingApprovals /></ProtectedRoute>} />
               

@@ -299,26 +299,26 @@ export default function TemplateMarketplace() {
   const deleteMyTemplate = (id: string) => setMyTemplates(prev => prev.filter(t => t.id !== id));
 
   return (
-    <div className="space-y-8 animate-fade-in relative">
+    <div className="space-y-4 animate-fade-in relative">
       {/* Background ambient light */}
       <div className="fixed top-20 right-1/4 w-96 h-96 bg-primary/5 rounded-full blur-[120px] pointer-events-none -z-10 animate-pulse" />
 
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-card/60 backdrop-blur-xl border border-white/10 p-6 rounded-3xl shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-card/60 backdrop-blur-xl border border-white/10 p-4 sm:p-5 rounded-2xl shadow-sm">
         <div>
-          <h1 className="text-3xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-purple-600 flex items-center gap-3">
-            <LayoutTemplate className="h-8 w-8 text-primary animate-bounce-slow" /> Template Marketplace
+          <h1 className="text-2xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-purple-600 flex items-center gap-2.5">
+            <LayoutTemplate className="h-7 w-7 text-primary animate-bounce-slow" /> Template Marketplace
           </h1>
-          <p className="text-muted-foreground mt-1 ml-11">{backendTemplates.length} project templates ready to use</p>
+          <p className="text-xs text-muted-foreground mt-0.5 ml-9.5">{backendTemplates.length} project templates ready to use</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" className="gap-1.5 border-white/10 hover:bg-card/50 rounded-xl h-10" onClick={downloadCsvTemplate} title="Download CSV Template Format">
-            <Download className="h-4 w-4" /> Download Format
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" className="gap-1.5 border-white/10 hover:bg-card/50 rounded-lg h-9 text-xs" onClick={downloadCsvTemplate} title="Download CSV Template Format">
+            <Download className="h-3.5 w-3.5" /> Download Format
           </Button>
-          <Button variant="outline" className="gap-1.5 border-white/10 hover:bg-card/50 rounded-xl h-10" onClick={() => setShowImport(true)}>
-            <FileSpreadsheet className="h-4 w-4" /> Import CSV
+          <Button variant="outline" size="sm" className="gap-1.5 border-white/10 hover:bg-card/50 rounded-lg h-9 text-xs" onClick={() => setShowImport(true)}>
+            <FileSpreadsheet className="h-3.5 w-3.5" /> Import CSV
           </Button>
-          <Button className="gap-1.5 bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 text-white shadow-lg shadow-primary/25 rounded-xl h-10 hover:-translate-y-0.5 transition-all" onClick={() => setShowCreate(true)}>
-            <Plus className="h-4 w-4" /> Create Template
+          <Button size="sm" className="gap-1.5 bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 text-white shadow-md shadow-primary/25 rounded-lg h-9 text-xs hover:-translate-y-0.5 transition-all" onClick={() => setShowCreate(true)}>
+            <Plus className="h-3.5 w-3.5" /> Create Template
           </Button>
         </div>
       </div>
@@ -329,25 +329,25 @@ export default function TemplateMarketplace() {
           <TabsTrigger value="my-templates">My Templates <Badge variant="secondary" className="ml-1.5 text-[10px]">{myTemplates.length}</Badge></TabsTrigger>
         </TabsList>
 
-        <TabsContent value="marketplace" className="mt-4 space-y-6">
+        <TabsContent value="marketplace" className="mt-2.5 space-y-3.5">
           {/* Controls: Search & Template Types Dropdown */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-card/60 backdrop-blur-xl border border-white/10 p-4 rounded-2xl shadow-sm">
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-card/60 backdrop-blur-xl border border-white/10 p-3 sm:p-3.5 rounded-xl shadow-sm">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1">
               {/* Search Bar */}
               <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3.5 top-3 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input 
                   placeholder="Search templates..." 
                   value={search} 
                   onChange={handleSearchChange} 
-                  className="pl-10 h-10 rounded-xl bg-background/50 border-white/10 focus-visible:ring-primary/50 text-sm" 
+                  className="pl-9.5 h-9 rounded-lg bg-background/50 border-white/10 focus-visible:ring-primary/50 text-xs sm:text-sm" 
                 />
               </div>
 
               {/* Template Types Dropdown */}
               <div className="w-full sm:w-72">
                 <Select value={activeCategory} onValueChange={handleCategoryChange}>
-                  <SelectTrigger className="h-10 rounded-xl bg-background/50 border-white/10 focus:ring-primary/50 text-sm">
+                  <SelectTrigger className="h-9 rounded-lg bg-background/50 border-white/10 focus:ring-primary/50 text-xs sm:text-sm">
                     <div className="flex items-center gap-2 truncate">
                       {(() => {
                         const SelectedIcon = categoryIcons[activeCategory] || LayoutTemplate;
@@ -399,7 +399,7 @@ export default function TemplateMarketplace() {
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
               {currentTemplates.map((tmpl, index) => {
                 const CatIcon = categoryIcons[tmpl.category] || LayoutTemplate;
                 return (
@@ -407,7 +407,7 @@ export default function TemplateMarketplace() {
                     <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none group-hover:bg-primary/20 transition-colors duration-500"></div>
                     <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                     
-                    <CardContent className="p-6 relative z-10 flex flex-col h-full justify-between">
+                    <CardContent className="p-4 sm:p-5 relative z-10 flex flex-col h-full justify-between">
                       <div>
                         <div className="flex items-start gap-4">
                           <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-gradient-to-br group-hover:from-primary group-hover:to-purple-600 group-hover:text-white transition-all duration-300 shadow-sm border border-primary/20">
