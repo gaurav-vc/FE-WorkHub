@@ -25,6 +25,7 @@ import { useAuth } from "@/context/AuthContext";
 import { API_BASE } from "@/config";
 import { getProjects } from "@/api/projects";
 import { BulkTaskUpload } from "./BulkTaskUpload";
+import { ErrorBoundary } from "../ErrorBoundary";
 import { toast } from "sonner";
 
 interface TaskCreateDialogProps {
@@ -81,13 +82,13 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
     if (!task) return defaultForm;
     const taskAssignees = task.assignees || [];
     const isUrgentVal = Boolean(task.isUrgent ?? (task as any).is_urgent ?? false);
-    const projId = (task as any).project_id?.toString() || (task.project && projects.find(p => p.name === task.project)?.id?.toString()) || "";
+    const projId = (task as any).project_id ? String((task as any).project_id) : (task.project && projects.find(p => p.name === task.project)?.id ? String(projects.find(p => p.name === task.project)?.id) : "");
     
     const mappedAssigneeIds = taskAssignees.map(a => {
-      if ((a as any).id) return (a as any).id.toString();
-      const found = teamMembers.find(m => m.initials === a.initials || m.name === a.name);
-      return found?.id?.toString() || a.initials;
-    });
+      if ((a as any)?.id) return String((a as any).id);
+      const found = teamMembers.find(m => m.initials === (a as any)?.initials || m.name === (a as any)?.name);
+      return (found?.id ? String(found.id) : (a as any)?.initials) || "";
+    }).filter(Boolean);
 
     return {
       title: task.title || "",
@@ -130,7 +131,8 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
         setChecklist(editTask.checklist || []);
         setSubtasks(editTask.subtasks || []);
       } else {
-        setForm(defaultForm);
+        // Retain bulk mode if user is already on bulk upload
+        setForm(prev => (prev.taskType === "bulk" ? prev : defaultForm));
         setRepeat({ enabled: false, type: "daily" });
         setChecklist([]);
         setSubtasks([]);
@@ -139,7 +141,7 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
       setNewTag("");
       setAttachment(null);
     }
-  }, [open, editTask, teamMembers, projects]);
+  }, [open, editTask]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -171,7 +173,7 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
       ? (currentUserId ? [currentUserId.toString()] : (editTask?.assignees || []).map(a => (a as any).id?.toString()).filter(Boolean))
       : form.assigneeIds;
 
-    const selectedProj = projects.find(p => p.id?.toString() === form.project?.toString());
+    const selectedProj = projects.find(p => String(p?.id ?? "") === String(form.project ?? ""));
     const projectName = selectedProj?.name || (editTask ? editTask.project : "General Workspace");
     const numericProjId = form.project && !isNaN(Number(form.project)) ? Number(form.project) : (selectedProj?.id ? Number(selectedProj.id) : undefined);
 
@@ -264,7 +266,12 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={cn("w-[95vw] max-h-[90vh] flex flex-col overflow-hidden transition-all duration-300", form.taskType === "bulk" ? "sm:max-w-6xl md:max-w-7xl" : "sm:max-w-4xl")}>
+      <DialogContent 
+        className={cn("w-[95vw] max-h-[90vh] flex flex-col overflow-hidden transition-all duration-300", form.taskType === "bulk" ? "sm:max-w-6xl md:max-w-7xl" : "sm:max-w-4xl")}
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+      >
+        <ErrorBoundary>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Plus className="h-5 w-5 text-primary" />
@@ -781,6 +788,7 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
             </Button>
           )}
         </DialogFooter>
+      </ErrorBoundary>
       </DialogContent>
     </Dialog>
   );

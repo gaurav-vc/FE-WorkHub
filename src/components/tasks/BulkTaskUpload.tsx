@@ -241,7 +241,7 @@ export function BulkTaskUpload({
   const [projectSearchOpen, setProjectSearchOpen] = useState(false);
   // Configurable defaults
   const [defaultProject, setDefaultProject] = useState<string>(
-    defaultProjectId || (availableProjects.length > 0 ? availableProjects[0].id.toString() : "")
+    defaultProjectId || (availableProjects.length > 0 && availableProjects[0]?.id ? String(availableProjects[0].id) : "")
   );
   const [defaultAssignee, setDefaultAssignee] = useState<string>("none");
   const [defaultPriority, setDefaultPriority] = useState<string>("P3");
@@ -271,7 +271,7 @@ export function BulkTaskUpload({
     if (defaultProjectId) {
       setDefaultProject(defaultProjectId);
     } else if ((!defaultProject || defaultProject === "general") && availableProjects.length > 0) {
-      setDefaultProject(availableProjects[0].id.toString());
+      if (availableProjects[0]?.id) setDefaultProject(String(availableProjects[0].id));
     }
   }, [defaultProjectId, availableProjects]);
 
@@ -493,7 +493,7 @@ export function BulkTaskUpload({
       createdTime: new Date().toTimeString().slice(0, 5),
       dueDate: new Date().toISOString().split("T")[0],
       dueTime: "17:00",
-      project: defaultProject && defaultProject !== "general" ? (availableProjects.find(p => p.id.toString() === defaultProject)?.name || defaultProject) : "",
+      project: defaultProject && defaultProject !== "general" ? (availableProjects.find(p => String(p?.id ?? "") === String(defaultProject))?.name || defaultProject) : "",
       assignedTo: defaultAssignee !== "none" ? defaultAssignee : "",
       type: "Feature",
       platform: "Web",
@@ -574,22 +574,33 @@ export function BulkTaskUpload({
   };
 
   const handleTableScroll = () => {
-    if (tableScrollRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = tableScrollRef.current;
-      const maxScroll = scrollWidth - clientWidth;
-      if (maxScroll > 0) {
-        setScrollPercent(Math.min(100, Math.max(0, Math.round((scrollLeft / maxScroll) * 100))));
+    try {
+      if (tableScrollRef.current) {
+        const { scrollLeft, scrollWidth, clientWidth } = tableScrollRef.current;
+        const maxScroll = scrollWidth - clientWidth;
+        if (maxScroll > 0) {
+          const pct = Math.min(100, Math.max(0, Math.round((scrollLeft / maxScroll) * 100)));
+          setScrollPercent(pct);
+        }
       }
+    } catch (err) {
+      console.warn("Table scroll warning:", err);
     }
   };
 
   const handleSliderScroll = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = Number(e.target.value);
-    setScrollPercent(val);
-    if (tableScrollRef.current) {
-      const { scrollWidth, clientWidth } = tableScrollRef.current;
-      const maxScroll = scrollWidth - clientWidth;
-      tableScrollRef.current.scrollLeft = (val / 100) * maxScroll;
+    try {
+      const val = Number(e.target.value);
+      setScrollPercent(val);
+      if (tableScrollRef.current) {
+        const { scrollWidth, clientWidth } = tableScrollRef.current;
+        const maxScroll = scrollWidth - clientWidth;
+        if (maxScroll > 0) {
+          tableScrollRef.current.scrollLeft = (val / 100) * maxScroll;
+        }
+      }
+    } catch (err) {
+      console.warn("Slider scroll warning:", err);
     }
   };
 
@@ -631,7 +642,7 @@ export function BulkTaskUpload({
         created_time: r.createdTime || null,
         due_date: r.dueDate || new Date().toISOString().split("T")[0],
         due_time: r.dueTime || null,
-        project: r.project || (defaultProject && defaultProject !== "general" ? (availableProjects.find(p => p.id.toString() === defaultProject)?.name || defaultProject) : ""),
+        project: r.project || (defaultProject && defaultProject !== "general" ? (availableProjects.find(p => String(p?.id ?? "") === String(defaultProject))?.name || defaultProject) : ""),
         assigned_to: r.assignedTo || (defaultAssignee !== "none" ? defaultAssignee : ""),
         type: r.type || "",
         platform: r.platform || "",
@@ -694,8 +705,8 @@ export function BulkTaskUpload({
         });
 
         setTasks(prev => {
-          const newMap = new Map(mappedCreated.map((t: any) => [t.id.toString(), t]));
-          const filteredOld = prev.filter(t => !newMap.has(t.id.toString()));
+          const newMap = new Map(mappedCreated.map((t: any) => [String(t?.id ?? ""), t]));
+          const filteredOld = prev.filter(t => !newMap.has(String(t?.id ?? "")));
           return [...mappedCreated, ...filteredOld];
         });
 
@@ -757,7 +768,7 @@ export function BulkTaskUpload({
   const validRowsCount = rows.filter(r => r.isValid).length;
   const invalidRowsCount = rows.length - validRowsCount;
   const defaultProjectName = defaultProject && defaultProject !== "general"
-    ? (availableProjects.find(p => p.id.toString() === defaultProject)?.name || defaultProject)
+    ? (availableProjects.find(p => String(p?.id ?? "") === String(defaultProject))?.name || defaultProject)
     : (availableProjects.length > 0 ? availableProjects[0].name : "");
 
   return (
@@ -844,7 +855,7 @@ export function BulkTaskUpload({
                 className="w-full h-9 justify-between text-xs bg-background px-3 font-normal"
               >
                 <span className="truncate">
-                  {availableProjects.find(p => p.id.toString() === defaultProject)?.name || "Select Project..."}
+                  {availableProjects.find(p => String(p?.id ?? "") === String(defaultProject))?.name || "Select Project..."}
                 </span>
                 <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
               </Button>
@@ -858,13 +869,13 @@ export function BulkTaskUpload({
                   </CommandEmpty>
                   <CommandGroup>
                     {availableProjects.map((p) => {
-                      const isSelected = defaultProject === p.id.toString();
+                      const isSelected = String(defaultProject) === String(p?.id ?? "");
                       return (
                         <CommandItem
                           key={p.id}
                           value={p.name}
                           onSelect={() => {
-                            setDefaultProject(p.id.toString());
+                            setDefaultProject(String(p?.id ?? ""));
                             setProjectSearchOpen(false);
                           }}
                           className="text-xs cursor-pointer flex items-center justify-between py-1.5 px-2"
@@ -890,7 +901,7 @@ export function BulkTaskUpload({
             <SelectContent>
               <SelectItem value="none">Assign to Self (Logged-in User)</SelectItem>
               {teamMembers.map(m => (
-                <SelectItem key={m.id || m.username || m.email} value={m.username || m.id.toString()}>
+                <SelectItem key={m.id || m.username || m.email} value={m.username || (m?.id ? String(m.id) : `member-${m.name || "unassigned"}`)}>
                   {m.name ? `${m.name} (@${m.username || m.name})` : (m.username || m.email)}
                   {m.email ? ` (${m.email})` : ""}
                 </SelectItem>
@@ -1579,6 +1590,7 @@ export function BulkTaskUpload({
                   <div 
                     ref={tableScrollRef}
                     onScroll={handleTableScroll}
+                    onPointerDownCapture={(e) => e.stopPropagation()}
                     className="overflow-x-auto max-h-[420px] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/30 hover:scrollbar-thumb-muted-foreground/50 scroll-smooth"
                   >
                     <table className={`${tableLayoutMode === "compact" ? "min-w-[1640px]" : "min-w-[2450px]"} w-full text-xs border-collapse`}>

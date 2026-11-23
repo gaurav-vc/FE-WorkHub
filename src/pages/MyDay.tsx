@@ -19,6 +19,7 @@ import { useLocation } from "react-router-dom";
 import { PagedPagination } from "@/components/ui/PagedPagination";
 import { useTaskContext } from "@/context/TaskContext";
 import { TaskCreateDialog } from "@/components/tasks/TaskCreateDialog";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { TaskWorkspacePanel } from "@/components/tasks/TaskWorkspacePanel";
 import { Task } from "@/types/tasks";
 import { useAuth } from "@/context/AuthContext";
@@ -890,7 +891,7 @@ export default function MyDay() {
         )}
       </div>
 
-      <TaskCreateDialog open={showCreate} onOpenChange={setShowCreate} editTask={editTask} />
+      <ErrorBoundary><TaskCreateDialog open={showCreate} onOpenChange={setShowCreate} editTask={editTask} /></ErrorBoundary>
       <TaskWorkspacePanel />
     </div>
   );

@@ -191,7 +191,11 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, teamMembers, tas
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={cn("max-h-[95vh] flex flex-col p-0 overflow-hidden bg-background transition-all duration-300", taskType === "bulk" ? "sm:max-w-6xl md:max-w-7xl w-[96vw]" : "sm:max-w-2xl")}>
+      <DialogContent 
+        className={cn("max-h-[95vh] flex flex-col p-0 overflow-hidden bg-background transition-all duration-300", taskType === "bulk" ? "sm:max-w-6xl md:max-w-7xl w-[96vw]" : "sm:max-w-2xl")}
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+      >
         <ErrorBoundary>
           <DialogHeader className="px-6 pt-6 pb-2 border-b border-border/50">
             <DialogTitle className="flex items-center gap-2 text-xl font-semibold mb-4">
