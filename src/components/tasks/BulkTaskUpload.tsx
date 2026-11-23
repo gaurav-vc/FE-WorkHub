@@ -12,7 +12,6 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
@@ -563,26 +562,33 @@ export function BulkTaskUpload({
 
   const slideTable = (offset: number) => {
     if (tableScrollRef.current) {
-      tableScrollRef.current.scrollBy({ left: offset, behavior: "smooth" });
+      tableScrollRef.current.scrollLeft += offset;
     }
   };
 
   const slideToPosition = (pos: number) => {
     if (tableScrollRef.current) {
-      tableScrollRef.current.scrollTo({ left: pos, behavior: "smooth" });
+      tableScrollRef.current.scrollLeft = pos;
     }
   };
 
+  const scrollRafRef = useRef<number | null>(null);
+
   const handleTableScroll = () => {
     try {
-      if (tableScrollRef.current) {
-        const { scrollLeft, scrollWidth, clientWidth } = tableScrollRef.current;
-        const maxScroll = scrollWidth - clientWidth;
-        if (maxScroll > 0) {
-          const pct = Math.min(100, Math.max(0, Math.round((scrollLeft / maxScroll) * 100)));
-          setScrollPercent(pct);
-        }
+      if (scrollRafRef.current) {
+        cancelAnimationFrame(scrollRafRef.current);
       }
+      scrollRafRef.current = requestAnimationFrame(() => {
+        if (tableScrollRef.current) {
+          const { scrollLeft, scrollWidth, clientWidth } = tableScrollRef.current;
+          const maxScroll = scrollWidth - clientWidth;
+          if (maxScroll > 0) {
+            const pct = Math.min(100, Math.max(0, Math.round((scrollLeft / maxScroll) * 100)));
+            setScrollPercent(pct);
+          }
+        }
+      });
     } catch (err) {
       console.warn("Table scroll warning:", err);
     }
@@ -1590,8 +1596,8 @@ export function BulkTaskUpload({
                   <div 
                     ref={tableScrollRef}
                     onScroll={handleTableScroll}
-                    onPointerDownCapture={(e) => e.stopPropagation()}
-                    className="overflow-x-auto max-h-[420px] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/30 hover:scrollbar-thumb-muted-foreground/50 scroll-smooth"
+                    className="overflow-x-auto max-h-[480px] overflow-y-auto scrollbar-default border-t border-border/60"
+                    style={{ scrollbarWidth: 'auto', WebkitOverflowScrolling: 'touch' }}
                   >
                     <table className={`${tableLayoutMode === "compact" ? "min-w-[1640px]" : "min-w-[2450px]"} w-full text-xs border-collapse`}>
                       <thead className="bg-muted/80 sticky top-0 z-20 text-muted-foreground uppercase tracking-wider font-semibold shadow-xs">
@@ -2526,7 +2532,10 @@ export function BulkTaskUpload({
             </div>
 
             {/* Terminal Body */}
-            <ScrollArea className="h-[260px] w-full p-3 font-mono text-xs">
+            <div 
+              className="max-h-[340px] overflow-y-auto w-full p-3 font-mono text-xs scrollbar-default"
+              style={{ scrollbarWidth: 'auto', WebkitOverflowScrolling: 'touch' }}
+            >
               {filteredLogs.length === 0 ? (
                 <div className="h-44 flex flex-col items-center justify-center text-slate-500 text-center">
                   <Terminal className="h-8 w-8 mb-2 opacity-40 text-slate-400" />
@@ -2589,7 +2598,7 @@ export function BulkTaskUpload({
                   <div ref={logsEndRef} />
                 </div>
               )}
-            </ScrollArea>
+            </div>
           </div>
 
           {/* Action Footer Navigation */}
@@ -2647,17 +2656,20 @@ export function BulkTaskUpload({
             </Badge>
           </div>
 
-          <div className="border border-border/80 rounded-xl overflow-hidden shadow-xs">
-            <ScrollArea className="max-h-[280px] w-full">
-              <table className="w-full text-xs">
-                <thead className="bg-muted/70 sticky top-0 z-10 text-muted-foreground uppercase font-semibold">
+          <div className="border border-border/80 rounded-xl overflow-hidden shadow-xs bg-card">
+            <div 
+              className="overflow-x-auto max-h-[460px] overflow-y-auto scrollbar-default"
+              style={{ scrollbarWidth: 'auto', WebkitOverflowScrolling: 'touch' }}
+            >
+              <table className="w-full text-xs min-w-[650px]">
+                <thead className="bg-muted/90 backdrop-blur-xs sticky top-0 z-10 text-muted-foreground uppercase font-semibold">
                   <tr className="border-b border-border">
-                    <th className="py-2 px-3 text-left">Task ID</th>
-                    <th className="py-2 px-3 text-left">Title</th>
-                    <th className="py-2 px-3 text-left">Status</th>
-                    <th className="py-2 px-3 text-left">Project</th>
-                    <th className="py-2 px-3 text-left">Priority</th>
-                    <th className="py-2 px-3 text-left">Created Date & Time</th>
+                    <th className="py-2.5 px-3 text-left">Task ID</th>
+                    <th className="py-2.5 px-3 text-left">Title</th>
+                    <th className="py-2.5 px-3 text-left">Status</th>
+                    <th className="py-2.5 px-3 text-left">Project</th>
+                    <th className="py-2.5 px-3 text-left">Priority</th>
+                    <th className="py-2.5 px-3 text-left">Created Date & Time</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/50">
@@ -2696,15 +2708,15 @@ export function BulkTaskUpload({
 
                     return (
                       <tr key={t.id} className="hover:bg-muted/30">
-                        <td className="py-2 px-3 font-mono font-bold text-primary">#{t.id}</td>
-                        <td className="py-2 px-3 font-medium text-foreground">{t.title}</td>
-                        <td className="py-2 px-3">
+                        <td className="py-2.5 px-3 font-mono font-bold text-primary">#{t.id}</td>
+                        <td className="py-2.5 px-3 font-medium text-foreground">{t.title}</td>
+                        <td className="py-2.5 px-3">
                           <Badge variant="outline" className={`text-[10px] font-semibold ${statusBadgeClass}`}>
                             {statusLabel}
                           </Badge>
                         </td>
-                        <td className="py-2 px-3 text-muted-foreground">{t.project || defaultProjectName || "Project"}</td>
-                        <td className="py-2 px-3">
+                        <td className="py-2.5 px-3 text-muted-foreground">{t.project || defaultProjectName || "Project"}</td>
+                        <td className="py-2.5 px-3">
                           <Badge
                             variant="outline"
                             className={`text-[10px] ${
@@ -2716,7 +2728,7 @@ export function BulkTaskUpload({
                             {t.priority}
                           </Badge>
                         </td>
-                        <td className="py-2 px-3 font-mono text-[11px] text-muted-foreground">
+                        <td className="py-2.5 px-3 font-mono text-[11px] text-muted-foreground">
                           {createdFormatted}
                         </td>
                       </tr>
@@ -2724,16 +2736,16 @@ export function BulkTaskUpload({
                   })}
                 </tbody>
               </table>
-            </ScrollArea>
+            </div>
           </div>
 
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="flex justify-end gap-2 pt-3 pb-2 sticky bottom-0 bg-background/95 backdrop-blur-xs border-t border-border/60 z-10">
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={handleClear}
-              className="text-xs"
+              className="text-xs font-medium"
             >
               Upload More Tasks
             </Button>

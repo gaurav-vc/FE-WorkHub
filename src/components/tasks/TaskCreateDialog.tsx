@@ -279,7 +279,7 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
           </DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 -mx-6 px-6 overflow-y-auto">
+        <div className="flex-1 -mx-6 px-6 overflow-y-auto">
           <Tabs defaultValue="details" className="w-full">
             <TabsList className={`grid w-full ${form.taskType === 'bulk' ? 'hidden' : 'grid-cols-4'} mb-6 h-14 bg-muted/40 p-1.5 rounded-xl`}>
               <TabsTrigger value="details" className="text-base rounded-lg data-[state=active]:shadow-sm">Details</TabsTrigger>
@@ -778,7 +778,7 @@ export function TaskCreateDialog({ open, onOpenChange, editTask }: TaskCreateDia
               </div>
             </TabsContent>
           </Tabs>
-        </ScrollArea>
+        </div>
 
         <DialogFooter className="mt-4 pt-4 border-t">
           <DialogClose asChild><Button variant="outline" disabled={isSubmitting}>Cancel</Button></DialogClose>
